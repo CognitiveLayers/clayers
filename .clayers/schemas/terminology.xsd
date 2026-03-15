@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:trm="urn:clayers:terminology"
+           xmlns:llm="urn:clayers:llm"
+           xmlns:spec="urn:clayers:spec"
+           targetNamespace="urn:clayers:terminology"
+           elementFormDefault="qualified"
+           version="1.1">
+
+  <xs:annotation>
+    <xs:documentation>
+      Terminology Layer Schema.
+      Controlled vocabulary with definitions. Terms defined here
+      are the canonical meaning within this specification. Other
+      layers reference term IDs for precision.
+    </xs:documentation>
+    <xs:appinfo>
+      <llm:describe>
+        The terminology schema defines a controlled vocabulary. Each
+        term has an id, a canonical name, and a definition. Other layers
+        reference terms by ID via trm:ref elements for precision: when
+        prose says "settlement", it links to the canonical definition.
+      </llm:describe>
+      <spec:keyref name="term-refs" selector=".//trm:ref" field="@term"/>
+    </xs:appinfo>
+  </xs:annotation>
+
+  <!-- Global term element -->
+  <xs:element name="term" type="trm:TermType">
+    <xs:annotation><xs:appinfo><spec:content-element/></xs:appinfo></xs:annotation>
+  </xs:element>
+
+  <xs:complexType name="TermType">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          A single vocabulary entry. The id attribute is the globally
+          unique identifier used by other layers to reference this term.
+          Contains a canonical name and a definition.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="name" type="xs:string"/>
+      <xs:element name="definition" type="xs:string"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID" use="required"/>
+  </xs:complexType>
+
+  <!-- Ref element for use in other namespaces (e.g., prose layer) -->
+  <xs:element name="ref" type="trm:TermRefType">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          An inline reference to a defined term, used within prose
+          content. The term attribute is the ID of the referenced term.
+          Element content is display text, which may differ from the
+          canonical name for grammatical reasons.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+  </xs:element>
+
+  <xs:complexType name="TermRefType" mixed="true">
+    <xs:annotation>
+      <xs:documentation>
+        Inline reference to a term. The 'term' attribute points to a
+        term ID. Element content is the display text (may differ from
+        the canonical term name for grammatical reasons).
+      </xs:documentation>
+    </xs:annotation>
+    <xs:attribute name="term" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>
+          Term ID reference. Uses xs:string (not xs:IDREF) because
+          term definitions live in a separate document (terminology layer).
+          Cross-document ID resolution is a tooling concern, not a schema one.
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+</xs:schema>

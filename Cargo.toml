@@ -1,0 +1,10 @@
+[workspace]
+resolver = "3"
+members = ["crates/clayers", "crates/clayers-xml", "crates/clayers-spec"]
+
+[workspace.lints.rust]
+warnings = "deny"
+
+[workspace.lints.clippy]
+all = { level = "deny" }
+pedantic = { level = "warn" }

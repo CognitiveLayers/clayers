@@ -1,0 +1,517 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Plans: Implementation plan layer for the clayers format.
+  Describes the plan layer and demonstrates it with the plan schema itself.
+-->
+<spec:clayers xmlns:spec="urn:clayers:spec"
+       xmlns:pr="urn:clayers:prose"
+       xmlns:trm="urn:clayers:terminology"
+       xmlns:src="urn:clayers:source"
+       xmlns:pln="urn:clayers:plan"
+       xmlns:org="urn:clayers:organization"
+       xmlns:rel="urn:clayers:relation"
+       xmlns:art="urn:clayers:artifact"
+       xmlns:llm="urn:clayers:llm"
+       spec:index="index.xml">
+
+  <!-- ================================================================== -->
+  <!-- External Sources                                                    -->
+  <!-- ================================================================== -->
+
+  <src:source id="src-anthropic-xml-tags" type="documentation"
+              url="https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/use-xml-tags"
+              accessed="2026-03-12">
+    <src:title>Use XML tags to structure your prompts</src:title>
+    <src:overview>Anthropic's official guidance on using XML tags with Claude.
+    Recommends wrapping distinct content types in XML tags to reduce
+    misinterpretation, especially for complex prompts mixing instructions,
+    context, examples, and variable inputs.</src:overview>
+    <src:author>Anthropic</src:author>
+  </src:source>
+
+  <!-- ================================================================== -->
+  <!-- Plan Layer                                                          -->
+  <!-- ================================================================== -->
+
+  <pr:section id="plan-layer">
+    <pr:title>Plan Layer</pr:title>
+    <pr:shortdesc>Implementation plans with itemized steps, testable acceptance
+    criteria, and a witness model for verification.</pr:shortdesc>
+
+    <pr:p>A specification describes what a system should be. Code implements it.
+    But between specification and code lies a gap: the sequence of work that
+    transforms intent into artifact. Plans bridge this gap. They decompose a
+    specification into discrete, ordered steps with testable acceptance criteria
+    that define when each step is done.</pr:p>
+
+    <pr:p>LLMs already produce plans as part of their workflow: when asked to
+    implement a feature, they propose a sequence of steps. The plan layer
+    channels these proposals into structured, validated XML. As
+    <src:cite source="src-anthropic-xml-tags">Anthropic's prompt engineering
+    guidance</src:cite> documents, wrapping distinct content types in XML tags
+    reduces misinterpretation. Plans expressed as XML elements rather than
+    free-text markdown benefit from the same delineation: each item, criterion,
+    and witness is a distinct, addressable node that tooling can validate,
+    query, and track.</pr:p>
+
+    <pr:p>Plans are self-contained. Unlike <pr:code>dec:decision</pr:code>
+    elements which reference a separate <pr:code>pr:section</pr:code> for
+    narrative context, plans embed their own title, overview, and item
+    descriptions directly. This eliminates the need for hash-tracking between
+    a plan and its narrative, and keeps plan content atomic: a single
+    <pr:code>pln:plan</pr:code> element holds everything needed to understand
+    and execute the plan. For rich content beyond simple strings, plans and
+    items support embedding prose layer elements (<pr:code>pr:section</pr:code>,
+    <pr:code>pr:p</pr:code>, <pr:code>trm:ref</pr:code>,
+    <pr:code>src:cite</pr:code>) via <pr:code>xs:any</pr:code> for
+    open-world extensibility.</pr:p>
+  </pr:section>
+
+  <org:concept ref="plan-layer">
+    <org:purpose>Understanding how the plan layer bridges specification and
+    implementation through structured, testable plans with self-contained
+    content and embedded prose support.</org:purpose>
+  </org:concept>
+
+  <!-- ================================================================== -->
+  <!-- Acceptance Criteria and Witnesses                                   -->
+  <!-- ================================================================== -->
+
+  <pr:section id="plan-acceptance-criteria">
+    <pr:title>Acceptance Criteria and Witnesses</pr:title>
+    <pr:shortdesc>Testable criteria with structured evidence for verification.</pr:shortdesc>
+
+    <pr:p>Each plan item carries an <pr:code>acceptance</pr:code> block
+    containing one or more criteria. A criterion is mixed content: inline text
+    describes what must be true. The optional <pr:code>ref</pr:code> attribute
+    links the criterion to the spec node it verifies, creating a traceable
+    connection between the plan and the specification.</pr:p>
+
+    <pr:p>Witnesses are the evidence that proves a criterion is met. Each
+    criterion can have zero or more <pr:code>witness</pr:code> children,
+    classified by type:</pr:p>
+
+    <pr:ul>
+      <pr:li><pr:b>command</pr:b>: a shell command whose exit code indicates
+      pass (0) or fail (non-zero). The simplest form of automated
+      verification.</pr:li>
+      <pr:li><pr:b>script</pr:b>: an executable script with an optional
+      <pr:code>lang</pr:code> attribute specifying the language. For
+      verification logic that exceeds a single command.</pr:li>
+      <pr:li><pr:b>manual</pr:b>: a human verification step with an optional
+      <pr:code>role</pr:code> attribute specifying who performs it. For
+      criteria that cannot be automated (security reviews, UX assessments).</pr:li>
+    </pr:ul>
+
+    <pr:p>The witness type enumeration is extensible, following the same pattern
+    as <pr:xref ref="extensible-relation-types">extensible relation types</pr:xref>
+    and source types. Extension layers define new witness types annotated with
+    <pr:code>pln:witness-type-properties</pr:code>, activated via a
+    <pr:code>rel:relation type="refines"</pr:code> edge to
+    <pr:code>type-witness-kind</pr:code>.</pr:p>
+  </pr:section>
+
+  <org:concept ref="plan-acceptance-criteria">
+    <org:purpose>Understanding how the witness model structures verification
+    evidence for plan acceptance criteria, with extensible witness types.</org:purpose>
+  </org:concept>
+
+  <!-- ================================================================== -->
+  <!-- Plan Revision Chains                                                -->
+  <!-- ================================================================== -->
+
+  <pr:section id="plan-revision-chains">
+    <pr:title>Plan Revision Chains</pr:title>
+    <pr:shortdesc>Succession chains for plan evolution using the extensible
+    relation type pattern.</pr:shortdesc>
+
+    <pr:p>Plans evolve. An initial plan may prove incomplete or misguided after
+    implementation begins. Rather than editing the original plan (which would
+    lose the history of what was originally proposed), a new plan can revise
+    the old one. The <pr:code>pln:revises</pr:code> element records this
+    succession: its <pr:code>from</pr:code> attribute names the new plan,
+    and its <pr:code>to</pr:code> attribute names the old one.</pr:p>
+
+    <pr:p>The revises element is an extension relation type following the same
+    pattern as <pr:code>dec:supersedes</pr:code> in the decision layer. It
+    carries a <pr:code>rel:relation-type-properties</pr:code> annotation
+    declaring it as acyclic (a plan cannot transitively revise itself) and
+    is activated via a <pr:code>rel:relation type="refines"</pr:code> edge
+    from <pr:code>type-revises</pr:code> to
+    <pr:code>type-relation-kind</pr:code>.</pr:p>
+  </pr:section>
+
+  <org:concept ref="plan-revision-chains">
+    <org:purpose>Understanding how pln:revises creates succession chains for
+    plan evolution, parallel to dec:supersedes for decision succession.</org:purpose>
+  </org:concept>
+
+  <!-- ================================================================== -->
+  <!-- Plan Usage Guide                                                    -->
+  <!-- ================================================================== -->
+
+  <pr:section id="plan-usage">
+    <pr:title>Creating and Managing Plans</pr:title>
+    <pr:shortdesc>Practical guide to authoring plans with acceptance criteria
+    and witnesses.</pr:shortdesc>
+
+    <pr:p>A plan starts with a title, an optional overview, and a status of
+    <pr:code>proposed</pr:code>. Add items for each discrete step. Each item
+    needs a title, optional description, at least one acceptance criterion,
+    and a status of <pr:code>pending</pr:code>.</pr:p>
+
+    <pr:p>For item ordering and dependencies, use existing relation types:
+    <pr:code>rel:relation type="depends-on"</pr:code> when one item cannot
+    start until another completes, and <pr:code>rel:relation
+    type="precedes"</pr:code> for sequencing without hard dependency.</pr:p>
+
+    <pr:p>When simple string fields are insufficient, embed prose layer
+    elements directly inside the plan or its items. A
+    <pr:code>pr:section</pr:code> inside a plan provides a rich overview;
+    a <pr:code>pr:p</pr:code> inside an item provides a rich description
+    with terminology references and source citations.</pr:p>
+
+    <pr:p>Attach witnesses to criteria for verification. Use
+    <pr:code>command</pr:code> witnesses for simple shell checks,
+    <pr:code>script</pr:code> witnesses for complex verification logic, and
+    <pr:code>manual</pr:code> witnesses for human sign-off requirements.
+    A criterion with no witnesses is still valid but relies on human judgment
+    alone.</pr:p>
+
+    <pr:p>When a plan needs revision, create a new plan and link it with
+    <pr:code>pln:revises</pr:code>. Set the old plan's status to
+    <pr:code>abandoned</pr:code> and the new plan's status to
+    <pr:code>proposed</pr:code> or <pr:code>active</pr:code>.</pr:p>
+  </pr:section>
+
+  <org:task ref="plan-usage">
+    <org:purpose>Step-by-step guide for authoring plans with acceptance criteria,
+    witnesses, embedded prose, and revision chains.</org:purpose>
+  </org:task>
+
+  <!-- ================================================================== -->
+  <!-- Relations                                                           -->
+  <!-- ================================================================== -->
+
+  <!-- Plan layer refines the layered architecture -->
+  <rel:relation type="refines" from="plan-layer" to="layered-architecture">
+    <rel:note>The plan layer adds implementation planning as a semantic dimension
+    within the layered architecture.</rel:note>
+  </rel:relation>
+
+  <trm:term id="type-plan">
+    <trm:name>PlanType</trm:name>
+    <trm:definition>The XSD complexType that defines the structure of plan
+    elements in the plan layer.</trm:definition>
+  </trm:term>
+
+  <trm:term id="type-revises">
+    <trm:name>RevisesType</trm:name>
+    <trm:definition>The XSD complexType that defines the structure of revision
+    chains in the plan layer.</trm:definition>
+  </trm:term>
+
+  <trm:term id="type-witness-kind">
+    <trm:name>WitnessKind</trm:name>
+    <trm:definition>The XSD simpleType that enumerates witness type values
+    for plan acceptance criteria.</trm:definition>
+  </trm:term>
+
+  <!-- Activation edge: makes revises a recognized relation type -->
+  <rel:relation type="refines" from="type-revises" to="type-relation-kind">
+    <rel:note>Activates the revises extension relation type defined in
+    plan.xsd, enabling plan revision chains in the connectivity
+    graph.</rel:note>
+  </rel:relation>
+
+  <!-- Schema type nodes: connect XSD-defined IDs to the plan layer -->
+  <rel:relation type="refines" from="type-plan" to="plan-layer">
+    <rel:note>The PlanType complexType (id="type-plan") is the schema
+    definition for plan elements in the plan layer.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="type-revises" to="plan-layer">
+    <rel:note>The RevisesType complexType (id="type-revises") is the schema
+    definition for revision chains in the plan layer.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="type-witness-kind" to="plan-layer">
+    <rel:note>The WitnessKind simpleType (id="type-witness-kind") is the
+    schema definition for witness type classification in the plan layer.</rel:note>
+  </rel:relation>
+
+  <!-- Plan layer depends on extensible relation types -->
+  <rel:relation type="depends-on" from="plan-layer" to="extensible-relation-types">
+    <rel:note>The plan layer's revises element is an extension relation type,
+    depending on the extensible relation type mechanism for activation and
+    graph integration.</rel:note>
+  </rel:relation>
+
+  <!-- Sub-sections refine the plan layer -->
+  <rel:relation type="refines" from="plan-acceptance-criteria" to="plan-layer">
+    <rel:note>Acceptance criteria and witnesses are a core component of the
+    plan layer.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="plan-revision-chains" to="plan-layer">
+    <rel:note>Revision chains are the plan layer's mechanism for plan
+    evolution.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="plan-usage" to="plan-layer">
+    <rel:note>Usage guide for authoring plans within the plan layer.</rel:note>
+  </rel:relation>
+
+  <!-- ================================================================== -->
+  <!-- LLM descriptions                                                    -->
+  <!-- ================================================================== -->
+
+  <llm:node ref="plan-layer">
+    Describes the plan layer: implementation plans with itemized steps and
+    testable acceptance criteria. Plans are self-contained (embed their own
+    title, overview, items) unlike decisions (which reference external prose).
+    Plans and items support xs:any for embedding rich prose layer elements.
+    The witness model defines how criteria are verified: commands, scripts,
+    and manual human checks. The pln:revises element is an extension relation
+    type for plan succession chains, activated via a refines edge to
+    type-relation-kind.
+  </llm:node>
+
+  <llm:node ref="plan-acceptance-criteria">
+    Describes the acceptance model: criteria define what must be true, witnesses
+    provide evidence. Three witness types: command (shell exit code), script
+    (executable with lang attribute), manual (human with role attribute).
+    The witness type enumeration is extensible via the same pattern as
+    relation types and source types.
+  </llm:node>
+
+  <llm:node ref="plan-revision-chains">
+    Describes plan revision chains: pln:revises links a new plan to the old
+    plan it replaces. Follows the same extension relation type pattern as
+    dec:supersedes. Acyclic: a plan cannot transitively revise itself.
+  </llm:node>
+
+  <llm:node ref="plan-usage">
+    Practical guide for authoring plans. Covers: creating plans with title
+    and overview, adding items with acceptance criteria and witnesses, using
+    rel:relation for item ordering (depends-on, precedes), embedding prose
+    layer elements for rich content, and creating revision chains.
+  </llm:node>
+
+  <llm:node ref="src-anthropic-xml-tags">
+    External source: Anthropic's official documentation on using XML tags to
+    structure prompts. Recommends XML delineation for complex prompts to
+    reduce misinterpretation. Cited as motivation for the plan layer's
+    structured XML approach.
+  </llm:node>
+
+  <!-- Out-of-band schema descriptions for the plan layer -->
+  <llm:schema namespace="urn:clayers:plan">
+    The plan schema captures implementation plans as structured metadata.
+    Each &lt;pln:plan&gt; is self-contained with an embedded title, optional
+    overview, status, and one or more items. Items have titles, optional
+    descriptions, acceptance criteria with witnesses, and status tracking.
+    Plans and items support xs:any for embedding prose layer elements
+    (pr:section, pr:p, trm:ref, src:cite). The witness model: command
+    (shell exit code), script (executable with lang), manual (human with
+    role). The &lt;pln:revises&gt; element is an extension relation type
+    for plan revision chains, activated by a refines edge to
+    type-relation-kind.
+  </llm:schema>
+
+  <llm:schema namespace="urn:clayers:plan" element="plan">
+    A self-contained implementation plan. The id makes it a node. Contains
+    embedded title, optional overview, status (proposed/active/completed/
+    abandoned), optional embedded prose via xs:any, and one or more items.
+    Unlike dec:decision, plans do NOT reference external prose via ref.
+  </llm:schema>
+
+  <llm:schema namespace="urn:clayers:plan" element="revises">
+    An extension relation type for plan revision chains. The from attribute
+    names the new plan, the to attribute names the old one. Acyclic: a plan
+    cannot transitively revise itself. Must be activated by a refines edge
+    from type-revises to type-relation-kind in spec content.
+  </llm:schema>
+
+  <!-- Coverage exemptions: documentation-only nodes with no code artifact -->
+
+  <art:exempt node="plan-layer">Conceptual documentation describing the plan
+  layer's purpose and design. No code implements this concept.</art:exempt>
+
+  <art:exempt node="plan-acceptance-criteria">Conceptual documentation describing
+  the acceptance criteria and witness model. No code implements this concept.</art:exempt>
+
+  <art:exempt node="plan-revision-chains">Conceptual documentation describing plan
+  revision chains. No code implements this concept.</art:exempt>
+
+  <art:exempt node="plan-usage">Task documentation for authoring plans. No code
+  implements this task.</art:exempt>
+
+  <art:exempt node="src-anthropic-xml-tags">External source declaration for
+  Anthropic XML tags documentation. Bibliography entry, not a code-mapped
+  node.</art:exempt>
+
+
+  <!-- Type→schema and self-referential mappings -->
+
+  <art:mapping id="map-type-plan-schema">
+    <art:spec-ref node="type-plan"
+              revision="draft-1"
+              node-hash="sha256:65cd2869e6758af092b2354fa57b927841dec0cac0fcc7eca8c8ddbd8eb75f89"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="schemas/plan.xsd">
+        <art:range hash="sha256:d6ba5e078f45afc3a01df3946e7967d0341e26f6f320ec9c596090c8e3ffa519" start-line="74" end-line="115"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>PlanType complexType: title, overview, status, item children.</art:note>
+  </art:mapping>
+
+
+  <art:mapping id="map-type-revises-schema">
+    <art:spec-ref node="type-revises"
+              revision="draft-1"
+              node-hash="sha256:e926ff9a5a09d452f7f42701c285c28082153c9980c77a8d92947eb61760597a"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="schemas/plan.xsd">
+        <art:range hash="sha256:aa72cfba1aa683db8e775ae0cff518ae03524f2ab9f4645d18399b5ce5a4ba85" start-line="333" end-line="365"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>RevisesType complexType: ref attribute linking to revised plan.</art:note>
+  </art:mapping>
+
+
+  <art:mapping id="map-type-witness-kind-schema">
+    <art:spec-ref node="type-witness-kind"
+              revision="draft-1"
+              node-hash="sha256:a681135a2b8fdadf3c36acc958bbe6979ddac0887d79b210fa8319ae661952a4"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="schemas/plan.xsd">
+        <art:range hash="sha256:0df7217433b481b22454d7511b4cf95f131d4c39bf13ccd77e6b5c6ff68935d3" start-line="246" end-line="270"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>WitnessKind simpleType: command, script, manual witness types.</art:note>
+  </art:mapping>
+
+
+  <art:mapping id="map-plan-layer-schema-core">
+    <art:spec-ref node="plan-layer"
+              revision="draft-1"
+              node-hash="sha256:8a04c31c5079cde9fe0c5547954d6dd9f72a45276c032d09aea757a2973421b7"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="schemas/plan.xsd">
+        <art:range hash="sha256:8918231ba60c3d4186e60c3983d309d1379e57f3f4ecc74dee4cc1d116c3b086" start-line="1" end-line="73"/>
+      </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>Schema header, plan and item element declarations.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-plan-layer-schema-plan-type">
+    <art:spec-ref node="plan-layer"
+              revision="draft-1"
+              node-hash="sha256:8a04c31c5079cde9fe0c5547954d6dd9f72a45276c032d09aea757a2973421b7"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="schemas/plan.xsd">
+        <art:range hash="sha256:ff1b23b052ffc1df6fa7dcfc1d7678481fb27c48ccf452c137b57f64fcff73c6" start-line="74" end-line="167"/>
+      </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>PlanType, ItemType complexTypes with status and content model.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-plan-layer-schema-acceptance-types">
+    <art:spec-ref node="plan-layer"
+              revision="draft-1"
+              node-hash="sha256:8a04c31c5079cde9fe0c5547954d6dd9f72a45276c032d09aea757a2973421b7"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="schemas/plan.xsd">
+        <art:range hash="sha256:8662aee6c4547f43ebd08acf8da94b94207f2c6d374bd88efc73f4db22373801" start-line="168" end-line="218"/>
+      </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>AcceptanceType and CriterionType complex type definitions.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-plan-layer-schema-witness">
+    <art:spec-ref node="plan-layer"
+              revision="draft-1"
+              node-hash="sha256:8a04c31c5079cde9fe0c5547954d6dd9f72a45276c032d09aea757a2973421b7"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="schemas/plan.xsd">
+        <art:range hash="sha256:fc50fdc4cb7a2bebd6cc97a94c897acff9ffac020a0d591754136b58ff60aa4d" start-line="220" end-line="270"/>
+      </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>WitnessType, WitnessKind definitions for plan acceptance criteria witnesses.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-plan-layer-schema-revises">
+    <art:spec-ref node="plan-layer"
+              revision="draft-1"
+              node-hash="sha256:8a04c31c5079cde9fe0c5547954d6dd9f72a45276c032d09aea757a2973421b7"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="schemas/plan.xsd">
+        <art:range hash="sha256:1de14cab38982a697ef364217ec0e4934a2c97551987435c33fe25ff57413e7c" start-line="271" end-line="365"/>
+      </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>RevisesType extension relation type and remaining type definitions.</art:note>
+  </art:mapping>
+
+
+  <art:mapping id="map-plan-acceptance-schema">
+    <art:spec-ref node="plan-acceptance-criteria"
+              revision="draft-1"
+              node-hash="sha256:94b3325dfce752f46da7cde2c92dd6631b723cbc3190d2dbb8f08e29aafc5a8f"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="schemas/plan.xsd">
+        <art:range hash="sha256:34e9c0884e6299272be3a6e2e03ec2b2ba5352c2c968a019e17199f0ea4964a5" start-line="168" end-line="244"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>AcceptanceType, CriterionType, WitnessType: structured acceptance criteria with typed witnesses (command, script, manual).</art:note>
+  </art:mapping>
+
+
+  <art:mapping id="map-plan-usage-self">
+    <art:spec-ref node="plan-usage"
+              revision="draft-1"
+              node-hash="sha256:03be66300a53a01d4a675ed083d3b4bf815789225545ee4e356eb157d979b9bf"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="clayers/clayers/plans.xml">
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Plan documentation section in plans.xml.</art:note>
+  </art:mapping>
+
+
+  <art:mapping id="map-plan-revision-chains-self">
+    <art:spec-ref node="plan-revision-chains"
+              revision="draft-1"
+              node-hash="sha256:3e8d3594b414df5b919b10712ecc40d7cb198f45abd2f7bacb9f8556decb598d"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="clayers/clayers/plans.xml">
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Plan documentation section in plans.xml.</art:note>
+  </art:mapping>
+
+
+  <art:mapping id="map-src-anthropic-xml-self">
+    <art:spec-ref node="src-anthropic-xml-tags"
+              revision="draft-1"
+              node-hash="sha256:b578820a26171d4f058854da821e1f6f05b26949e21dda4361cf1c80da7281f3"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="clayers/clayers/plans.xml">
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Source reference to Anthropic XML tags guide in plans.xml.</art:note>
+  </art:mapping>
+
+</spec:clayers>

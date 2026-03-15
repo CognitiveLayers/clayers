@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Revision Layer: Named snapshots of the clayers specification.
+-->
+<spec:clayers xmlns:spec="urn:clayers:spec"
+           xmlns="urn:clayers:revision"
+           spec:spec="clayers">
+
+  <revision name="draft-1"
+            timestamp="2026-03-09T12:00:00Z"
+            index="index.xml"
+            index-hash="sha256:b3a1d7e4f290c685a401e8d3f5c7b9a2e6d104f87c3b5a9e2d6f8014c7a3b5e9">
+    <note>Initial self-referential specification for the clayers format.</note>
+  </revision>
+</spec:clayers>

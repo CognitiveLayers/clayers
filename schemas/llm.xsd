@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:llm="urn:clayers:llm"
+           xmlns:spec="urn:clayers:spec"
+           targetNamespace="urn:clayers:llm"
+           elementFormDefault="qualified"
+           version="1.1">
+
+  <xs:annotation>
+    <xs:documentation>
+      LLM Layer Schema.
+      Embeds descriptions optimized for language model consumption.
+      Two uses: describing spec nodes (by ID reference) and describing
+      schemas/layers (by namespace URI). The layer is self-describing:
+      it can contain a description of its own schema.
+    </xs:documentation>
+    <xs:appinfo>
+      <llm:describe>
+        The LLM layer adds descriptions optimized for language model
+        consumption. Two out-of-band element types in the layer file:
+        &lt;node ref="..."&gt; describes a spec node (validated via keyref),
+        and &lt;schema namespace="..."&gt; describes a schema or element by
+        namespace URI. One in-band element: &lt;llm:describe&gt; is placed
+        inside xs:appinfo in any XSD to describe the containing schema
+        element. This schema is self-describing.
+      </llm:describe>
+      <spec:keyref name="llm-node-refs" selector=".//llm:node" field="@ref"/>
+    </xs:appinfo>
+  </xs:annotation>
+
+  <!-- Global elements for out-of-band descriptions -->
+  <xs:element name="node" type="llm:NodeDescType">
+    <xs:annotation>
+      <xs:appinfo>
+        <spec:content-element/>
+        <llm:describe>
+          Describes a spec node for LLM consumption. The ref attribute
+          is a node ID (validated against the unified ID space in the
+          combined schema). The text content explains what the node
+          means, how it relates to others, and guidance for use.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+  </xs:element>
+
+  <xs:element name="schema" type="llm:SchemaDescType">
+    <xs:annotation>
+      <xs:appinfo>
+        <spec:content-element/>
+        <llm:describe>
+          Describes a schema or element within a schema. The namespace
+          attribute is the schema's namespace URI. The optional element
+          attribute narrows the description to a specific element.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+  </xs:element>
+
+  <!-- Describe a spec node by ID reference -->
+  <xs:complexType name="NodeDescType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="ref" type="xs:string" use="required">
+          <xs:annotation>
+            <xs:documentation>
+              Node ID reference. Validated via keyref in combined.xsd.
+            </xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <!-- Describe a schema/layer by namespace URI, optionally a specific element -->
+  <xs:complexType name="SchemaDescType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="namespace" type="xs:anyURI" use="required">
+          <xs:annotation>
+            <xs:documentation>
+              Namespace URI of the schema being described.
+            </xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="element" type="xs:string" use="optional">
+          <xs:annotation>
+            <xs:documentation>
+              Local name of a specific element within the schema.
+              When omitted, the description applies to the schema as a whole.
+            </xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <!--
+    In-band description element for use inside xs:appinfo in any XSD.
+    Context comes from placement; no attributes needed.
+  -->
+  <xs:element name="describe" type="xs:string"/>
+
+</xs:schema>

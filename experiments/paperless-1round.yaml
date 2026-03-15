@@ -1,0 +1,50 @@
+# Experiment: Is multi-round extraction worth the cost?
+# Single round, no feedback loop. Compare against paperless-sonnet-vs-opus (2 rounds).
+# If 1 round produces equivalent dev outcomes, the validator/compliance
+# feedback loop is wasted spend (~$3-5 per extra round).
+
+repo: https://github.com/paperless-ngx/paperless-ngx
+rounds: 1
+runs: 3
+
+extraction_model: claude-opus-4-6
+with_spec_model: claude-sonnet-4-6
+without_spec_model: claude-opus-4-6
+
+feature: |
+  Implement a document retention policy system with automated expiration and enforcement.
+
+  This system lets administrators define rules that automatically archive, delete, or flag
+  documents based on age, type, tags, and custom metadata. It must integrate with the
+  existing document model, storage backends, permissions, and background task infrastructure.
+
+  Requirements:
+  1. Retention policy model: a policy has a name, match criteria (document type, tags,
+     age threshold, custom metadata filters), an action (archive, soft-delete, hard-delete,
+     notify-only), and a priority for conflict resolution when multiple policies match.
+  2. Grace period: before any destructive action, documents enter a "pending expiration"
+     state for a configurable grace period (default 30 days). Users are notified and can
+     mark documents as "exempt" to prevent the action.
+  3. Scheduled background task: a periodic Celery/background task evaluates all active
+     policies against all documents, transitions documents through states (active ->
+     pending_expiration -> expired/archived/deleted), and records all actions in an audit log.
+  4. Audit log model: every retention action (policy matched, grace period started, document
+     archived/deleted, exemption granted) is logged with timestamp, policy reference,
+     document reference, acting user (or "system"), and action details.
+  5. REST API endpoints: full CRUD for retention policies, list documents pending expiration,
+     grant exemptions, view audit log with filtering/pagination. Must follow the project's
+     existing API patterns (serializers, viewsets, permissions, URL structure).
+  6. Dry-run mode: a management command and API endpoint that evaluates policies without
+     taking any action, returning a report of what would happen.
+  7. Conflict resolution: when multiple policies match a document, the highest-priority
+     policy wins. If priorities tie, the least destructive action wins (notify < archive <
+     soft-delete < hard-delete).
+  8. Integration with existing permissions: only users with appropriate permissions can
+     create/modify policies or grant exemptions. Document owners are notified during
+     grace periods.
+  9. Tests: unit tests for policy matching logic and conflict resolution, integration tests
+     for the background task lifecycle, API endpoint tests, edge cases (overlapping policies,
+     concurrent task execution, exempt documents, empty match criteria).
+  10. The implementation must discover and follow the project's conventions by reading
+      existing code: model patterns, serializer style, viewset structure, URL routing,
+      test organization, and task registration.

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Overview: What payment processing is and the core concepts.
+-->
+<spec:clayers xmlns:spec="urn:clayers:spec"
+       xmlns:pr="urn:clayers:prose"
+       xmlns:trm="urn:clayers:terminology"
+       xmlns:org="urn:clayers:organization"
+       spec:index="index.xml">
+
+  <trm:term id="term-transaction">
+    <trm:name>Transaction</trm:name>
+    <trm:definition>A financial operation that moves funds between two parties,
+    tracked from initiation through final settlement.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-settlement">
+    <trm:name>Settlement</trm:name>
+    <trm:definition>The process by which a transaction becomes final and
+    irrevocable, with funds transferred between the involved institutions.</trm:definition>
+  </trm:term>
+
+  <pr:section id="overview">
+    <pr:title>Payment Processing Overview</pr:title>
+    <pr:shortdesc>How a payment moves from initiation to
+    <trm:ref term="term-settlement">settlement</trm:ref>.</pr:shortdesc>
+
+    <pr:p>A payment <trm:ref term="term-transaction">transaction</trm:ref> passes
+    through distinct phases. Each phase has clear entry and exit criteria,
+    and each involves specific parties with defined responsibilities.</pr:p>
+  </pr:section>
+
+  <org:concept ref="overview">
+    <org:purpose>Orientation for readers new to payment processing.</org:purpose>
+  </org:concept>
+
+  <org:concept ref="term-transaction">
+    <org:purpose>Core domain object that all flows operate on.</org:purpose>
+  </org:concept>
+
+  <org:concept ref="term-settlement">
+    <org:purpose>The finality guarantee that the system provides.</org:purpose>
+  </org:concept>
+</spec:clayers>

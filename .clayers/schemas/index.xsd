@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:idx="urn:clayers:index"
+           xmlns:llm="urn:clayers:llm"
+           xmlns:spec="urn:clayers:spec"
+           targetNamespace="urn:clayers:index"
+           elementFormDefault="qualified"
+           version="1.1">
+
+  <xs:annotation>
+    <xs:documentation>
+      Index Layer Schema.
+      Defines the file manifest element for specifications. Each
+      file entry declares a layer file within the spec boundary.
+    </xs:documentation>
+    <xs:appinfo>
+      <llm:describe>
+        The index schema defines the file element for the spec manifest.
+        Each file element has href (relative path) and layer (namespace
+        URI) attributes. The containing clayers root uses spec and
+        version attributes (from spec.xsd) for identity.
+      </llm:describe>
+    </xs:appinfo>
+  </xs:annotation>
+
+  <xs:element name="file" type="idx:FileRefType">
+    <xs:annotation>
+      <xs:appinfo>
+        <spec:content-element/>
+        <llm:describe>
+          A file reference in the spec manifest. href is a relative
+          path to the layer file, layer is the namespace URI identifying
+          the layer type. Files listed here define the spec boundary
+          and participate in combined-document validation.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+  </xs:element>
+
+  <xs:complexType name="FileRefType">
+    <xs:attribute name="href" type="xs:anyURI" use="required">
+      <xs:annotation>
+        <xs:documentation>Relative path to the layer file.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="layer" type="xs:anyURI" use="optional">
+      <xs:annotation>
+        <xs:documentation>Namespace URI identifying the primary layer type.
+        Optional for chapter files that mix content from multiple layers.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+</xs:schema>

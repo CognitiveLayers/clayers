@@ -1,0 +1,19 @@
+[package]
+name = "clayers"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "clayers"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+clayers-spec = { path = "../clayers-spec" }
+
+[dev-dependencies]
+tempfile = "3"
+
+[lints]
+workspace = true

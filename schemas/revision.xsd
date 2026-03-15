@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:rev="urn:clayers:revision"
+           xmlns:llm="urn:clayers:llm"
+           xmlns:spec="urn:clayers:spec"
+           targetNamespace="urn:clayers:revision"
+           elementFormDefault="qualified"
+           version="1.1">
+
+  <xs:annotation>
+    <xs:documentation>
+      Revision Layer Schema.
+      Maps named revisions to index documents. Usually generated
+      on demand at release or milestone boundaries. Provides temporal
+      anchoring for artifact mappings.
+    </xs:documentation>
+    <xs:appinfo>
+      <llm:describe>
+        The revision schema records named snapshots of a specification.
+        Each revision has a name, timestamp, index reference, and index
+        hash. Artifact mappings pin to revision names so hashes can be
+        anchored to a specific point in the spec's evolution.
+      </llm:describe>
+    </xs:appinfo>
+  </xs:annotation>
+
+  <!-- Global revision element -->
+  <xs:element name="revision" type="rev:RevisionType">
+    <xs:annotation><xs:appinfo><spec:content-element/></xs:appinfo></xs:annotation>
+  </xs:element>
+
+  <xs:complexType name="RevisionType">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          A named snapshot of the specification at a point in time.
+          name is human-readable (e.g., "draft-1", "v1.0"), timestamp
+          is when the snapshot was taken, index points to the index
+          file, and index-hash is the hash of that index for integrity.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="note" type="xs:string" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>Human-readable revision name (e.g., "draft-1", "v1.0").</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="timestamp" type="xs:dateTime" use="required"/>
+    <xs:attribute name="index" type="xs:anyURI" use="required">
+      <xs:annotation>
+        <xs:documentation>Relative path to the index document for this revision.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="index-hash" type="rev:HashType" use="required">
+      <xs:annotation>
+        <xs:documentation>Hash of the index file at this revision.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <xs:simpleType name="HashType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[a-z0-9]+:[a-f0-9]+"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+</xs:schema>

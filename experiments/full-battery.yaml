@@ -1,0 +1,54 @@
+# Full experiment battery for cognitive layers evaluation.
+#
+# Run: uv run --script clayers-harness.py --battery experiments/full-battery.yaml
+#
+# Estimated cost: ~$150-250 total across all experiments
+# Estimated time: 8-16 hours (sequential)
+#
+# Results: harness-results/{timestamp}_clayers-battery/
+# Each experiment gets its own subdirectory with full outputs.
+# Cross-experiment analysis produced at the end.
+
+name: clayers-battery
+
+experiments:
+  # ── Model parity (same task, same project) ──────────────────
+
+  # Baseline: does the spec help at all? (same model, clean test)
+  - name: opus-vs-opus
+    config: paperless-opus-vs-opus.yaml
+
+  # Commercial question: can spec+cheap model beat expensive model?
+  - name: sonnet-vs-opus
+    config: paperless-sonnet-vs-opus.yaml
+
+  # Lower bound: how bad can the spec be and still add value?
+  - name: cheap-spec
+    config: paperless-cheap-spec.yaml
+
+  # ── Extraction depth (1 vs 2 vs 3 rounds) ──────────────────
+
+  # No feedback loop - raw first-pass extraction
+  - name: 1round
+    config: paperless-1round.yaml
+
+  # Heavy iteration - 3 rounds of validator/compliance feedback
+  - name: 3rounds
+    config: paperless-3rounds.yaml
+  # (2 rounds = sonnet-vs-opus above, serves as middle point)
+
+  # ── Task complexity ─────────────────────────────────────────
+
+  # Cross-cutting refactor - where relational knowledge should shine
+  - name: crosscut-refactor
+    config: paperless-crosscut-refactor.yaml
+
+  # Simple CRUD - does the spec overhead hurt on trivial tasks?
+  - name: simple-crud
+    config: outline-simple-crud.yaml
+
+  # ── Language/framework ──────────────────────────────────────
+
+  # Go project - explicit language, less "magic"
+  - name: go-project
+    config: gitea-webhooks.yaml

@@ -1,0 +1,399 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Adopt: Project bootstrap command for planting schemas and workflow.
+  How clayers adopt works, what it creates, and the marker-based
+  idempotency for keeping adopted projects up to date.
+-->
+<spec:clayers xmlns:spec="urn:clayers:spec"
+       xmlns:pr="urn:clayers:prose"
+       xmlns:trm="urn:clayers:terminology"
+       xmlns:org="urn:clayers:organization"
+       xmlns:rel="urn:clayers:relation"
+       xmlns:art="urn:clayers:artifact"
+       xmlns:llm="urn:clayers:llm"
+       spec:index="index.xml">
+
+  <!-- Vocabulary -->
+
+  <trm:term id="term-adoption">
+    <trm:name>Adoption</trm:name>
+    <trm:definition>The process of bootstrapping a project to use
+    clayers. Adoption plants embedded XSD schemas into the project's
+    .clayers/schemas/ directory, creates a starter specification with
+    index and revision files, and amends the project's agent instructions
+    file (CLAUDE.md or AGENTS.md) with the spec-first development
+    workflow. Adoption is idempotent: re-running on an already-adopted
+    project checks freshness and reports which components are outdated,
+    requiring the --update flag to overwrite them.</trm:definition>
+  </trm:term>
+
+  <!-- Content -->
+
+  <pr:section id="adopt-command">
+    <pr:title>The adopt command</pr:title>
+    <pr:shortdesc>Bootstrap a project with clayers schemas and
+    development workflow.</pr:shortdesc>
+
+    <pr:p>The <pr:code>adopt</pr:code> command makes any project
+    clayers-ready in a single invocation. It takes an optional path
+    argument (defaulting to the current directory) and performs three
+    operations:</pr:p>
+
+    <pr:ol>
+      <pr:li><pr:b>Plant schemas.</pr:b> All 12 XSD layer schemas,
+      catalog.xml, and postprocess.xslt are embedded in the binary at
+      build time via <pr:code>include_str!</pr:code>. The command writes
+      them to <pr:code>.clayers/schemas/</pr:code> in the target
+      project.</pr:li>
+      <pr:li><pr:b>Create starter spec.</pr:b> A skeleton
+      <pr:code>clayers/&lt;project&gt;/</pr:code> directory is created
+      with an index.xml and revision.xml. The project name is derived
+      from the target directory name. This step is skipped if a
+      <pr:code>clayers/</pr:code> directory already exists.</pr:li>
+      <pr:li><pr:b>Amend agent file.</pr:b> The command looks for
+      CLAUDE.md first, then AGENTS.md. If found, it appends the
+      spec-first development workflow section. If neither exists, it
+      creates AGENTS.md. Content is wrapped in HTML comment markers
+      (<pr:code>&lt;!-- clayers:adopt --&gt;</pr:code>) for
+      idempotent updates.</pr:li>
+    </pr:ol>
+
+    <pr:p>When the target project has already been adopted (detected by
+    the presence of .clayers/schemas/ with XSD files or agent file
+    markers), the command switches to freshness-checking mode. It
+    compares each planted schema and the agent instructions against the
+    embedded versions and reports what is outdated, missing, or current.
+    Without the <pr:code>--update</pr:code> flag, it exits with an error
+    after reporting. With <pr:code>--update</pr:code>, it overwrites
+    outdated files and replaces the content between markers.</pr:p>
+
+    <pr:note type="info">Schemas are embedded at build time, so
+    <pr:code>clayers adopt</pr:code> is a zero-dependency bootstrap:
+    no network access or external schema files are needed.</pr:note>
+  </pr:section>
+
+  <pr:section id="adopt-workflow">
+    <pr:title>Spec-first development workflow</pr:title>
+    <pr:shortdesc>The workflow injected into agent files by
+    clayers adopt.</pr:shortdesc>
+
+    <pr:p>The adopted workflow follows the principle of
+    <pr:b>spec first, code second</pr:b>. Before writing any
+    implementation code, developers and agents update the specification
+    to describe what they are building. The workflow then proceeds
+    through validation, implementation, artifact mapping, and quality
+    iteration.</pr:p>
+
+    <pr:p>The injected workflow includes guidance to drive spec coverage
+    to 100% as a natural way to discover what needs to be implemented.
+    Every spec <trm:ref term="term-node">node</trm:ref> should be
+    mapped to implementing code via
+    <trm:ref term="term-artifact-mapping">artifact mappings</trm:ref>,
+    and the coverage, connectivity, and drift tools provide continuous
+    feedback on the mapping quality.</pr:p>
+
+    <pr:p>Plans are kept in the spec using the
+    <pr:code>pln:plan</pr:code> layer, making them versioned, queryable,
+    and linked to the concepts they implement. This replaces ad-hoc
+    planning with structured, traceable plans that live alongside the
+    specification.</pr:p>
+  </pr:section>
+
+  <!-- Topic typing -->
+
+  <org:task ref="adopt-command">
+    <org:purpose>The CLI adopt command bootstraps a project with
+    clayers schemas and spec-first workflow instructions.</org:purpose>
+    <org:actor>clayers CLI tool</org:actor>
+  </org:task>
+
+  <org:concept ref="adopt-workflow">
+    <org:purpose>Describes the spec-first development workflow that
+    gets injected into agent files during adoption.</org:purpose>
+  </org:concept>
+
+  <!-- Relations -->
+
+  <rel:relation type="depends-on" from="adopt-command" to="term-adoption">
+    <rel:note>The adopt command implements the adoption concept.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="adopt-command" to="term-layer">
+    <rel:note>The adopt command plants layer schemas, requiring
+    understanding of the layer concept.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="adopt-command" to="term-node">
+    <rel:note>The starter spec creates nodes that participate in
+    the ID space.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="adopt-workflow" to="term-adoption">
+    <rel:note>The workflow is the process guidance component of
+    adoption.</rel:note>
+  </rel:relation>
+
+  <!-- Artifact mappings -->
+
+  <art:mapping id="map-adopt-command">
+    <art:spec-ref node="adopt-command"
+              revision="draft-1"
+              node-hash="sha256:5e7970ea560493f6bace920abef5321055617dc3d134734e99b0a021ece9e0ee"/>
+    <art:artifact repo="clayers"
+              repo-revision="HEAD"
+              path="crates/clayers/src/adopt.rs">
+      <art:range hash="sha256:bd6307842a985f449be240217c3e46a6d153065323ef28d20fa2d7bfbc34c065"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>The adopt module implements all adopt command logic:
+    fresh adopt, freshness checking, update flow, schema planting,
+    starter spec creation, and agent file amending.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-adopt-embedded">
+    <art:spec-ref node="adopt-command"
+              revision="draft-1"
+              node-hash="sha256:5e7970ea560493f6bace920abef5321055617dc3d134734e99b0a021ece9e0ee"/>
+    <art:artifact repo="clayers"
+              repo-revision="HEAD"
+              path="crates/clayers/src/embedded.rs">
+      <art:range hash="sha256:052dc2e900179c90ad3d100cf5cb568d9cb5fddf59e4c6340d47d9ee60fef9b4"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>The embedded module provides build-time schema embedding
+    via include_str!, making adopt a zero-dependency bootstrap.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-term-adoption">
+    <art:spec-ref node="term-adoption"
+              revision="draft-1"
+              node-hash="sha256:3b92386ce511f7c2b8a0d2e5c5b6e86b4bb66c2df07bf211c670e6c4c8ff72ee"/>
+    <art:artifact repo="clayers"
+              repo-revision="HEAD"
+              path="crates/clayers/src/adopt.rs">
+      <art:range hash="sha256:bd6307842a985f449be240217c3e46a6d153065323ef28d20fa2d7bfbc34c065"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>The adopt module is the canonical implementation of the
+    adoption concept.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-adopt-workflow">
+    <art:spec-ref node="adopt-workflow"
+              revision="draft-1"
+              node-hash="sha256:d93cde90dc56802d696b8445770ef7c1437158faddec3401ccae60aa616f5b3b"/>
+    <art:artifact repo="clayers"
+              repo-revision="HEAD"
+              path="crates/clayers/src/adopt.rs">
+      <art:range hash="sha256:7cd4a8519047f8bedf195b0d49dfa842451891775467c2461dccd62bee887d5f"
+                 start-line="11" end-line="42"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>The WORKFLOW_CONTENT constant contains the spec-first
+    development workflow that gets injected into agent files.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-adopt-constants">
+    <art:spec-ref node="adopt-command"
+              revision="draft-1"
+              node-hash="sha256:5e7970ea560493f6bace920abef5321055617dc3d134734e99b0a021ece9e0ee"/>
+    <art:artifact repo="clayers"
+              repo-revision="HEAD"
+              path="crates/clayers/src/adopt.rs">
+      <art:range hash="sha256:7cd4a8519047f8bedf195b0d49dfa842451891775467c2461dccd62bee887d5f"
+                 start-line="11" end-line="42"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>WORKFLOW_CONTENT constant: the spec-first development workflow
+    text embedded in the binary for injection into agent files.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-adopt-is-adopted">
+    <art:spec-ref node="adopt-command"
+              revision="draft-1"
+              node-hash="sha256:5e7970ea560493f6bace920abef5321055617dc3d134734e99b0a021ece9e0ee"/>
+    <art:artifact repo="clayers"
+              repo-revision="HEAD"
+              path="crates/clayers/src/adopt.rs">
+      <art:range hash="sha256:de5c29a46483ec1ade175c5c9ebda8783a2066f12a528e950d0d4c131ce06004"
+                 start-line="44" end-line="74"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>is_adopted: detects whether a project has already been adopted
+    by checking for .clayers/schemas/ with XSD files or agent file markers.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-adopt-check-freshness">
+    <art:spec-ref node="adopt-command"
+              revision="draft-1"
+              node-hash="sha256:5e7970ea560493f6bace920abef5321055617dc3d134734e99b0a021ece9e0ee"/>
+    <art:artifact repo="clayers"
+              repo-revision="HEAD"
+              path="crates/clayers/src/adopt.rs">
+      <art:range hash="sha256:543f51d2961159c4a00afb0d2c3e77c3113f23c4e221c3dccbd131d66d0c0119"
+                 start-line="77" end-line="157"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>check_freshness: compares each planted schema and agent
+    instructions against embedded versions, reports outdated/missing/current.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-adopt-helpers">
+    <art:spec-ref node="adopt-command"
+              revision="draft-1"
+              node-hash="sha256:5e7970ea560493f6bace920abef5321055617dc3d134734e99b0a021ece9e0ee"/>
+    <art:artifact repo="clayers"
+              repo-revision="HEAD"
+              path="crates/clayers/src/adopt.rs">
+      <art:range hash="sha256:f98ed2be1945ebda43b9adf2df89516e65cf0b134e74680083cdd167a635b775"
+                 start-line="159" end-line="190"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>find_agent_file, extract_between_markers helpers,
+    FreshnessStatus enum, and FreshnessItem struct.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-adopt-plant-schemas">
+    <art:spec-ref node="adopt-command"
+              revision="draft-1"
+              node-hash="sha256:5e7970ea560493f6bace920abef5321055617dc3d134734e99b0a021ece9e0ee"/>
+    <art:artifact repo="clayers"
+              repo-revision="HEAD"
+              path="crates/clayers/src/adopt.rs">
+      <art:range hash="sha256:d4ec619911f0a647d95c3231ed849dbcf7490b4804e2902481ec2d6dd221b561"
+                 start-line="192" end-line="208"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>plant_schemas: writes all embedded XSD schemas, catalog.xml,
+    and postprocess.xslt to .clayers/schemas/.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-adopt-starter-spec">
+    <art:spec-ref node="adopt-command"
+              revision="draft-1"
+              node-hash="sha256:5e7970ea560493f6bace920abef5321055617dc3d134734e99b0a021ece9e0ee"/>
+    <art:artifact repo="clayers"
+              repo-revision="HEAD"
+              path="crates/clayers/src/adopt.rs">
+      <art:range hash="sha256:59e4294495095b725376423e73197d975aeb000bb905614e2d082af5b7afe323"
+                 start-line="210" end-line="267"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>create_starter_spec: creates clayers/&lt;project&gt;/ skeleton
+    with index.xml and revision.xml.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-adopt-agent-file">
+    <art:spec-ref node="adopt-command"
+              revision="draft-1"
+              node-hash="sha256:5e7970ea560493f6bace920abef5321055617dc3d134734e99b0a021ece9e0ee"/>
+    <art:artifact repo="clayers"
+              repo-revision="HEAD"
+              path="crates/clayers/src/adopt.rs">
+      <art:range hash="sha256:aee9cc8c96355fde0dc2db38067f13efcb764cd476d61a359a21e8aa5a4f687b"
+                 start-line="269" end-line="348"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>amend_agent_file and update_adopted: agent file injection
+    with HTML comment markers and idempotent update flow.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-adopt-main">
+    <art:spec-ref node="adopt-command"
+              revision="draft-1"
+              node-hash="sha256:5e7970ea560493f6bace920abef5321055617dc3d134734e99b0a021ece9e0ee"/>
+    <art:artifact repo="clayers"
+              repo-revision="HEAD"
+              path="crates/clayers/src/adopt.rs">
+      <art:range hash="sha256:32db1e1c1cc677f3ed0481ebae3b0a69999a3d1ce947d83620342dcf586ebf9d"
+                 start-line="350" end-line="412"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>adopt() public entry point: dispatches between fresh adopt
+    and update-check based on is_adopted detection.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-adopt-tests-basic">
+    <art:spec-ref node="adopt-command"
+              revision="draft-1"
+              node-hash="sha256:5e7970ea560493f6bace920abef5321055617dc3d134734e99b0a021ece9e0ee"/>
+    <art:artifact repo="clayers"
+              repo-revision="HEAD"
+              path="crates/clayers/src/adopt.rs">
+      <art:range hash="sha256:b8a1584ef4ed84d870b4c11a66b337e096b1167091df41cbbed1c6878cc5ae7e"
+                 start-line="414" end-line="475"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Basic adoption tests: fresh adopt creates schemas/spec/agents,
+    prefers CLAUDE.md over AGENTS.md, detects adoption state.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-adopt-tests-update">
+    <art:spec-ref node="adopt-command"
+              revision="draft-1"
+              node-hash="sha256:5e7970ea560493f6bace920abef5321055617dc3d134734e99b0a021ece9e0ee"/>
+    <art:artifact repo="clayers"
+              repo-revision="HEAD"
+              path="crates/clayers/src/adopt.rs">
+      <art:range hash="sha256:d8746f848f35f7ebe272ed91f1b35051a36158f7660fa4e7f81507fb59033ab8"
+                 start-line="477" end-line="543"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Update and freshness tests: update flow overwrites outdated
+    files, schema content verification, freshness checking.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-adopt-cli">
+    <art:spec-ref node="adopt-command"
+              revision="draft-1"
+              node-hash="sha256:5e7970ea560493f6bace920abef5321055617dc3d134734e99b0a021ece9e0ee"/>
+    <art:artifact repo="clayers"
+              repo-revision="HEAD"
+              path="crates/clayers/src/cli.rs">
+      <art:range hash="sha256:f381df95b95e8adf012eb9e67ef1d40aa6528a5d847e0628b671065c01ca7c85"
+                 start-line="67" end-line="75"/>
+      <art:range hash="sha256:b244cff6651cf3a2af52d808d3cbbd0a161157c0ac4a205473d512231d1f4a53"
+                 start-line="112" end-line="113"/>
+      <art:range hash="sha256:f13dd7b8700f6d1c0c59a3e6d05d3dd949298aea9404c62c7866d13239a82afe"
+                 start-line="415" end-line="417"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Adopt command variant in Command enum, dispatch in run(),
+    and cmd_adopt function.</art:note>
+  </art:mapping>
+
+  <!-- Machine descriptions -->
+
+  <llm:node ref="adopt-command">
+    The adopt command bootstraps any project to use clayers. It embeds
+    all 12 XSD layer schemas plus catalog.xml and postprocess.xslt at
+    build time (via include_str!), then writes them to .clayers/schemas/.
+    It creates a starter clayers/&lt;project&gt;/ directory with skeleton
+    index.xml and revision.xml (skipped if clayers/ exists). It amends
+    the agent file (CLAUDE.md preferred, then AGENTS.md, or creates
+    AGENTS.md) with the spec-first development workflow, wrapped in
+    HTML comment markers for idempotent updates. Re-running on an
+    already-adopted project checks freshness and requires --update to
+    overwrite outdated components.
+  </llm:node>
+
+  <llm:node ref="term-adoption">
+    Adoption is the bootstrap process for making a project clayers-ready.
+    It plants schemas, creates a starter spec, and injects workflow
+    instructions. The process is idempotent: subsequent runs detect
+    adoption via .clayers/schemas/ or agent file markers, compare against
+    embedded versions, and report freshness. The --update flag overwrites
+    outdated components. Schemas are embedded at build time for
+    zero-dependency bootstrap.
+  </llm:node>
+
+  <llm:node ref="adopt-workflow">
+    The spec-first development workflow injected by clayers adopt
+    establishes: (1) update spec before coding, (2) validate, (3)
+    implement, (4) map spec to code with artifacts, (5) iterate on
+    coverage/connectivity/drift quality. Plans go in the spec using
+    pln:plan. The driving metric is 100% spec coverage: every spec
+    node mapped to implementing code.
+  </llm:node>
+
+</spec:clayers>

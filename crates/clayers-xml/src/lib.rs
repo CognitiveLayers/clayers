@@ -1,0 +1,9 @@
+pub mod c14n;
+pub mod catalog;
+pub mod error;
+pub mod hash;
+pub mod rnc;
+
+pub use c14n::{CanonicalizationMode, canonicalize, canonicalize_and_hash, canonicalize_str};
+pub use error::Error;
+pub use hash::ContentHash;

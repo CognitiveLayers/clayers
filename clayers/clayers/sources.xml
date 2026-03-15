@@ -1,0 +1,334 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Sources: External references and provenance tracking for the clayers format.
+  Describes the source layer and demonstrates it with real citations.
+-->
+<spec:clayers xmlns:spec="urn:clayers:spec"
+       xmlns:pr="urn:clayers:prose"
+       xmlns:trm="urn:clayers:terminology"
+       xmlns:src="urn:clayers:source"
+       xmlns:org="urn:clayers:organization"
+       xmlns:rel="urn:clayers:relation"
+       xmlns:art="urn:clayers:artifact"
+       xmlns:llm="urn:clayers:llm"
+       spec:index="index.xml">
+
+  <!-- ================================================================== -->
+  <!-- Source Layer                                                        -->
+  <!-- ================================================================== -->
+
+  <pr:section id="source-layer">
+    <pr:title>Source Layer</pr:title>
+    <pr:shortdesc>Bibliography and provenance tracking for external resources
+    that influenced the specification's design.</pr:shortdesc>
+
+    <pr:p>A specification does not emerge from nothing. Design choices are informed
+    by papers, standards, existing documentation, and other external resources.
+    The relation layer can express that one spec node references another, but
+    cannot say "this design was informed by the Raft paper" or "this terminology
+    follows RFC 7231" in a structured, machine-verifiable way.</pr:p>
+
+    <pr:p>The source layer fills this gap. Each <pr:code>src:source</pr:code>
+    element declares an external reference with a classification
+    (<pr:code>type</pr:code>), optional URL, title, overview, and optional
+    cached copies for offline consumption. Sources are
+    <trm:ref term="term-node">nodes</trm:ref>: they have IDs and participate
+    in the spec's unified ID space. This means existing
+    <pr:code>rel:relation type="references"</pr:code> edges work for structural
+    links between spec nodes and sources.</pr:p>
+
+    <pr:p>The <pr:code>src:cite</pr:code> element enables inline citations in
+    prose, parallel to <pr:code>trm:ref</pr:code> for terminology. When an
+    author writes about a design choice influenced by an external resource, they
+    cite the source inline. The XSLT postprocessor synthesizes
+    <pr:code>rel:relation type="references"</pr:code> edges from citations,
+    just as it does for terminology references.</pr:p>
+
+    <pr:p>The distinction between sources and spec content is deliberate. Sources
+    are external provenance: they record what influenced the spec, not what the
+    spec says. A source's overview is <pr:code>xs:string</pr:code>, not
+    <pr:code>InlineContentType</pr:code>, to avoid a circular import between
+    prose.xsd and source.xsd. This keeps the layers orthogonal.</pr:p>
+
+    <pr:p>The source type enumeration is extensible, following the same pattern as
+    <pr:xref ref="extensible-relation-types">extensible relation types</pr:xref>.
+    Extension layers define new source types annotated with
+    <pr:code>src:source-type-properties</pr:code>, activated via a
+    <pr:code>rel:relation type="refines"</pr:code> edge to
+    <pr:code>type-source-kind</pr:code>.</pr:p>
+  </pr:section>
+
+  <org:concept ref="source-layer">
+    <org:purpose>Understanding how the source layer tracks external provenance
+    separately from spec content, enabling structured bibliography and inline
+    citations with automatic relation synthesis.</org:purpose>
+  </org:concept>
+
+  <!-- ================================================================== -->
+  <!-- Example Sources                                                     -->
+  <!-- ================================================================== -->
+
+  <src:source id="src-dita-spec" type="standard"
+              url="https://docs.oasis-open.org/dita/dita/v1.3/dita-v1.3-part3-all-inclusive.html"
+              accessed="2025-01-15">
+    <src:title>Darwin Information Typing Architecture (DITA) Version 1.3</src:title>
+    <src:overview>OASIS standard for structured technical documentation. DITA's
+    topic typing model (concept, task, reference) and its separation of content
+    from presentation directly inspired the clayers prose and organization
+    layers.</src:overview>
+    <src:author>OASIS DITA Technical Committee</src:author>
+    <src:published>2018-06-19</src:published>
+  </src:source>
+
+  <src:source id="src-xsd-11-spec" type="standard"
+              url="https://www.w3.org/TR/xmlschema11-1/"
+              accessed="2025-01-15">
+    <src:title>W3C XML Schema Definition Language (XSD) 1.1 Part 1: Structures</src:title>
+    <src:overview>W3C Recommendation defining XSD 1.1, which adds xs:assert for
+    conditional constraints and improved xs:any processing. These features are
+    essential for the clayers's open-world extensibility and cross-attribute
+    validation.</src:overview>
+    <src:author>W3C XML Schema Working Group</src:author>
+    <src:published>2012-04-05</src:published>
+  </src:source>
+
+  <!-- ================================================================== -->
+  <!-- Prose demonstrating inline citations                                -->
+  <!-- ================================================================== -->
+
+  <pr:section id="source-layer-design-influences">
+    <pr:title>Design Influences</pr:title>
+
+    <pr:p>The prose layer's structural elements (sections, paragraphs, lists,
+    steps, notes) and the organization layer's topic typing (concept, task,
+    reference) draw directly from
+    <src:cite source="src-dita-spec">DITA 1.3</src:cite>. DITA demonstrated
+    that separating content structure from presentation enables reuse and
+    machine processing, a principle the clayers format extends to
+    multi-layer semantic annotation.</pr:p>
+
+    <pr:p>The choice of <src:cite source="src-xsd-11-spec">XSD 1.1</src:cite>
+    as the schema language was driven by specific features: xs:assert for
+    conditional attribute constraints, xs:any with processContents="strict"
+    for open-world extensibility, and xs:unique/xs:keyref for cross-layer
+    referential integrity. No other schema language provides all three.</pr:p>
+  </pr:section>
+
+  <org:concept ref="source-layer-design-influences">
+    <org:purpose>Demonstrating inline citations and tracing the clayers
+    format's design influences to their external sources.</org:purpose>
+  </org:concept>
+
+  <!-- ================================================================== -->
+  <!-- Relations                                                           -->
+  <!-- ================================================================== -->
+
+  <!-- Source layer refines the layered architecture -->
+  <rel:relation type="refines" from="source-layer" to="layered-architecture">
+    <rel:note>The source layer adds bibliography and provenance tracking as
+    a semantic dimension within the layered architecture.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="source-layer-design-influences" to="source-layer">
+    <rel:note>Design influences section demonstrates the source layer's inline
+    citation mechanism with real examples.</rel:note>
+  </rel:relation>
+
+  <trm:term id="type-source-kind">
+    <trm:name>SourceKind</trm:name>
+    <trm:definition>The XSD simpleType that enumerates source type values
+    for classifying external references and citations.</trm:definition>
+  </trm:term>
+
+  <!-- Schema type node: connect XSD-defined ID to the source layer -->
+  <rel:relation type="refines" from="type-source-kind" to="source-layer">
+    <rel:note>The SourceKind simpleType (id="type-source-kind") is the schema
+    definition for source type classification in the source layer.</rel:note>
+  </rel:relation>
+
+  <!-- Provenance: DITA inspired the prose and organization layers -->
+  <rel:relation type="references" from="reading-maps-concept" to="src-dita-spec">
+    <rel:note>Reading maps are inspired by DITA's map/topicref mechanism for
+    composing topics into guided reading sequences.</rel:note>
+  </rel:relation>
+
+  <!-- ================================================================== -->
+  <!-- LLM descriptions                                                    -->
+  <!-- ================================================================== -->
+
+  <llm:node ref="source-layer">
+    Describes the source layer: bibliography and provenance tracking for
+    external resources. Each src:source declares an external reference with
+    classification, optional URL, and optional cached copies. The src:cite
+    element enables inline citations in prose, parallel to trm:ref for
+    terminology. The XSLT postprocessor synthesizes rel:relation
+    type="references" from citations. Source types are extensible via the
+    source-type-properties annotation mechanism, following the same pattern
+    as extensible relation types.
+  </llm:node>
+
+  <llm:node ref="source-layer-design-influences">
+    Traces the clayers format's design to its external influences.
+    Demonstrates inline src:cite elements citing DITA 1.3 (prose and
+    organization layers) and XSD 1.1 (schema validation choice). These
+    citations automatically generate rel:relation type="references" edges
+    in the combined document via the XSLT postprocessor.
+  </llm:node>
+
+  <llm:node ref="src-dita-spec">
+    External source: DITA 1.3 standard. Influenced the prose layer's
+    structural elements and the organization layer's topic typing model
+    (concept, task, reference).
+  </llm:node>
+
+  <llm:node ref="src-xsd-11-spec">
+    External source: XSD 1.1 specification. Provides the schema features
+    (xs:assert, xs:any strict, xs:keyref) that make the clayers's
+    open-world extensibility and cross-layer validation possible.
+  </llm:node>
+
+  <!-- Coverage exemptions: documentation-only nodes with no code artifact -->
+
+  <art:exempt node="source-layer">Conceptual documentation describing the source
+  layer's purpose and design. No code implements this concept.</art:exempt>
+
+  <art:exempt node="source-layer-design-influences">Prose tracing design influences
+  to external sources. No code artifact corresponds to this content.</art:exempt>
+
+  <art:exempt node="src-dita-spec">External source declaration for DITA 1.3.
+  Bibliography entry, not a code-mapped node.</art:exempt>
+
+  <art:exempt node="src-xsd-11-spec">External source declaration for XSD 1.1.
+  Bibliography entry, not a code-mapped node.</art:exempt>
+
+  <!-- Out-of-band schema descriptions for the source layer -->
+  <llm:schema namespace="urn:clayers:source">
+    The source schema tracks external references and provenance: papers,
+    RFCs, standards, documentation, and other resources that informed the
+    specification. Each &lt;src:source&gt; declares an external reference
+    with classification (type), optional URL, title, overview, and optional
+    cached copies. The &lt;src:cite&gt; element enables inline citations
+    in prose (parallel to trm:ref), with automatic relation synthesis via
+    XSLT. Source types are extensible via the source-type-properties
+    annotation mechanism.
+  </llm:schema>
+
+  <llm:schema namespace="urn:clayers:source" element="source">
+    An external reference declaration. The id makes it a node in the spec
+    graph. The type classifies it (paper, rfc, standard, documentation,
+    specification, book, article, blog-post, video, repository). The url
+    is optional (physical books have no URL). Contains required title and
+    overview, optional author(s), published date, and cached copies.
+  </llm:schema>
+
+  <llm:schema namespace="urn:clayers:source" element="cite">
+    An inline citation of an external source, used within prose content.
+    The source attribute is an IDREF pointing to a src:source element. Mixed
+    content provides display text. Parallel to trm:ref for terminology
+    references. The XSLT postprocessor synthesizes rel:relation
+    type="references" edges from cite elements.
+  </llm:schema>
+
+  <llm:schema namespace="urn:clayers:source" element="cache">
+    A cached copy of a single file from the source. The path is relative to
+    .sources/. The hash uses the same algo:hex format as the artifact layer.
+    Multi-file sources get one cache element per file. Enables offline LLM
+    consumption of external references.
+  </llm:schema>
+
+
+  <!-- Type→schema and self-referential mappings -->
+
+  <art:mapping id="map-type-source-kind-schema">
+    <art:spec-ref node="type-source-kind"
+              revision="draft-1"
+              node-hash="sha256:e5d774435b6e8c81e991660a017b0c052b9be36bc986873bf3b51f2abcd272fb"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="schemas/source.xsd">
+        <art:range hash="sha256:f8fe882d8ec12cee9facf695ea64cc29bb418670d8e473191235e268d6a25b51" start-line="172" end-line="243"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>SourceKind simpleType: article, book, specification, standard, and extension types.</art:note>
+  </art:mapping>
+
+
+  <art:mapping id="map-source-layer-schema-elements">
+    <art:spec-ref node="source-layer"
+              revision="draft-1"
+              node-hash="sha256:f26191fc260d7ea4a40a0471428096ae2c745ef7a55935d13f2585d73c5962a8"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="schemas/source.xsd">
+        <art:range hash="sha256:eae51f54007900dd06dfcedc97077bc05ff1baf071f7188a49f4e7f88282dea7" start-line="1" end-line="90"/>
+      </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>Schema header, source and cite element declarations, SourceType complexType.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-source-layer-schema-types">
+    <art:spec-ref node="source-layer"
+              revision="draft-1"
+              node-hash="sha256:f26191fc260d7ea4a40a0471428096ae2c745ef7a55935d13f2585d73c5962a8"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="schemas/source.xsd">
+        <art:range hash="sha256:1d58b0b383f60077b7f113d4ce6d651fe2a8a2ff131b1a4ef158eca29a8ab1a2" start-line="91" end-line="170"/>
+      </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>CiteType, CacheType, and supporting simple types.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-source-layer-schema-kinds">
+    <art:spec-ref node="source-layer"
+              revision="draft-1"
+              node-hash="sha256:f26191fc260d7ea4a40a0471428096ae2c745ef7a55935d13f2585d73c5962a8"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="schemas/source.xsd">
+        <art:range hash="sha256:f8fe882d8ec12cee9facf695ea64cc29bb418670d8e473191235e268d6a25b51" start-line="172" end-line="243"/>
+      </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>SourceKind enumeration and extension type support.</art:note>
+  </art:mapping>
+
+
+  <art:mapping id="map-src-dita-spec-self">
+    <art:spec-ref node="src-dita-spec"
+              revision="draft-1"
+              node-hash="sha256:8e8c83e044d7897f9c75d24cc95a82619fcf5d9c7481c7d8adfa6fccb4e081c2"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="clayers/clayers/sources.xml">
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>External reference declaration in sources.xml.</art:note>
+  </art:mapping>
+
+
+  <art:mapping id="map-src-xsd-11-spec-self">
+    <art:spec-ref node="src-xsd-11-spec"
+              revision="draft-1"
+              node-hash="sha256:67ffeb81267e5b24e41231b2e0fdf51133245e7ff6f649b1eb8709b2419afb0e"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="clayers/clayers/sources.xml">
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>External reference declaration in sources.xml.</art:note>
+  </art:mapping>
+
+
+  <art:mapping id="map-source-design-influences-self">
+    <art:spec-ref node="source-layer-design-influences"
+              revision="draft-1"
+              node-hash="sha256:3193dc6aaad9cf0e191e79c1ad3799ee6c0ac5f36adb7f2d991057516ceda380"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="clayers/clayers/sources.xml">
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Section documenting design influences from external sources.</art:note>
+  </art:mapping>
+
+</spec:clayers>

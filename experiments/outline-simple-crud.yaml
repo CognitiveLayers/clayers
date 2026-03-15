@@ -1,0 +1,30 @@
+# Experiment: Does the spec hurt on simple tasks?
+# A straightforward CRUD feature on a TypeScript project.
+# If with-spec is slower or produces more bloat for the same result,
+# the spec has negative ROI on trivial work.
+
+repo: https://github.com/outline/outline
+rounds: 1
+runs: 3
+
+extraction_model: claude-opus-4-6
+with_spec_model: claude-sonnet-4-6
+without_spec_model: claude-opus-4-6
+
+feature: |
+  Add a "Bookmarks" feature that lets users bookmark documents for quick access.
+
+  Requirements:
+  1. Bookmark model: a simple join table linking user_id to document_id with a
+     created_at timestamp. A user can bookmark a document at most once.
+  2. API endpoints: POST /api/bookmarks.create (add bookmark),
+     POST /api/bookmarks.delete (remove bookmark),
+     POST /api/bookmarks.list (list user's bookmarks with pagination, sorted by
+     created_at desc). Follow existing API patterns (policies, presenters, validation).
+  3. The list endpoint should include the document title, emoji, and collection name
+     in the response (eager load, not N+1).
+  4. Tests: unit tests for the model, API endpoint tests for create/delete/list,
+     edge cases (duplicate bookmark, bookmark nonexistent document, bookmark
+     document without read access).
+  5. Follow existing patterns: look at how stars, pins, or subscriptions work
+     and mirror their structure.

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Index Layer: File manifest for the payment processing specification.
+  Files are organized as chapters, each mixing content from multiple layers.
+-->
+<spec:clayers xmlns:spec="urn:clayers:spec"
+       xmlns="urn:clayers:index"
+       spec:spec="payment-processing"
+       spec:version="0.1.0">
+
+  <file href="overview.xml"/>
+  <file href="authorization.xml"/>
+  <file href="settlement.xml"/>
+  <file href="disputes.xml"/>
+  <file href="reading-maps.xml"/>
+  <file href="revision.xml" layer="urn:clayers:revision"/>
+</spec:clayers>

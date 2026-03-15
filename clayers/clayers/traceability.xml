@@ -1,0 +1,1740 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Traceability: Artifact mapping, drift detection, and hash maintenance.
+  How spec nodes are linked to code artifacts and how divergence is detected.
+-->
+<spec:clayers xmlns:spec="urn:clayers:spec"
+       xmlns:pr="urn:clayers:prose"
+       xmlns:trm="urn:clayers:terminology"
+       xmlns:org="urn:clayers:organization"
+       xmlns:rel="urn:clayers:relation"
+       xmlns:art="urn:clayers:artifact"
+       xmlns:llm="urn:clayers:llm"
+       spec:index="index.xml">
+
+  <!-- Vocabulary -->
+
+  <trm:term id="term-drift">
+    <trm:name>Drift</trm:name>
+    <trm:definition>Divergence between a spec node and its mapped artifact, detected
+    by comparing stored hashes against current content. Spec drift occurs when
+    a node changes after an artifact mapping is created. Artifact drift occurs
+    when code changes without updating the mapping. Both directions are
+    detectable because mappings pin hashes for both sides.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-artifact-mapping">
+    <trm:name>Artifact Mapping</trm:name>
+    <trm:definition>A bidirectional link between a spec node at a specific revision
+    and a code artifact at a specific repository revision. Each side carries a
+    content hash for drift detection. The mapping also declares coverage: full,
+    partial, or none.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-c14n">
+    <trm:name>C14N</trm:name>
+    <trm:definition>XML Canonicalization, a standard algorithm that produces a
+    deterministic byte-for-byte representation of an XML subtree. The clayers
+    tooling uses C14N with rewrite_prefixes mode so that node hashes are
+    independent of namespace prefix choices. Two documents expressing the same
+    content with different prefixes produce the same canonical form and therefore
+    the same hash.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-node-hash">
+    <trm:name>Node Hash</trm:name>
+    <trm:definition>A SHA-256 digest of the C14N form of a spec node subtree,
+    stored in artifact mappings as the node-hash attribute. When a spec node
+    is edited, its C14N form changes, producing a different hash. Comparing
+    stored hashes against recomputed values detects spec-side drift.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-coverage">
+    <trm:name>Coverage</trm:name>
+    <trm:definition>The degree to which a spec node is implemented by its mapped
+    artifact. Values: full (completely implemented), partial (some aspects
+    missing), none (spec node has no implementation yet). Overimplementation
+    (code without a spec mapping) is detected by diffing the artifact set
+    against the spec node set.</trm:definition>
+  </trm:term>
+
+  <!-- Content -->
+
+  <pr:section id="artifact-drift">
+    <pr:title>Artifact Mapping and Drift Detection</pr:title>
+    <pr:shortdesc>How hashes enable bidirectional change detection between spec
+    and code.</pr:shortdesc>
+
+    <pr:p>The <trm:ref term="term-artifact-mapping">artifact mapping</trm:ref>
+    layer is the most critical. Each mapping pins a spec node at a specific
+    revision to a code artifact at a specific repository revision. Both sides
+    carry content hashes.</pr:p>
+
+    <pr:p>When a spec node changes, its hash changes, and tooling flags artifact
+    mappings that reference the old hash. When code changes, its content hash
+    changes, and tooling flags spec nodes whose implementation has diverged.
+    This is <trm:ref term="term-drift">drift</trm:ref> detection.</pr:p>
+
+    <pr:p><trm:ref term="term-coverage">Coverage</trm:ref> is explicit: full,
+    partial, or none. Underimplementation is directly queryable from the
+    mapping data. Overimplementation (code with no spec mapping) is detected
+    by diffing the artifact set against the spec node set.</pr:p>
+
+    <pr:p>The spec-side hash is computed from the XML Canonical Form
+    (<trm:ref term="term-c14n">C14N</trm:ref>) of the node subtree. The
+    canonicalization uses rewrite_prefixes mode so hashes are independent of
+    whatever namespace prefixes the source file happened to use. This means
+    renaming a prefix from pr: to prose: does not change the hash.</pr:p>
+
+    <pr:note type="info">Artifact addressing uses file paths at a named
+    repository revision. No AST addressing in the schema. The format is
+    VCS-agnostic: it does not assume git, even if git is the first
+    backend.</pr:note>
+  </pr:section>
+
+  <pr:section id="artifact-hash-tooling">
+    <pr:title>Artifact Hash Maintenance</pr:title>
+    <pr:shortdesc>How the CLI tool recomputes node hashes to keep artifact
+    mappings current.</pr:shortdesc>
+
+    <pr:p>The <pr:code>artifact --fix-node-hash</pr:code> command recomputes
+    <trm:ref term="term-node-hash">node hashes</trm:ref> in artifact
+    mapping files. When spec prose is edited, the
+    <trm:ref term="term-c14n">C14N</trm:ref> hash of the affected nodes
+    changes. This command brings the artifact layer back into sync without
+    requiring manual hash calculation.</pr:p>
+
+    <pr:steps>
+      <pr:step id="artifact-hash-step-discover">Discover all specs reachable from the given path (file or
+      directory), using the same index resolution as the validate
+      command.</pr:step>
+      <pr:step id="artifact-hash-step-find-revision">For each spec, find the current revision: the revision with the
+      latest timestamp in the revision layer.</pr:step>
+      <pr:step id="artifact-hash-step-collect-nodes">Collect all nodes (elements with @id) across all layer files
+      in the spec.</pr:step>
+      <pr:step id="artifact-hash-step-check-revision">For each spec-ref in the artifacts layer, check whether its
+      revision attribute matches the current revision. Spec-refs pinned to
+      older revisions are skipped: their hashes are historically correct and
+      must not be updated.</pr:step>
+      <pr:step id="artifact-hash-step-compute-hash">For matching spec-refs, compute the C14N SHA-256 hash of the
+      referenced node using rewrite_prefixes mode. Compare against the
+      stored node-hash attribute.</pr:step>
+      <pr:step id="artifact-hash-step-update">Where hashes differ, update them using string replacement on the
+      raw file text. This preserves the original XML formatting, comments,
+      and attribute ordering. The tool does not rewrite or reformat the
+      file.</pr:step>
+    </pr:steps>
+
+    <pr:note type="important">Format-preserving writes are essential. Using an
+    XML serializer would strip comments, reorder attributes, and normalize
+    whitespace, creating noisy diffs that obscure the actual hash changes.
+    String replacement on the raw text ensures only the hash values
+    change.</pr:note>
+  </pr:section>
+
+  <pr:section id="drift-detection-tooling">
+    <pr:title>Drift Detection Tooling</pr:title>
+    <pr:shortdesc>How the CLI tool detects spec-side and artifact-side drift
+    without modifying files.</pr:shortdesc>
+
+    <pr:p>The <pr:code>artifact --drift</pr:code> command performs a read-only
+    check across all artifact mappings in a spec. It detects both spec-side
+    <trm:ref term="term-drift">drift</trm:ref> (node content changed, stored
+    <trm:ref term="term-node-hash">node hash</trm:ref> is stale) and
+    artifact-side drift (file content changed, stored range hash is stale).</pr:p>
+
+    <pr:steps>
+      <pr:step id="drift-detection-step-discover">Discover all specs reachable from the given path, using the same
+      index resolution as the validate command.</pr:step>
+      <pr:step id="drift-detection-step-check-spec">For each mapping's spec-ref, check whether the referenced node's
+      current <trm:ref term="term-c14n">C14N</trm:ref> hash matches the stored
+      node-hash. Only check spec-refs pinned to the current revision.</pr:step>
+      <pr:step id="drift-detection-step-check-artifact">For each mapping's artifact ranges, resolve the file path, extract
+      the content region, and compare its hash against the stored range
+      hash.</pr:step>
+      <pr:step id="drift-detection-step-git-log">For artifact-side drift in git repositories, run
+      <pr:code>git log repo-revision..HEAD -- path</pr:code> to identify the
+      commits that caused the divergence.</pr:step>
+      <pr:step id="drift-detection-step-report">Report results: a per-spec summary line, then per-mapping status.
+      OK mappings get a single line. Drifted mappings expand with stored vs
+      current hashes (truncated for readability) and causal commits.</pr:step>
+    </pr:steps>
+
+    <pr:note type="info">The command exits with code 0 when no drift is found,
+    and code 1 when any mapping has drifted. This enables use in CI pipelines
+    and scripted checks.</pr:note>
+  </pr:section>
+
+  <!-- Topic typing -->
+
+  <org:reference ref="artifact-drift">
+    <org:purpose>Reference material on artifact mapping, hashes, coverage, and
+    drift detection mechanics.</org:purpose>
+  </org:reference>
+
+  <org:task ref="artifact-hash-tooling">
+    <org:purpose>The CLI tool recomputes C14N node hashes in artifact mappings,
+    keeping them current after spec edits.</org:purpose>
+    <org:actor>clayers-cli CLI tool</org:actor>
+  </org:task>
+
+  <org:task ref="drift-detection-tooling">
+    <org:purpose>The CLI tool checks for spec-side and artifact-side drift
+    across all artifact mappings, with git integration for causal commit
+    identification.</org:purpose>
+    <org:actor>clayers-cli CLI tool</org:actor>
+  </org:task>
+
+  <!-- Relations -->
+
+  <rel:relation type="depends-on" from="artifact-drift" to="term-artifact-mapping">
+    <rel:note>Drift detection depends on the artifact mapping structure
+    with its dual hashes.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="artifact-hash-tooling" to="revision-layer">
+    <rel:note>Hash maintenance depends on revision semantics to determine which
+    spec-refs to update and which to skip.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="artifact-drift" to="revision-layer">
+    <rel:note>Artifact mappings pin to revision names for temporal anchoring.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="artifact-hash-tooling" to="term-c14n">
+    <rel:note>The hash maintenance tool depends on C14N for deterministic
+    node hashing.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="artifact-hash-tooling" to="artifact-drift">
+    <rel:note>Hash maintenance is the mechanism that keeps artifact mappings
+    in sync, preventing spec-side drift.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="drift-detection-tooling" to="artifact-drift">
+    <rel:note>Drift detection implements the read-only checking described in
+    the artifact drift reference material.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="drift-detection-tooling" to="artifact-hash-tooling">
+    <rel:note>Drift detection reuses the same hash computation functions as
+    hash maintenance (compute_node_hash, _compute_content_hash).</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="drift-detection-tooling" to="revision-layer">
+    <rel:note>Drift detection depends on revision semantics to determine which
+    spec-refs to check against the current revision.</rel:note>
+  </rel:relation>
+
+  <!-- Artifact mappings -->
+
+  <art:mapping id="map-artifact-drift-overview">
+    <art:spec-ref node="artifact-drift" revision="draft-1" node-hash="sha256:f53cf8b9e59e9ae311bcb37f599072130eeb48bcce01617054f123da44b1e6ed"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/drift.rs">
+      <art:range hash="sha256:60670a6a01bb40307bce1ec3894ebac75c0fff71d7b8f4cd2863ce777c1eb059" start-line="49" end-line="88"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>check_drift: top-level drift checking across all mappings in a spec.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-artifact-drift-single">
+    <art:spec-ref node="artifact-drift" revision="draft-1" node-hash="sha256:f53cf8b9e59e9ae311bcb37f599072130eeb48bcce01617054f123da44b1e6ed"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/drift.rs">
+      <art:range hash="sha256:d9244caed515eb94ff4c38025bdb47c3021d675838af46cfd82879e8b98bd446" start-line="90" end-line="164"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>check_single_mapping: per-mapping spec-side and artifact-side drift detection.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-artifact-hash-structs">
+    <art:spec-ref node="artifact-hash-tooling"
+              revision="draft-1"
+              node-hash="sha256:9355f2b4f572d66a4e4853cd5ad7abb318a44629e2682178f92c4e6618c9ef72"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="crates/clayers-spec/src/artifact.rs">
+        <art:range hash="sha256:4763f8414281109a846c8066c0259b92461be94dbc3ad0fdd98978ec51360373"
+                   start-line="8" end-line="79"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>ArtifactMapping/ArtifactRange structs (10-31), collect_artifact_mappings (38-79).</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-artifact-hash-utils">
+    <art:spec-ref node="artifact-hash-tooling"
+              revision="draft-1"
+              node-hash="sha256:9355f2b4f572d66a4e4853cd5ad7abb318a44629e2682178f92c4e6618c9ef72"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="crates/clayers-spec/src/artifact.rs">
+        <art:range hash="sha256:e185d5b62a8ae86af0168307157de7012077dca28d220ffeb78849a535f04ccf"
+                   start-line="217" end-line="265"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>hash_file (222-225), extract_line_range (234-251), hash_line_range (258-265).</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-term-c14n">
+    <art:spec-ref node="term-c14n"
+              revision="draft-1"
+              node-hash="sha256:0c5b95ff31d6fe2844a6f22ecc8b28db089ea18fc7e3fc621ceb3da187ac7e0f"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="crates/clayers-xml/src/c14n.rs">
+        <art:range hash="sha256:7814d9d2427e7327eb69a1d5286419a2d601daa64e0c8f0ab6aa76d3486a8cfa"
+                   start-line="7" end-line="65"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>compute_node_hash() uses ET.canonicalize with rewrite_prefixes
+    to produce a deterministic canonical form for hashing.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-term-node-hash">
+    <art:spec-ref node="term-node-hash"
+              revision="draft-1"
+              node-hash="sha256:746fc0d7d661a2907f4667aa4927edc16c05934b5d8852babcf86ab00edb4928"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="crates/clayers-xml/src/hash.rs">
+        <art:range hash="sha256:d6116e19c6a1a0b2f00ee4a5b336908e1d388737a33b63452d6783e6c70530bc"
+                   start-line="8" end-line="42"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>compute_node_hash() produces the SHA-256 digest of the C14N form,
+    which is the node-hash stored in artifact mappings.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-term-drift">
+    <art:spec-ref node="term-drift"
+              revision="draft-1"
+              node-hash="sha256:d2e925723675ca7ae588ba9cc6ba344355c89c8818be5f31ffaeb7fd8483a85c"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="crates/clayers-spec/src/drift.rs">
+        <art:range hash="sha256:0d58c0d80003751f7a58bd61f0b85b925d410376d44a0cfb596ce27e998bf51b"
+                   start-line="6" end-line="23"/>
+      </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>Hash comparison logic in _fix_node_hashes detects spec-side drift.
+    The --drift command extends this with artifact-side detection and git
+    commit attribution.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-artifact-mapping-structs">
+    <art:spec-ref node="term-artifact-mapping" revision="draft-1" node-hash="sha256:1162417f3bc40e4c3061d71db0dc513fc6d63d64a55cdf4134a2120239d43ac5"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/artifact.rs">
+      <art:range hash="sha256:4763f8414281109a846c8066c0259b92461be94dbc3ad0fdd98978ec51360373" start-line="8" end-line="79"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>ArtifactMapping and ArtifactRange structs, collect_artifact_mappings public function.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-artifact-mapping-names">
+    <art:spec-ref node="term-artifact-mapping" revision="draft-1" node-hash="sha256:1162417f3bc40e4c3061d71db0dc513fc6d63d64a55cdf4134a2120239d43ac5"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/artifact.rs">
+      <art:range hash="sha256:f6d8ef0c2488784da55ee4da4f04cb2bfa71079f956ddd69e6083c6d28b9e6f0" start-line="82" end-line="118"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>MappingNames struct (82-99) and collect_mappings (101-118): XML name registration and mapping element collection.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-artifact-mapping-parse-impl">
+    <art:spec-ref node="term-artifact-mapping" revision="draft-1" node-hash="sha256:1162417f3bc40e4c3061d71db0dc513fc6d63d64a55cdf4134a2120239d43ac5"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/artifact.rs">
+      <art:range hash="sha256:0ced9834a692dfa6fbf237f7b8f44a33dbe045614f6752d09ce8c688d76e157a" start-line="120" end-line="205"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>parse_single_mapping (120-205): extracts spec-ref, artifact, ranges, coverage, and note from a single art:mapping element.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-artifact-schema-mapping-type">
+    <art:spec-ref node="term-artifact-mapping"
+              revision="draft-1"
+              node-hash="sha256:1162417f3bc40e4c3061d71db0dc513fc6d63d64a55cdf4134a2120239d43ac5"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="schemas/artifact.xsd">
+        <art:range hash="sha256:78c4d03cae2459692d74de3969123fe79ad861fe56a15f55eeb5f727ee6bdf1c"
+                   start-line="1" end-line="50"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Schema header, annotation with LLM description, keyref declaration,
+    and MappingType complexType define the structure of an artifact mapping:
+    spec-ref, artifact, coverage, and note children.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-artifact-schema-spec-ref-type">
+    <art:spec-ref node="term-node-hash"
+              revision="draft-1"
+              node-hash="sha256:746fc0d7d661a2907f4667aa4927edc16c05934b5d8852babcf86ab00edb4928"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="schemas/artifact.xsd">
+        <art:range hash="sha256:726800e70eaa5cf02df476096beba34cf7a0c5b82238a22f7313651c41f5d640"
+                   start-line="52" end-line="79"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>SpecRefType defines the spec-ref element with node, revision,
+    and node-hash attributes. The node-hash attribute carries the SHA-256
+    of the C14N form for spec-side drift detection.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-artifact-schema-ref-and-range">
+    <art:spec-ref node="artifact-drift"
+              revision="draft-1"
+              node-hash="sha256:f53cf8b9e59e9ae311bcb37f599072130eeb48bcce01617054f123da44b1e6ed"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="schemas/artifact.xsd">
+        <art:range hash="sha256:3ab48d13fc00ae3799a1a789ccc315360831c10530b11233ec039bad2598feb5"
+                   start-line="81" end-line="177"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>ArtifactRefType (81-117) defines repo, repo-revision, path
+    attributes and child range elements. RangeType (119-177) defines hash,
+    line/column/byte-offset addressing, and XSD 1.1 assertions for paired
+    attributes. Together they form the artifact-side of drift detection.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-artifact-schema-hash-type">
+    <art:spec-ref node="term-node-hash"
+              revision="draft-1"
+              node-hash="sha256:746fc0d7d661a2907f4667aa4927edc16c05934b5d8852babcf86ab00edb4928"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="schemas/artifact.xsd">
+        <art:range hash="sha256:aa91bfa90d429fb52e8113539afb345cd2bd827c3fd5b520d2b3dde8b3974775"
+                   start-line="199" end-line="205"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>HashType simpleType constrains hash values to the
+    algorithm:hexdigest pattern (e.g. sha256:abc123).</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-term-coverage">
+    <art:spec-ref node="term-coverage"
+              revision="draft-1"
+              node-hash="sha256:2f0a11dbd8d18c0ab5cbe48804c23e88f4b34033aa01d33442521cc2a6bdfaad"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="schemas/artifact.xsd">
+        <art:range hash="sha256:60f1bd012c9594ed35fb27b0844d772e570583614e56eda78bb9687a2919a709"
+                   start-line="179" end-line="198"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>CoverageKind simpleType in artifact.xsd defines the full/partial/none
+    enumeration for coverage declarations.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-drift-types">
+    <art:spec-ref node="drift-detection-tooling" revision="draft-1" node-hash="sha256:c1b732b0a47e061d03b913948e074489904ecd859bb6acb91f47f77f449a1624"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/drift.rs">
+      <art:range hash="sha256:8b9feb7abfe57b9ee9d30057c1be3ae45f2db665699ea5f643a7be4afbb8367b" start-line="1" end-line="47"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>DriftStatus enum, MappingDrift struct, DriftReport struct: output types for drift detection.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-drift-check-impl">
+    <art:spec-ref node="drift-detection-tooling" revision="draft-1" node-hash="sha256:c1b732b0a47e061d03b913948e074489904ecd859bb6acb91f47f77f449a1624"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/drift.rs">
+      <art:range hash="sha256:60670a6a01bb40307bce1ec3894ebac75c0fff71d7b8f4cd2863ce777c1eb059" start-line="49" end-line="88"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>check_drift: discovers specs, iterates mappings, assembles per-mapping drift status into DriftReport.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-drift-single-mapping">
+    <art:spec-ref node="drift-detection-tooling" revision="draft-1" node-hash="sha256:c1b732b0a47e061d03b913948e074489904ecd859bb6acb91f47f77f449a1624"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/drift.rs">
+      <art:range hash="sha256:d9244caed515eb94ff4c38025bdb47c3021d675838af46cfd82879e8b98bd446" start-line="90" end-line="164"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>check_single_mapping: spec-side hash comparison, artifact-side file resolution and hash comparison.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-drift-helpers">
+    <art:spec-ref node="drift-detection-tooling" revision="draft-1" node-hash="sha256:c1b732b0a47e061d03b913948e074489904ecd859bb6acb91f47f77f449a1624"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/drift.rs">
+      <art:range hash="sha256:4633873fd6d24bbb86719ca3a029604dcadab0df20236bf2b548568e2ccaba9e" start-line="166" end-line="203"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>collect_spec_node_ids, collect_nodes_recursive, hashes_match: helper functions for drift checking.</art:note>
+  </art:mapping>
+
+  <!-- Step-level artifact mappings for artifact-hash-tooling -->
+
+  <art:mapping id="map-artifact-hash-step-discover">
+    <art:spec-ref node="artifact-hash-step-discover"
+              revision="draft-1"
+              node-hash="sha256:5deb927a36a138377c27b31d52ca025e84b5e5d68b2e68a922ba08b51a95501f"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="crates/clayers-spec/src/artifact.rs">
+        <art:range hash="sha256:20f5f8b35324550e5286c6939e6ff7954fbefbb907700f864bef074a587ef9b7"
+                   start-line="33" end-line="79"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>collect_artifact_mappings() discovers and parses artifact mappings
+    from all spec files referenced by the index.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-artifact-hash-step-find-revision">
+    <art:spec-ref node="artifact-hash-step-find-revision"
+              revision="draft-1"
+              node-hash="sha256:b6b60f028780758f821d36f0fb749f490c395e95ee09bbd5e8a3ac65c2515634"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="crates/clayers-spec/src/artifact.rs">
+        <art:range hash="sha256:20f5f8b35324550e5286c6939e6ff7954fbefbb907700f864bef074a587ef9b7"
+                   start-line="33" end-line="79"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>collect_artifact_mappings() collects revision info from spec-ref elements.
+    Revision filtering is not yet implemented in the Rust version.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-artifact-hash-collect-names">
+    <art:spec-ref node="artifact-hash-step-collect-nodes" revision="draft-1" node-hash="sha256:2201c3e1bf102604e7ebb1eb8c4973ce8e1c5d47d2f74a07057f5f3c2568ac24"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/artifact.rs">
+      <art:range hash="sha256:f6d8ef0c2488784da55ee4da4f04cb2bfa71079f956ddd69e6083c6d28b9e6f0" start-line="82" end-line="118"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>MappingNames struct and collect_mappings: XML name registration and mapping element collection.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-artifact-hash-parse-mapping">
+    <art:spec-ref node="artifact-hash-step-collect-nodes" revision="draft-1" node-hash="sha256:2201c3e1bf102604e7ebb1eb8c4973ce8e1c5d47d2f74a07057f5f3c2568ac24"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/artifact.rs">
+      <art:range hash="sha256:0ced9834a692dfa6fbf237f7b8f44a33dbe045614f6752d09ce8c688d76e157a" start-line="120" end-line="205"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>parse_single_mapping: extracts spec-ref, artifact, ranges, coverage, and note from a single art:mapping element.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-artifact-hash-step-check-revision">
+    <art:spec-ref node="artifact-hash-step-check-revision"
+              revision="draft-1"
+              node-hash="sha256:95d0bcfee7c6279f660f5f3d33781e08b74ad0ba961142304b9c529a1b0648db"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="crates/clayers-spec/src/drift.rs">
+        <art:range hash="sha256:fbb77143546a125f7812c3cef3bd2e938c6e5b2abd11a06af6a81ae4485c1db0"
+                   start-line="98" end-line="106"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Revision check in _fix_node_hashes() skips spec-refs pinned
+    to older revisions.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-artifact-hash-step-compute-hash">
+    <art:spec-ref node="artifact-hash-step-compute-hash"
+              revision="draft-1"
+              node-hash="sha256:6a6d08130ef7d32012079b7f4f0fa0d11bdafd37ecddd46ba526bd1c3a154aa5"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="crates/clayers-spec/src/artifact.rs">
+        <art:range hash="sha256:e185d5b62a8ae86af0168307157de7012077dca28d220ffeb78849a535f04ccf"
+                   start-line="217" end-line="265"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>hash_file (222-225), extract_line_range (234-251),
+    hash_line_range (258-265) compute SHA-256 of artifact content.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-artifact-hash-step-update">
+    <art:spec-ref node="artifact-hash-step-update"
+              revision="draft-1"
+              node-hash="sha256:19c408e7c9a116c63fc3e77bce1e322ce325cf04c9eec3a0ca81f518dee9d588"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="crates/clayers-spec/src/fix.rs">
+        <art:range hash="sha256:17497c7670949e70163c2c8dd56d9ad93b11fa29fc4a3a207861b38d48b168cb"
+                   start-line="232" end-line="271"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>apply_range_changes (232-249) and apply_node_hash_changes (251-271)
+    write updated hashes back to the XML source files.</art:note>
+  </art:mapping>
+
+  <!-- Fix module: hash maintenance implementation -->
+
+  <art:mapping id="map-fix-node-hash-impl">
+    <art:spec-ref node="artifact-hash-tooling"
+              revision="draft-1"
+              node-hash="sha256:9355f2b4f572d66a4e4853cd5ad7abb318a44629e2682178f92c4e6618c9ef72"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="crates/clayers-spec/src/fix.rs">
+        <art:range hash="sha256:222c54a58347414e3c334d48b0dcedc8f575149f46a750a84ac6a1e0f996c775"
+                   start-line="118" end-line="190"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>fix_node_hashes() assembles the combined document, finds each
+    referenced spec node, serializes via xot, applies C14N, computes SHA-256,
+    and updates node-hash attributes in-place.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-fix-artifact-hash-impl">
+    <art:spec-ref node="artifact-hash-tooling"
+              revision="draft-1"
+              node-hash="sha256:9355f2b4f572d66a4e4853cd5ad7abb318a44629e2682178f92c4e6618c9ef72"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="crates/clayers-spec/src/fix.rs">
+        <art:range hash="sha256:fdcfb7d8cd274bde39963c3ba93b26396875c5416b96db27541a85fc21db084e"
+                   start-line="34" end-line="107"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>fix_artifact_hashes() discovers mappings, reads artifact files
+    (with line-range addressing if specified), computes SHA-256, and updates
+    hash attributes on art:range elements in-place.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-fix-hash-replacement">
+    <art:spec-ref node="artifact-hash-tooling"
+              revision="draft-1"
+              node-hash="sha256:9355f2b4f572d66a4e4853cd5ad7abb318a44629e2682178f92c4e6618c9ef72"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="crates/clayers-spec/src/fix.rs">
+        <art:range hash="sha256:8bd48fdaaecaea29ba2585efcc89512a6d301906f05be83597ba237bdfdc5f1d"
+                   start-line="278" end-line="337"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>replace_hash_in_mapping() performs anchored string replacement
+    within a specific mapping block, using mapping ID and optional
+    start-line/end-line attributes to locate the correct element.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-fix-cli-command">
+    <art:spec-ref node="artifact-hash-tooling"
+              revision="draft-1"
+              node-hash="sha256:9355f2b4f572d66a4e4853cd5ad7abb318a44629e2682178f92c4e6618c9ef72"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="crates/clayers/src/cli.rs">
+        <art:range hash="sha256:084dd81a2b4415d9f0648b1307a844c3b14b2703faa496c8ad1a8fb77db7262e"
+                   start-line="116" end-line="142"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>cmd_fix_hashes() dispatches --fix-node-hash and --fix-artifact-hash
+    CLI flags to the fix module and prints the fix report.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-fix-path-resolution">
+    <art:spec-ref node="artifact-drift"
+              revision="draft-1"
+              node-hash="sha256:f53cf8b9e59e9ae311bcb37f599072130eeb48bcce01617054f123da44b1e6ed"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="crates/clayers-spec/src/artifact.rs">
+        <art:range hash="sha256:664f20d07e02fc5da79736badb487c553e636bd6b10ac8f1b314959092016439"
+                   start-line="269" end-line="305"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>find_repo_root() walks up from spec_dir looking for .git.
+    resolve_artifact_path() resolves artifact paths relative to repo root
+    or by walking up from spec_dir. Used by both fix and drift modules.</art:note>
+  </art:mapping>
+
+  <!-- Step-level artifact mappings for drift-detection-tooling -->
+
+  <art:mapping id="map-drift-detection-step-discover">
+    <art:spec-ref node="drift-detection-step-discover"
+              revision="draft-1"
+              node-hash="sha256:8e3e8e09d6333fefb8e7ff8cae81f40246bb49dc317b7d0319914652f304eebf"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="crates/clayers-spec/src/drift.rs">
+        <art:range hash="sha256:b61a6f9c9987f1c719235b6a332cef320bcaa04cce58def17c06d31d46efc3db"
+                   start-line="49" end-line="63"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>find_index_files() discovers specs from the given path.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-drift-detection-step-check-spec">
+    <art:spec-ref node="drift-detection-step-check-spec"
+              revision="draft-1"
+              node-hash="sha256:e9d4dcb3bb8ac1cf198e78c23f0fbaf426701bc1d117643617df2d2ec9e5059c"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="crates/clayers-spec/src/drift.rs">
+        <art:range hash="sha256:fbb77143546a125f7812c3cef3bd2e938c6e5b2abd11a06af6a81ae4485c1db0"
+                   start-line="98" end-line="106"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Spec-side check in _check_drift() compares C14N node hash
+    against stored node-hash.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-drift-detection-step-check-artifact">
+    <art:spec-ref node="drift-detection-step-check-artifact"
+              revision="draft-1"
+              node-hash="sha256:57060af8c0aaf69b87de8da4d22e07c5c45e69fcc83bcf40bb91f506321425aa"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="crates/clayers-spec/src/drift.rs">
+        <art:range hash="sha256:aacb8190d5a230f2780ab068e6bda5a866c666e95ad788e0ec884c23fa781871"
+                   start-line="108" end-line="161"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Artifact-side check in _check_drift() resolves file path,
+    extracts content region, compares hash.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-drift-detection-step-git-log">
+    <art:spec-ref node="drift-detection-step-git-log"
+              revision="draft-1"
+              node-hash="sha256:3ae30398925cc50dc2f2c108222df948c1585d61ff9bfccf4a13601f0ca07907"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="crates/clayers-spec/src/drift.rs">
+        <art:range hash="sha256:d9244caed515eb94ff4c38025bdb47c3021d675838af46cfd82879e8b98bd446"
+                   start-line="90" end-line="164"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>check_single_mapping (90-164) checks both spec and artifact hashes.
+    Git log attribution for causal commits is not yet ported to Rust.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-drift-detection-step-report">
+    <art:spec-ref node="drift-detection-step-report"
+              revision="draft-1"
+              node-hash="sha256:0ac0d387b32caa07ba5599bb1260c7b58903e1a5c657876d9558ae1575913b60"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="crates/clayers/src/cli.rs">
+        <art:range hash="sha256:878d13e711e6139d63f053551b024785010e826fcafdbfe0248b90337e3174b0"
+                   start-line="230" end-line="273"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>cmd_drift() formats and prints per-mapping drift status
+    (OK, SPEC DRIFTED, ARTIFACT DRIFTED, UNAVAILABLE).</art:note>
+  </art:mapping>
+
+  <!-- Refines relations: artifact-hash-tooling steps -->
+
+  <rel:relation type="refines" from="artifact-hash-step-discover" to="artifact-hash-tooling">
+    <rel:note>Step: discover all specs from path.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="artifact-hash-step-find-revision" to="artifact-hash-tooling">
+    <rel:note>Step: find current revision by latest timestamp.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="artifact-hash-step-collect-nodes" to="artifact-hash-tooling">
+    <rel:note>Step: collect all elements with @id.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="artifact-hash-step-check-revision" to="artifact-hash-tooling">
+    <rel:note>Step: check spec-ref revision matches current.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="artifact-hash-step-compute-hash" to="artifact-hash-tooling">
+    <rel:note>Step: compute C14N hash and compare.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="artifact-hash-step-update" to="artifact-hash-tooling">
+    <rel:note>Step: update hashes via string replacement.</rel:note>
+  </rel:relation>
+
+  <!-- Refines relations: drift-detection-tooling steps -->
+
+  <rel:relation type="refines" from="drift-detection-step-discover" to="drift-detection-tooling">
+    <rel:note>Step: discover all specs from path.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="drift-detection-step-check-spec" to="drift-detection-tooling">
+    <rel:note>Step: check spec-side C14N hash against stored node-hash.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="drift-detection-step-check-artifact" to="drift-detection-tooling">
+    <rel:note>Step: resolve artifact path, extract content, compare hash.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="drift-detection-step-git-log" to="drift-detection-tooling">
+    <rel:note>Step: run git log for causal commit identification.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="drift-detection-step-report" to="drift-detection-tooling">
+    <rel:note>Step: report per-spec summary and per-mapping status.</rel:note>
+  </rel:relation>
+
+  <!-- Machine descriptions -->
+
+  <llm:schema namespace="urn:clayers:artifact">
+    The artifact schema maps spec nodes to code artifacts for
+    traceability and drift detection. Each &lt;mapping&gt; contains a
+    spec-ref (node ID + revision + C14N hash of the node) and an
+    optional artifact (repo + repo-revision + file path) with zero or
+    more child &lt;range&gt; elements. Each range carries its own content
+    hash and optional addressing (line range, byte offsets, line+column).
+    Zero ranges means pointer-only reference. Coverage is explicit: full,
+    partial, or none. When either side's hash changes, tooling detects drift.
+  </llm:schema>
+
+  <llm:schema namespace="urn:clayers:artifact" element="spec-ref">
+    References a spec node at a specific revision. The node attribute
+    is the node ID, revision is the revision name, and node-hash is
+    the SHA-256 of the C14N form of the node subtree. The hash enables
+    drift detection: if the node content changes, the hash changes.
+  </llm:schema>
+
+  <llm:schema namespace="urn:clayers:artifact" element="artifact">
+    References a code artifact. The repo attribute identifies the
+    repository, repo-revision pins a specific commit/tag, path is the
+    file path relative to the repo root. Contains zero or more child
+    &lt;range&gt; elements for content hashing. Zero ranges means a
+    pointer-only reference without content tracking. VCS-agnostic:
+    does not assume git.
+  </llm:schema>
+
+  <llm:schema namespace="urn:clayers:artifact" element="range">
+    A content region within an artifact file. The hash attribute is
+    the SHA-256 of the selected content. Addressing is optional: no
+    addressing attributes means entire file; start-line/end-line selects
+    a line range (1-based inclusive); start-col/end-col adds column
+    precision (requires all four line+col attrs); start-offset/end-offset
+    selects a byte range. Line+col and byte offsets may coexist for
+    redundancy.
+  </llm:schema>
+
+  <llm:node ref="artifact-drift">
+    Reference material on how hashes enable bidirectional drift
+    detection between spec and code. Important for understanding the
+    artifact mapping layer's value proposition.
+  </llm:node>
+
+  <llm:node ref="artifact-hash-tooling">
+    The artifact --fix-node-hash command recomputes C14N node hashes in
+    artifact mapping files. It finds the current revision (latest by
+    timestamp), skips spec-refs pinned to older revisions, computes
+    SHA-256 of the C14N form with rewrite_prefixes, and updates hashes
+    via string replacement on raw file text to preserve formatting. This
+    maps directly to the artifact command in clayers-cli.
+  </llm:node>
+
+  <llm:node ref="drift-detection-tooling">
+    The artifact --drift command performs a read-only check of all artifact
+    mappings in a spec. For each mapping it checks both spec-side drift
+    (recomputing C14N node hash vs stored node-hash) and artifact-side drift
+    (recomputing content hash of file ranges vs stored range hash). For
+    artifact-side drift in git repos, it runs git log to identify causal
+    commits. Output is terse and structured for LLM consumption: OK mappings
+    get one line, drifted mappings expand with truncated hashes and commit
+    summaries. Exit code 0 means no drift, 1 means drift found.
+  </llm:node>
+
+  <!-- Coverage Analysis -->
+
+  <trm:term id="term-artifact-coverage">
+    <trm:name>Artifact Coverage</trm:name>
+    <trm:definition>The degree to which code and spec mutually reference each other
+    through artifact mappings, measured bidirectionally. Code coverage measures
+    which lines in mapped files are covered by at least one artifact range.
+    Spec coverage measures which content nodes (terms, sections) have at least
+    one artifact mapping, either directly or by parent inheritance. Nodes
+    declared exempt via coverage exemption are excluded from the unmapped count.
+    Full coverage means every non-whitespace code fragment has a mapping and every
+    non-exempt spec node is reachable from at least one mapping.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-coverage-exemption">
+    <trm:name>Coverage Exemption</trm:name>
+    <trm:definition>A declaration that a spec node does not require artifact coverage.
+    Expressed as an art:exempt element with a required node attribute pointing to the
+    exempt node's ID and optional inline text explaining the reason. Exemptions are
+    intended for documentation-only nodes (vocabulary terms, conceptual prose,
+    navigation structures like reading maps) that describe the specification format
+    itself and have no corresponding code artifact. Exempt nodes are reported
+    separately in coverage analysis, distinct from both mapped and unmapped
+    nodes.</trm:definition>
+  </trm:term>
+
+  <pr:section id="coverage-analysis-tooling">
+    <pr:title>Coverage Analysis Tooling</pr:title>
+    <pr:shortdesc>How the CLI tool measures bidirectional coverage between spec
+    nodes and code artifacts.</pr:shortdesc>
+
+    <pr:p>The <pr:code>artifact --coverage</pr:code> command analyzes
+    <trm:ref term="term-artifact-coverage">artifact coverage</trm:ref> across
+    all artifact mappings in a spec. It produces two reports: code coverage
+    (which lines in mapped files are not covered by any mapping range) and
+    spec coverage (which content nodes have no artifact mapping).</pr:p>
+
+    <pr:p>Code coverage works at line granularity. For each mapped file, the
+    tool builds a set of covered line numbers from all artifact ranges, then
+    identifies contiguous uncovered fragments. Whitespace-only fragments
+    (blank lines, indentation) are silently filtered because they carry no
+    semantic content. Whole-file mappings (no start-line/end-line) cover
+    100% of the file. Byte-offset-only ranges produce a warning because
+    line-based coverage cannot be computed.</pr:p>
+
+    <pr:p>Spec coverage walks all content nodes (terms, sections) and checks
+    whether each has a direct artifact mapping or inherits coverage from a
+    parent node. Nodes declared as
+    <trm:ref term="term-coverage-exemption">exempt</trm:ref> via
+    <pr:code>art:exempt</pr:code> elements are reported in a separate category,
+    distinct from both mapped and unmapped nodes. Elements from the artifact
+    namespace (<pr:code>art:mapping</pr:code>, <pr:code>art:exempt</pr:code>)
+    are excluded from the report because they are metadata, not content.
+    The <pr:code>--code-path</pr:code> option filters code coverage to
+    files matching a specific path substring.</pr:p>
+
+    <pr:p>The command exits with code 0 when all code fragments are covered
+    and all non-exempt spec nodes are mapped (full
+    <trm:ref term="term-coverage">coverage</trm:ref>),
+    and code 1 when any gaps exist. This enables use in CI pipelines to
+    enforce coverage requirements.</pr:p>
+  </pr:section>
+
+  <org:task ref="coverage-analysis-tooling">
+    <org:purpose>The CLI tool measures bidirectional artifact coverage,
+    identifying uncovered code fragments and unmapped spec nodes.</org:purpose>
+    <org:actor>clayers-cli CLI tool</org:actor>
+  </org:task>
+
+  <rel:relation type="depends-on" from="coverage-analysis-tooling" to="term-artifact-coverage">
+    <rel:note>Coverage tooling depends on the artifact coverage concept for its
+    semantic foundation.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="coverage-analysis-tooling" to="artifact-drift">
+    <rel:note>Coverage analysis builds on the artifact mapping structure that
+    drift detection also uses.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="coverage-analysis-tooling" to="term-coverage">
+    <rel:note>Coverage analysis uses the coverage enumeration (full, partial,
+    none) from the artifact schema.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="coverage-analysis-tooling" to="term-coverage-exemption">
+    <rel:note>Coverage analysis uses exemption declarations to separate exempt
+    nodes from truly unmapped ones.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="term-coverage-exemption" to="term-artifact-coverage">
+    <rel:note>Coverage exemptions modify the artifact coverage metric by excluding
+    specific nodes from the unmapped count.</rel:note>
+  </rel:relation>
+
+  <art:mapping id="map-coverage-exemption-schema">
+    <art:spec-ref node="term-coverage-exemption"
+              revision="draft-1"
+              node-hash="sha256:1e3289a25a28a2529895343488fd8159af345dfad3185ddb7e37558183b4a34b"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="schemas/artifact.xsd">
+        <art:range hash="sha256:f14d1058c13035f28e7340efb340021e7d4c58bff337921248d9c55a51d3863f"
+                   start-line="43" end-line="60"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>The art:exempt element declaration in artifact.xsd implements
+    the coverage exemption concept as an XML schema element.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-coverage-exemption-tooling">
+    <art:spec-ref node="term-coverage-exemption"
+              revision="draft-1"
+              node-hash="sha256:1e3289a25a28a2529895343488fd8159af345dfad3185ddb7e37558183b4a34b"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="crates/clayers-spec/src/coverage.rs">
+        <art:range hash="sha256:a7ad2ffc1f0aac7e91b61438174f1e71d53f7888c341f38f158c1d5c46be3ec5"
+                   start-line="36" end-line="46"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>_collect_exempt_nodes() collects art:exempt declarations from
+    spec files and returns a dict of node_id to reason text.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-coverage-analysis-types">
+    <art:spec-ref node="coverage-analysis-tooling" revision="draft-1" node-hash="sha256:dee55d2d3a3dd8ae7b45326635b0ae886fe0ff1ae00d04a78361e318227a351b"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/coverage.rs">
+      <art:range hash="sha256:38e898585b2b3d3f0565af05530c3ed867f5b8894c5d5f16847e3cf6b0f69c8e" start-line="1" end-line="100"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>CoverageStrength enum, classify_strength, SpecCoverage enum, CoverageReport, FileCoverage, CoveredRange, UncoveredRange, ArtifactCoverage structs.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-coverage-analysis-main">
+    <art:spec-ref node="coverage-analysis-tooling" revision="draft-1" node-hash="sha256:dee55d2d3a3dd8ae7b45326635b0ae886fe0ff1ae00d04a78361e318227a351b"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/coverage.rs">
+      <art:range hash="sha256:32314b5dcb7b9e851f972a049c1b97e200b27e4fa69dba01a55da049989b2b4a" start-line="102" end-line="155"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>analyze_coverage: public entry point that discovers mappings, builds coverage maps, and produces the full CoverageReport.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-term-artifact-coverage">
+    <art:spec-ref node="term-artifact-coverage"
+              revision="draft-1"
+              node-hash="sha256:f7f2ba265e6ee5a2b7ac317779e9b6bc120ecc3ff60ca046a2b469125062b802"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="crates/clayers-spec/src/coverage.rs">
+        <art:range hash="sha256:2b7f601da4d9ff4c012db025d1e1045b1287937198e112118a751eac2fe5aeba"
+                   start-line="48" end-line="133"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>The coverage analysis functions implement the artifact coverage
+    concept: bidirectional measurement of code-to-spec and spec-to-code
+    coverage through artifact mappings.</art:note>
+  </art:mapping>
+
+  <llm:node ref="coverage-analysis-tooling">
+    The artifact --coverage command measures bidirectional coverage between
+    spec and code. Code coverage reports uncovered line fragments in mapped
+    files, filtering whitespace-only gaps. Spec coverage reports unmapped
+    content nodes, applying parent inheritance. The --code-path option
+    filters to specific files. Exit code 0 means full coverage, 1 means
+    gaps exist. Designed for both human consumption (Rich-formatted) and
+    CI pipelines.
+  </llm:node>
+
+  <llm:node ref="term-artifact-coverage">
+    Artifact coverage measures how completely code and spec reference each
+    other through artifact mappings. It is bidirectional: code coverage
+    checks which lines are covered by mapping ranges, spec coverage checks
+    which nodes have mappings (directly or by parent inheritance). Nodes
+    declared exempt via art:exempt are excluded from the unmapped count.
+  </llm:node>
+
+  <llm:node ref="term-coverage-exemption">
+    Coverage exemption (art:exempt) declares a spec node as not needing
+    artifact coverage. Used for documentation-only nodes: vocabulary terms,
+    conceptual prose, navigation structures like reading maps. The element
+    carries a required node attribute (the exempt node's ID) and optional
+    inline text explaining why. _collect_exempt_nodes() in clayers-cli
+    collects these declarations; _report_spec_coverage() reports them in
+    a separate category from mapped and unmapped nodes. Exempt nodes do
+    not count against coverage metrics.
+  </llm:node>
+
+  <!-- Coverage Strength -->
+
+  <trm:term id="term-coverage-strength">
+    <trm:name>Coverage Strength</trm:name>
+    <trm:definition>A categorical metric describing how precisely an artifact
+    mapping targets code. Strength is determined by the line span of the
+    broadest range in a mapping: precise (1-30 lines) targets a single function,
+    moderate (31-100 lines) covers a cluster of related functions, broad (101+
+    lines or whole-file) spans a large section. Narrower mappings are stronger
+    because they provide more precise traceability between spec nodes and
+    code.</trm:definition>
+  </trm:term>
+
+  <pr:section id="coverage-strength-analysis">
+    <pr:title>Coverage Strength Analysis</pr:title>
+    <pr:shortdesc>How the CLI tool measures and reports the precision of
+    artifact mappings.</pr:shortdesc>
+
+    <pr:p><trm:ref term="term-coverage-strength">Coverage strength</trm:ref>
+    measures how precisely each artifact mapping targets code. A mapping that
+    covers 11 lines (a single function) provides stronger traceability than
+    one covering 200 lines (a large module section). The strength metric
+    encourages driving mappings toward precise, function-level granularity.</pr:p>
+
+    <pr:p>Strength is determined by the line span of the broadest range in a
+    mapping. Three tiers are defined:</pr:p>
+
+    <pr:ul>
+      <pr:li><pr:b>Precise</pr:b> (1-30 lines): targets a single function or
+      definition. Provides the strongest traceability.</pr:li>
+      <pr:li><pr:b>Moderate</pr:b> (31-100 lines): covers a cluster of related
+      functions. Acceptable but could be tightened.</pr:li>
+      <pr:li><pr:b>Broad</pr:b> (101+ lines or whole-file): spans a large
+      section or entire file. Should be split into targeted mappings where
+      possible.</pr:li>
+    </pr:ul>
+
+    <pr:p>The <pr:code>artifact --coverage</pr:code> command annotates each
+    COVERED range with its strength label and line count (e.g.,
+    "COVERED 263-273 (map-term-c14n) [precise, 11 lines]"). A per-file
+    summary shows the distribution across tiers. In spec coverage, each
+    covered node is annotated with the strength of its mapping.</pr:p>
+
+    <pr:note type="info">Whole-file mappings (no start-line/end-line) are
+    always classified as broad regardless of file size, because they
+    lack the precision to trace specific code to specific spec nodes.</pr:note>
+  </pr:section>
+
+  <org:task ref="coverage-strength-analysis">
+    <org:purpose>The CLI tool classifies artifact mapping ranges by line span
+    into precision tiers and reports per-file strength distribution.</org:purpose>
+    <org:actor>clayers-cli CLI tool</org:actor>
+  </org:task>
+
+  <rel:relation type="depends-on" from="coverage-strength-analysis" to="term-coverage-strength">
+    <rel:note>The strength analysis feature depends on the coverage strength
+    concept for its tier definitions.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="coverage-strength-analysis" to="coverage-analysis-tooling">
+    <rel:note>Strength analysis extends the coverage analysis output with
+    per-range and per-file strength annotations.</rel:note>
+  </rel:relation>
+
+  <art:mapping id="map-coverage-strength-analysis">
+    <art:spec-ref node="coverage-strength-analysis"
+              revision="draft-1"
+              node-hash="sha256:39efbd9837ff98b6c31406432458976c0c0eb5c016d94f676aae0e0ef1d6f076"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="crates/clayers-spec/src/coverage.rs">
+        <art:range hash="sha256:e67742cb22ebb35c13dd21ff7ca1d173298803dc0b26a4bfbffa432037435d12"
+                   start-line="6" end-line="33"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>_is_whitespace_only(), PRECISE_MAX, MODERATE_MAX, _strength_label()
+    (645-661) define the metric. _mapping_strength() (1145-1172) computes
+    per-mapping strength from range spans. The modified _report_code_coverage
+    and _report_spec_coverage annotate output with strength labels.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-term-coverage-strength">
+    <art:spec-ref node="term-coverage-strength"
+              revision="draft-1"
+              node-hash="sha256:c9c43778caa53a9e12f019aa389ba948bcb849ecb8ead8e220264cbeb092603a"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="crates/clayers-spec/src/coverage.rs">
+        <art:range hash="sha256:b6379df01c692230087412a96a55213e8d9876a41f66164b0298a8c0bf6d2d53"
+                   start-line="6" end-line="21"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>PRECISE_MAX, MODERATE_MAX constants and _strength_label() implement
+    the three-tier categorization defined by the coverage strength term.</art:note>
+  </art:mapping>
+
+  <llm:node ref="coverage-strength-analysis">
+    Coverage strength analysis classifies artifact mapping ranges into three
+    precision tiers based on line span: precise (1-30 lines), moderate
+    (31-100 lines), broad (101+ lines or whole-file). The coverage command
+    annotates each COVERED range with its tier and line count, and adds a
+    per-file summary showing tier distribution. Whole-file mappings are
+    always broad. The metric drives mappings toward function-level
+    granularity for stronger traceability.
+  </llm:node>
+
+  <llm:node ref="term-coverage-strength">
+    Coverage strength is a categorical metric (precise/moderate/broad) based
+    on the line span of an artifact mapping's broadest range. Precise maps
+    target single functions, moderate covers function clusters, broad spans
+    large sections. Narrower is better for traceability.
+  </llm:node>
+
+  <!-- Extended code→spec coverage mappings -->
+
+  <art:mapping id="map-code-coverage-maps">
+    <art:spec-ref node="coverage-analysis-tooling" revision="draft-1" node-hash="sha256:dee55d2d3a3dd8ae7b45326635b0ae886fe0ff1ae00d04a78361e318227a351b"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/coverage.rs">
+      <art:range hash="sha256:58e110925b45721eacc744b2ada068c67b10e8298df80d4f7290d111737423c1" start-line="156" end-line="254"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>collect_node_ids, count_non_whitespace_lines, FileRangeEntry struct, build_coverage_maps: constructs per-file line-to-mapping coverage maps.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-coverage-single-file">
+    <art:spec-ref node="coverage-analysis-tooling" revision="draft-1" node-hash="sha256:dee55d2d3a3dd8ae7b45326635b0ae886fe0ff1ae00d04a78361e318227a351b"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/coverage.rs">
+      <art:range hash="sha256:c20ecdd3ff4363783086f7c87aa299e2312fdc4c1802a9340a67031487ded179" start-line="257" end-line="310"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>compute_single_file_coverage (257-310): per-file coverage computation from line-to-mapping maps.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-coverage-file-iteration">
+    <art:spec-ref node="coverage-analysis-tooling" revision="draft-1" node-hash="sha256:dee55d2d3a3dd8ae7b45326635b0ae886fe0ff1ae00d04a78361e318227a351b"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/coverage.rs">
+      <art:range hash="sha256:73a7c6dd7e4746978c70907524ce6f9a0548a71ee32c8647b23b4fd8650f64df" start-line="313" end-line="405"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>compute_file_coverages (313-366) and find_uncovered_ranges (369-405): file iteration and uncovered range detection.</art:note>
+  </art:mapping>
+
+
+  <art:mapping id="map-coverage-file-structs">
+    <art:spec-ref node="term-artifact-coverage"
+              revision="draft-1"
+              node-hash="sha256:f7f2ba265e6ee5a2b7ac317779e9b6bc120ecc3ff60ca046a2b469125062b802"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="crates/clayers-spec/src/coverage.rs">
+        <art:range hash="sha256:808dc0207125d91e3a9336e7825428a993360201074bde62e4a4f57fe1033787" start-line="62" end-line="95"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>FileCoverage, CoveredRange, UncoveredRange, ArtifactCoverage struct definitions for code→spec coverage reporting.</art:note>
+  </art:mapping>
+
+
+  <art:mapping id="map-connectivity-cli-command">
+    <art:spec-ref node="connectivity-analysis"
+              revision="draft-1"
+              node-hash="sha256:4d490fa4effb87e188cd1a0ddefe2385221498865a175e7e88c4d2de02233c82"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="crates/clayers/src/cli.rs">
+        <art:range hash="sha256:d8e42be8a1209b9645a2b9767603bd12e504f7bef3afd366cc891b110b5aff12" start-line="299" end-line="372"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>cmd_connectivity() CLI command: runs connectivity analysis and prints graph metrics, components, hubs, bridges, cycles.</art:note>
+  </art:mapping>
+
+
+  <art:mapping id="map-query-cli-command">
+    <art:spec-ref node="xpath-query-tooling"
+              revision="draft-1"
+              node-hash="sha256:77a51d5c5578e02b18c521b2207184be3e3bb4be55079f84d42eedeac8d2c19a"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="crates/clayers/src/cli.rs">
+        <art:range hash="sha256:4348624b74ea1e9f756bd25aef9f66ac6a3e9662d207e2fdf786fff8bccb1086" start-line="374" end-line="402"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>cmd_query() CLI command: executes XPath queries against the combined spec document with count, text, and XML output modes.</art:note>
+  </art:mapping>
+
+
+  <art:mapping id="map-artifact-coverage-cli">
+    <art:spec-ref node="coverage-analysis-tooling"
+              revision="draft-1"
+              node-hash="sha256:dee55d2d3a3dd8ae7b45326635b0ae886fe0ff1ae00d04a78361e318227a351b"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="crates/clayers/src/cli.rs">
+        <art:range hash="sha256:7f30bead2cc95f260681be3923d163dc7316a7baa0710d46ffde53430923c8b0" start-line="161" end-line="252"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>cmd_artifact() coverage display and default artifact listing mode. Shows per-mapping strength, unmapped nodes, and per-file code coverage.</art:note>
+  </art:mapping>
+
+
+  <art:mapping id="map-cli-structure">
+    <art:spec-ref node="artifact-hash-tooling"
+              revision="draft-1"
+              node-hash="sha256:9355f2b4f572d66a4e4853cd5ad7abb318a44629e2682178f92c4e6618c9ef72"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="crates/clayers/src/cli.rs">
+        <art:range hash="sha256:36e2d155f22901d5434240d9418b27903e795957b91f6711d9d9b883aeb6515c" start-line="1" end-line="95"/>
+      </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>CLI structure: Cli struct, Command enum with all subcommands (validate, artifact, connectivity, query), cli_main() entry point, run() dispatcher.</art:note>
+  </art:mapping>
+
+
+  <art:mapping id="map-drift-cli-command">
+    <art:spec-ref node="drift-detection-tooling"
+              revision="draft-1"
+              node-hash="sha256:c1b732b0a47e061d03b913948e074489904ecd859bb6acb91f47f77f449a1624"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="crates/clayers/src/cli.rs">
+        <art:range hash="sha256:b7e905c272600496b7fcbf74174c9883f2170960187f2d3459ff009879f2798d" start-line="254" end-line="297"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>cmd_drift() CLI command: runs drift detection and prints per-mapping status with stored vs current hashes and causal commits.</art:note>
+  </art:mapping>
+
+
+  <art:mapping id="map-content-hash-traits">
+    <art:spec-ref node="term-node-hash"
+              revision="draft-1"
+              node-hash="sha256:746fc0d7d661a2907f4667aa4927edc16c05934b5d8852babcf86ab00edb4928"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="crates/clayers-xml/src/hash.rs">
+        <art:range hash="sha256:874312a65b361d79f9dd2999df0f1771fe78e99c451a6a55656364496b15263e" start-line="1" end-line="90"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>ContentHash struct, all methods (from_bytes, from_canonical, to_hex, to_prefixed), and trait implementations (Display, Debug, FromStr).</art:note>
+  </art:mapping>
+
+
+  <art:mapping id="map-c14n-full-impl">
+    <art:spec-ref node="term-c14n"
+              revision="draft-1"
+              node-hash="sha256:0c5b95ff31d6fe2844a6f22ecc8b28db089ea18fc7e3fc621ceb3da187ac7e0f"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="crates/clayers-xml/src/c14n.rs">
+        <art:range hash="sha256:115edc9fee40682e26833cc68308c4b871cc1c39f82c7c4fbae801b37f31c704" start-line="1" end-line="90"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Full C14N module: CanonicalizationMode enum (6 variants), canonicalize(), canonicalize_str(), canonicalize_and_hash() bridge functions.</art:note>
+  </art:mapping>
+
+
+  <art:mapping id="map-connectivity-structs">
+    <art:spec-ref node="connectivity-analysis"
+              revision="draft-1"
+              node-hash="sha256:4d490fa4effb87e188cd1a0ddefe2385221498865a175e7e88c4d2de02233c82"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="crates/clayers-spec/src/connectivity.rs">
+        <art:range hash="sha256:b4edbcb4e98e371a1d57510151c2ce2fb899a8c495a0b99e1f985462545b8183" start-line="1" end-line="55"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>ConnectivityReport, HubNode, BridgeNode, Cycle struct definitions for graph metric output.</art:note>
+  </art:mapping>
+
+
+  <art:mapping id="map-connectivity-graph-building">
+    <art:spec-ref node="connectivity-analysis" revision="draft-1" node-hash="sha256:4d490fa4effb87e188cd1a0ddefe2385221498865a175e7e88c4d2de02233c82"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/connectivity.rs">
+      <art:range hash="sha256:76af58d4ca7ec754170cb60cdf8565681994f28e9e473d8cef19bb3c14f1912b" start-line="263" end-line="336"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>build_graph and weakly_connected_components: adjacency list construction and component detection.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-connectivity-isolated-hubs">
+    <art:spec-ref node="connectivity-analysis" revision="draft-1" node-hash="sha256:4d490fa4effb87e188cd1a0ddefe2385221498865a175e7e88c4d2de02233c82"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/connectivity.rs">
+      <art:range hash="sha256:e8ef1c84eca156ba49d9919b5ef634d9328d4e5fc7c2ab23c5d9c55b030b605d" start-line="338" end-line="384"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>find_isolated_nodes (338-359) and find_hub_nodes (361-384): degree-based node analysis.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-connectivity-bridges">
+    <art:spec-ref node="connectivity-analysis" revision="draft-1" node-hash="sha256:4d490fa4effb87e188cd1a0ddefe2385221498865a175e7e88c4d2de02233c82"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/connectivity.rs">
+      <art:range hash="sha256:ffdafc5fd59246aaa17ac194b05821a397203a8a7ccbafccbca67c2b16ee75f5" start-line="386" end-line="466"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>find_bridge_nodes (386-466): betweenness centrality bridge node detection.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-connectivity-cycle-detection">
+    <art:spec-ref node="connectivity-analysis" revision="draft-1" node-hash="sha256:4d490fa4effb87e188cd1a0ddefe2385221498865a175e7e88c4d2de02233c82"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/connectivity.rs">
+      <art:range hash="sha256:786e0160315db84528e1214f81b24bbb4f44efae300274e77cd8e5a1b3b53a22" start-line="468" end-line="536"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>find_cycles: DFS-based cycle detection with acyclic violation checking.</art:note>
+  </art:mapping>
+
+
+  <art:mapping id="map-discovery-index-files">
+    <art:spec-ref node="term-index" revision="draft-1" node-hash="sha256:0b271fa0db4f174e34bca807c1d664c6b76c61ae4cc60f792072fcd2638739a4"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/discovery.rs">
+      <art:range hash="sha256:08cca9dae4bd7bb009ba5f3f8dd08fcb14e4fad1bebf799db8e35237d2c5a80f" start-line="1" end-line="91"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>find_index_files, discover_spec_files, collect_file_refs: index discovery and spec file manifest reading.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-discovery-xml-walking">
+    <art:spec-ref node="term-index" revision="draft-1" node-hash="sha256:0b271fa0db4f174e34bca807c1d664c6b76c61ae4cc60f792072fcd2638739a4"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/discovery.rs">
+      <art:range hash="sha256:2e56a25200b92cb13bded56d1c221e93dcc187f94567246d684a9958762c48c0" start-line="93" end-line="171"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>find_xml_files, walkdir, is_index_file, resolve_index: XML file discovery and index detection helpers.</art:note>
+  </art:mapping>
+
+
+  <art:mapping id="map-fix-types">
+    <art:spec-ref node="artifact-hash-tooling"
+              revision="draft-1"
+              node-hash="sha256:9355f2b4f572d66a4e4853cd5ad7abb318a44629e2682178f92c4e6618c9ef72"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="crates/clayers-spec/src/fix.rs">
+        <art:range hash="sha256:17f5d91a7852667c2bd8e4554639f12b5bffd41606727fe2f3fd9e23eab554a4" start-line="1" end-line="33"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>FixResult (10-14) and FixReport (18-23) struct definitions.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-fix-change-helpers">
+    <art:spec-ref node="artifact-hash-tooling"
+              revision="draft-1"
+              node-hash="sha256:9355f2b4f572d66a4e4853cd5ad7abb318a44629e2682178f92c4e6618c9ef72"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="crates/clayers-spec/src/fix.rs">
+        <art:range hash="sha256:dcbcbf05c3f0313d35148bf5553880f115269fac3efa35e1449c8da0907a0e84" start-line="192" end-line="277"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>RangeChange (194-200), NodeHashChange (202-206), find_node_by_id (210-230), apply_range_changes (232-249), apply_node_hash_changes (251-271).</art:note>
+  </art:mapping>
+
+
+  <art:mapping id="map-xpath-query-types">
+    <art:spec-ref node="xpath-query-tooling" revision="draft-1" node-hash="sha256:77a51d5c5578e02b18c521b2207184be3e3bb4be55079f84d42eedeac8d2c19a"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/query.rs">
+      <art:range hash="sha256:3d5fae46e1cf9caca2fa9656a8172c41ce156b9bab5f2cc475ef2dd41e688086" start-line="1" end-line="79"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>QueryResult and QueryMode enums, execute_query() public entry point.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-xpath-query-evaluation">
+    <art:spec-ref node="xpath-query-tooling" revision="draft-1" node-hash="sha256:77a51d5c5578e02b18c521b2207184be3e3bb4be55079f84d42eedeac8d2c19a"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/query.rs">
+      <art:range hash="sha256:41777b9ce3857c756c12a83c179ad6853e5a1e3f0ae32f45e2586d9d2bff6473" start-line="85" end-line="167"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>XPath evaluation functions: evaluate_xpath_count, evaluate_xpath_text, evaluate_xpath_xml, collect_all_text, collect_text_recursive, resolve_steps.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-xpath-query-step-types">
+    <art:spec-ref node="xpath-query-tooling" revision="draft-1" node-hash="sha256:77a51d5c5578e02b18c521b2207184be3e3bb4be55079f84d42eedeac8d2c19a"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/query.rs">
+      <art:range hash="sha256:05a63a5f6005d4890e019a6b848a5a513d0fb8161e4ce3a1257d64f3d2eba85d" start-line="176" end-line="213"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>ParsedStep (200-205) and ResolvedStep (207-213) structs, plus parse entry point constants.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-xpath-query-parse-impl">
+    <art:spec-ref node="xpath-query-tooling" revision="draft-1" node-hash="sha256:77a51d5c5578e02b18c521b2207184be3e3bb4be55079f84d42eedeac8d2c19a"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/query.rs">
+      <art:range hash="sha256:820d5b24039f80ac5074ea288fc02737c18863eb86ae57f016407ce85f749279" start-line="215" end-line="308"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>parse_xpath_steps (215-234), split_xpath_path, parse_single_step, parse_predicate: XPath parsing implementation.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-xpath-query-matching">
+    <art:spec-ref node="xpath-query-tooling" revision="draft-1" node-hash="sha256:77a51d5c5578e02b18c521b2207184be3e3bb4be55079f84d42eedeac8d2c19a"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/query.rs">
+      <art:range hash="sha256:68cd8117951263b9dabc15c5fef66f32607b11ebf433bee8d0e198495bcb9407" start-line="310" end-line="381"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Node matching: find_nodes_by_steps tree-walking, matches_step element/attribute/predicate matching.</art:note>
+  </art:mapping>
+
+
+  <art:mapping id="map-assembly-combined">
+    <art:spec-ref node="term-combined-document" revision="draft-1" node-hash="sha256:cf323bd2660e8987e8341099b6ad0c03cdb29170bdc5ef2689bf2065149f8828"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/assembly.rs">
+      <art:range hash="sha256:5af8a1067453d6a1424a8cbf6cb02bf61abe552d7ad5fd5d726e28cecf8e9585" start-line="1" end-line="59"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>assemble_combined: creates combined document by unwrapping layer file roots into cmb:spec wrapper.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-assembly-xml-helpers">
+    <art:spec-ref node="term-combined-document" revision="draft-1" node-hash="sha256:cf323bd2660e8987e8341099b6ad0c03cdb29170bdc5ef2689bf2065149f8828"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/assembly.rs">
+      <art:range hash="sha256:7c56a9744fdc35482a24f4dc2c02f9deb7c980004639d4c11c44d9084f7c6d18" start-line="61" end-line="120"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>extract_inner_xml, assemble_combined_string, _api module: XML content extraction and string assembly helpers.</art:note>
+  </art:mapping>
+
+
+  <art:mapping id="map-validate-types">
+    <art:spec-ref node="cross-layer-integrity" revision="draft-1" node-hash="sha256:5dea450a8dc2b32cbe014f4605fb3443e21c65ec4da892cbfb80378d1e4bbf72"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/validate.rs">
+      <art:range hash="sha256:103d6d87edacb10e2e751e93ba60fbfef715492ff37d2b8de0cede06693a4511" start-line="1" end-line="35"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>ValidationResult and ValidationError structs, imports.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-validate-id-uniqueness">
+    <art:spec-ref node="cross-layer-integrity" revision="draft-1" node-hash="sha256:5dea450a8dc2b32cbe014f4605fb3443e21c65ec4da892cbfb80378d1e4bbf72"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/validate.rs">
+      <art:range hash="sha256:ed2a026e758e19cc315af597112289313671639eba700c647e827029eaeda82a" start-line="88" end-line="141"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>check_well_formed, check_id_uniqueness, collect_ids: ID uniqueness enforcement across all layer files.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-validate-keyrefs">
+    <art:spec-ref node="cross-layer-integrity" revision="draft-1" node-hash="sha256:5dea450a8dc2b32cbe014f4605fb3443e21c65ec4da892cbfb80378d1e4bbf72"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/validate.rs">
+      <art:range hash="sha256:765fe797cce4600111807dfe9b69aa2c76ec28154d7ba4911a1986bd3cb4286c" start-line="143" end-line="199"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>check_references and collect_all_ids: keyref validation of cross-layer node references.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-validate-relation-refs">
+    <art:spec-ref node="cross-layer-integrity" revision="draft-1" node-hash="sha256:5dea450a8dc2b32cbe014f4605fb3443e21c65ec4da892cbfb80378d1e4bbf72"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/validate.rs">
+      <art:range hash="sha256:fc6513587b492294280331a0f9e25615ee2927e96eadef021f1f968a1451c7bb" start-line="202" end-line="249"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>check_relation_refs: validates that relation from/to attributes reference existing node IDs.</art:note>
+  </art:mapping>
+
+
+  <art:mapping id="map-schema-acyclic-discovery">
+    <art:spec-ref node="schema-design" revision="draft-1" node-hash="sha256:0d82daa69bc10a35f3838a7b0c6f41a8326b736287758aee67b13a18b2d511fd"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/schema.rs">
+      <art:range hash="sha256:ecd7c7e084c305bc020fa4974a603f8ea10f1e52ff6af342c4017de7fd6a296b" start-line="1" end-line="95"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>ContentElement/Keyref structs, discover_acyclic_types, collect_acyclic_types: XSD scanning for acyclic relation type annotations.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-schema-content-discovery-funcs">
+    <art:spec-ref node="schema-design" revision="draft-1" node-hash="sha256:0d82daa69bc10a35f3838a7b0c6f41a8326b736287758aee67b13a18b2d511fd"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/schema.rs">
+      <art:range hash="sha256:5d79971db3782aa2baf4dcc1b94d162121568b9beaefdf9590620ccc75c787e7" start-line="97" end-line="176"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>has_acyclic_true, discover_content_elements, discover_from_xsd: top-level content element discovery functions.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-schema-content-collect">
+    <art:spec-ref node="schema-design" revision="draft-1" node-hash="sha256:0d82daa69bc10a35f3838a7b0c6f41a8326b736287758aee67b13a18b2d511fd"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/schema.rs">
+      <art:range hash="sha256:e6be004049680db4366ad4023ee6922cda8435a1fc8c6b81fd7eaeeb52a5cd32" start-line="179" end-line="226"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>collect_content_elements, has_content_element_annotation: recursive XSD element collection with appinfo annotation checking.</art:note>
+  </art:mapping>
+
+
+  <!-- Test module and gap-fill mappings -->
+
+  <art:mapping id="map-fix-tests-structs">
+    <art:spec-ref node="artifact-hash-tooling" revision="draft-1" node-hash="sha256:9355f2b4f572d66a4e4853cd5ad7abb318a44629e2682178f92c4e6618c9ef72"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/fix.rs">
+      <art:range hash="sha256:beaf86807edd1e6faaff69076d1d2e1d70ba70a37f9604dcbda46952ef5ab0c0" start-line="109" end-line="117"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>FixNodeHashReport struct definition.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-fix-tests-replace-basic">
+    <art:spec-ref node="artifact-hash-tooling" revision="draft-1" node-hash="sha256:9355f2b4f572d66a4e4853cd5ad7abb318a44629e2682178f92c4e6618c9ef72"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/fix.rs">
+      <art:range hash="sha256:a6634afdf2a6d06322b6eeebaf81ecc9e25aa5ceff5335aea15f820739255309" start-line="339" end-line="420"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Basic replace_hash_in_mapping tests: node-hash replacement, range with line anchor, whole-file mapping, non-matching mapping.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-fix-tests-replace-advanced">
+    <art:spec-ref node="artifact-hash-tooling" revision="draft-1" node-hash="sha256:9355f2b4f572d66a4e4853cd5ad7abb318a44629e2682178f92c4e6618c9ef72"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/fix.rs">
+      <art:range hash="sha256:70164e5306e5d87ab02af0f2c5244a77af5ab71c1cc502a5dd1d072e64de77e0" start-line="422" end-line="510"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Advanced replace_hash_in_mapping tests: missing attribute, first range selection, preserves surrounding content.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-fix-tests-synthetic-setup">
+    <art:spec-ref node="artifact-hash-tooling" revision="draft-1" node-hash="sha256:9355f2b4f572d66a4e4853cd5ad7abb318a44629e2682178f92c4e6618c9ef72"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/fix.rs">
+      <art:range hash="sha256:5613aa3a61f4d6e4674bf9e4d13c1db665a9159c680d9c498cc8006174994e79" start-line="512" end-line="570"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Synthetic spec test helpers and basic fix_artifact_hashes integration tests.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-fix-tests-synthetic-cases">
+    <art:spec-ref node="artifact-hash-tooling" revision="draft-1" node-hash="sha256:9355f2b4f572d66a4e4853cd5ad7abb318a44629e2682178f92c4e6618c9ef72"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/fix.rs">
+      <art:range hash="sha256:97c9d5b3958f092b9eb4008b1621cc36e8a08449842e9856cb446e505a04a156" start-line="572" end-line="652"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Remaining synthetic test cases: idempotent, line ranges, skips missing files.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-fix-tests-node-basic">
+    <art:spec-ref node="artifact-hash-tooling" revision="draft-1" node-hash="sha256:9355f2b4f572d66a4e4853cd5ad7abb318a44629e2682178f92c4e6618c9ef72"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/fix.rs">
+      <art:range hash="sha256:2700fa4cba53aa38f8f054122abb3b3b233d279f1f60268d646a11df009c5e59" start-line="655" end-line="730"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Basic fix_node_hashes tests: updates hash, idempotent, deterministic, different content.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-fix-tests-node-shipped">
+    <art:spec-ref node="artifact-hash-tooling" revision="draft-1" node-hash="sha256:9355f2b4f572d66a4e4853cd5ad7abb318a44629e2682178f92c4e6618c9ef72"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/fix.rs">
+      <art:range hash="sha256:e126f9c2146e5fb49cce30c80aef5c411d7bc8d6ed08b1e7c5bb8ac42f0c562e" start-line="732" end-line="811"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Shipped spec integration tests: fix_node_hashes on real spec, idempotent check, copy_dir_all helper.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-hash-tests">
+    <art:spec-ref node="term-node-hash" revision="draft-1" node-hash="sha256:746fc0d7d661a2907f4667aa4927edc16c05934b5d8852babcf86ab00edb4928"/>
+    <art:artifact repo="clayers" repo-revision="753ad37" path="crates/clayers-xml/src/hash.rs">
+        <art:range hash="sha256:226a76efc976131d129691e48e7ed6382eaf54a9a842d462f3f2e43aeb4aa53b" start-line="92" end-line="146"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Test module for hash.rs: ContentHash round-trip, to_prefixed format, from_canonical determinism, Display/FromStr round-trip.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-assembly-tests">
+    <art:spec-ref node="term-combined-document" revision="draft-1" node-hash="sha256:cf323bd2660e8987e8341099b6ad0c03cdb29170bdc5ef2689bf2065149f8828"/>
+    <art:artifact repo="clayers" repo-revision="753ad37" path="crates/clayers-spec/src/assembly.rs">
+        <art:range hash="sha256:dda079288268b7b68aa0000126053a1f811c7cf1bcc98d58ede4bb90cca602dc" start-line="122" end-line="190"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Test module for assembly.rs: combined document assembly from shipped spec, namespace verification, multi-layer content merging.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-namespace-tests">
+    <art:spec-ref node="term-namespace" revision="draft-1" node-hash="sha256:3fc93c2b8f5563fa87f8d5d988c3f698a8301389a926c0d3242c9db14b4e3788"/>
+    <art:artifact repo="clayers" repo-revision="753ad37" path="crates/clayers-spec/src/namespace.rs">
+        <art:range hash="sha256:9930862ae819d5c9a927e55570d9464132cc20a30ed9cb0fcf831fb6185be000" start-line="65" end-line="103"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Test module for namespace.rs: all 12 URN constants are distinct, prefix map covers all layers.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-c14n-tests">
+    <art:spec-ref node="term-c14n" revision="draft-1" node-hash="sha256:0c5b95ff31d6fe2844a6f22ecc8b28db089ea18fc7e3fc621ceb3da187ac7e0f"/>
+    <art:artifact repo="clayers" repo-revision="753ad37" path="crates/clayers-xml/src/c14n.rs">
+        <art:range hash="sha256:0ef80d3c2a106acc85c2fe444a8f64084c3716a024f621c16205a2e643f8eae5" start-line="74" end-line="121"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Test module for c14n.rs: canonicalization determinism, inclusive vs exclusive mode differences, canonicalize_and_hash integration.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-coverage-tests-unit">
+    <art:spec-ref node="coverage-analysis-tooling" revision="draft-1" node-hash="sha256:dee55d2d3a3dd8ae7b45326635b0ae886fe0ff1ae00d04a78361e318227a351b"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/coverage.rs">
+      <art:range hash="sha256:a94f693e2a61a67223037d7809d1ce923ae9b6dd1414725ead6f73af8585daab" start-line="407" end-line="501"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Unit tests: strength classification, whitespace filtering, uncovered range detection, single file coverage computation.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-coverage-tests-maps">
+    <art:spec-ref node="coverage-analysis-tooling" revision="draft-1" node-hash="sha256:dee55d2d3a3dd8ae7b45326635b0ae886fe0ff1ae00d04a78361e318227a351b"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/coverage.rs">
+      <art:range hash="sha256:2ebd9847b04dfe06fde766b44122dac5719d1d0e0b915ffbe43c18af8b4fbf52" start-line="503" end-line="555"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>build_coverage_maps tests: path filtering, whole-file vs ranged mappings.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-coverage-tests-shipped">
+    <art:spec-ref node="coverage-analysis-tooling" revision="draft-1" node-hash="sha256:dee55d2d3a3dd8ae7b45326635b0ae886fe0ff1ae00d04a78361e318227a351b"/>
+    <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/coverage.rs">
+      <art:range hash="sha256:c4e132d29e1d201c8593e674a80125021425544321e88d68ee08250099e3501f" start-line="557" end-line="613"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Shipped spec integration tests for coverage analysis.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-query-tests">
+    <art:spec-ref node="xpath-query-tooling" revision="draft-1" node-hash="sha256:77a51d5c5578e02b18c521b2207184be3e3bb4be55079f84d42eedeac8d2c19a"/>
+    <art:artifact repo="clayers" repo-revision="753ad37" path="crates/clayers-spec/src/query.rs">
+        <art:range hash="sha256:2eb3e8249273b5d233e6204b9a0f09085d1e2d8c1916d38d59096a898f6b6654" start-line="383" end-line="475"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Test module for query.rs: XPath count/text/XML queries against shipped spec, namespace prefix registration, term and relation queries.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-artifact-tests">
+    <art:spec-ref node="term-artifact-mapping" revision="draft-1" node-hash="sha256:1162417f3bc40e4c3061d71db0dc513fc6d63d64a55cdf4134a2120239d43ac5"/>
+    <art:artifact repo="clayers" repo-revision="753ad37" path="crates/clayers-spec/src/artifact.rs">
+        <art:range hash="sha256:ba0bd66749a292076ecd5bbfa9d3d5563d97bd05241d2172970c8edf91a21578" start-line="1" end-line="6"/>
+        <art:range hash="sha256:0c08e031624abc2fa5c31bfd834ead5c56845bbadb9477d52afb561ef0463f34" start-line="207" end-line="215"/>
+        <art:range hash="sha256:b021a4e6da0b6281270b6eb940b9d7c25d4f44e58f57e559385ef62ce87fa32d" start-line="267" end-line="268"/>
+        <art:range hash="sha256:b5dfdf00fc8c1baa92dc40da36d0a71990ec8f9bc3fed10bb7c405611b3e7241" start-line="307" end-line="366"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Imports, collect_text_content helper, inter-function gaps, and test module for artifact.rs: mapping collection from shipped spec, hash consistency, line-range extraction, hash differentiation.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-validate-tests">
+    <art:spec-ref node="cross-layer-integrity" revision="draft-1" node-hash="sha256:5dea450a8dc2b32cbe014f4605fb3443e21c65ec4da892cbfb80378d1e4bbf72"/>
+    <art:artifact repo="clayers" repo-revision="753ad37" path="crates/clayers-spec/src/validate.rs">
+        <art:range hash="sha256:61e0d6158e7f2c0b0ca512778466a1693a6bba8e4060ea54ad03e659da8e607f" start-line="251" end-line="310"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Test module for validate.rs: ID uniqueness detection, valid spec passes, shipped spec validation, malformed XML detection.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-drift-tests">
+    <art:spec-ref node="drift-detection-tooling" revision="draft-1" node-hash="sha256:c1b732b0a47e061d03b913948e074489904ecd859bb6acb91f47f77f449a1624"/>
+    <art:artifact repo="clayers" repo-revision="753ad37" path="crates/clayers-spec/src/drift.rs">
+        <art:range hash="sha256:bf9b48de12eec07101e98e1a42e6f1c259a6f0a50e29dc55d0c24e28bc9b199b" start-line="205" end-line="238"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Test module for drift.rs: no-drift and drift-detected paths, shipped spec drift check.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-schema-tests">
+    <art:spec-ref node="schema-design" revision="draft-1" node-hash="sha256:0d82daa69bc10a35f3838a7b0c6f41a8326b736287758aee67b13a18b2d511fd"/>
+    <art:artifact repo="clayers" repo-revision="753ad37" path="crates/clayers-spec/src/schema.rs">
+        <art:range hash="sha256:05a817f7839605fc98e9a0858fe2b958251668c075cab54a3c7d0d09a898203b" start-line="228" end-line="258"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Test module for schema.rs: content-element discovery, acyclic type discovery from shipped schemas.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-connectivity-tests">
+    <art:spec-ref node="connectivity-analysis" revision="draft-1" node-hash="sha256:4d490fa4effb87e188cd1a0ddefe2385221498865a175e7e88c4d2de02233c82"/>
+    <art:artifact repo="clayers" repo-revision="753ad37" path="crates/clayers-spec/src/connectivity.rs">
+        <art:range hash="sha256:354d55b8495d98620de57b52e9d30ab052557c8c8fe0bfd10f4979de07ffc18a" start-line="552" end-line="651"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Test module for connectivity.rs: graph metrics, connected components, isolated nodes, hub identification, cycle detection.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-discovery-tests">
+    <art:spec-ref node="term-index" revision="draft-1" node-hash="sha256:0b271fa0db4f174e34bca807c1d664c6b76c61ae4cc60f792072fcd2638739a4"/>
+    <art:artifact repo="clayers" repo-revision="753ad37" path="crates/clayers-spec/src/discovery.rs">
+        <art:range hash="sha256:60b020e00883b313cc09f9cc50a01396b6ff529505143553ca8e10b5715481f6" start-line="173" end-line="213"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Test module for discovery.rs: file discovery from shipped spec, index resolution, path existence verification.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-error-module">
+    <art:spec-ref node="term-c14n" revision="draft-1" node-hash="sha256:0c5b95ff31d6fe2844a6f22ecc8b28db089ea18fc7e3fc621ceb3da187ac7e0f"/>
+    <art:artifact repo="clayers" repo-revision="753ad37" path="crates/clayers-xml/src/error.rs">
+        <art:range hash="sha256:45056832c52c41f63e6b390fffe651c5a5190637b81bd5dfcd3fd12527f42a14" start-line="1" end-line="48"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Error enum for clayers-xml: XmlParse, Canonicalization, HashFormat variants via thiserror, plus Display verification tests.</art:note>
+  </art:mapping>
+
+  <!-- Final coverage gap fills -->
+
+  <art:mapping id="map-artifact-schema-coverage-rest">
+    <art:spec-ref node="term-coverage" revision="draft-1" node-hash="sha256:2f0a11dbd8d18c0ab5cbe48804c23e88f4b34033aa01d33442521cc2a6bdfaad"/>
+    <art:artifact repo="clayers" repo-revision="753ad37" path="schemas/artifact.xsd">
+        <art:range hash="sha256:db71a911f53818d38a25054aecad68ed337216dd4b3ea83bf7d8342390164946" start-line="206" end-line="225"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>CoverageKind partial/none enumerations and HashType simpleType.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-artifact-cli-dispatch">
+    <art:spec-ref node="artifact-hash-tooling" revision="draft-1" node-hash="sha256:9355f2b4f572d66a4e4853cd5ad7abb318a44629e2682178f92c4e6618c9ef72"/>
+    <art:artifact repo="clayers" repo-revision="753ad37" path="crates/clayers/src/cli.rs">
+        <art:range hash="sha256:59fa536ae43e7a0d3b5f543b0b9ec24d2f15f0d86c6615fbce84a5c1e7c6b18d" start-line="144" end-line="159"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>cmd_artifact() function signature and dispatch to fix_hashes/drift.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-connectivity-schema-dir">
+    <art:spec-ref node="connectivity-analysis" revision="draft-1" node-hash="sha256:4d490fa4effb87e188cd1a0ddefe2385221498865a175e7e88c4d2de02233c82"/>
+    <art:artifact repo="clayers" repo-revision="753ad37" path="crates/clayers-spec/src/connectivity.rs">
+        <art:range hash="sha256:3788fca5cb2b871905a6bdf8861e61e8afac5168fe0a18bfc50cadc239073b61" start-line="145" end-line="158"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>find_schema_dir() helper: walks up from spec_dir to find schemas/ directory.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-artifact-schema-gaps">
+    <art:spec-ref node="artifact-drift" revision="draft-1" node-hash="sha256:f53cf8b9e59e9ae311bcb37f599072130eeb48bcce01617054f123da44b1e6ed"/>
+    <art:artifact repo="clayers" repo-revision="753ad37" path="schemas/artifact.xsd">
+        <art:range hash="sha256:63e1a5b83598f826f1a20d212d35a183d145eb3c459ccfbe316c68f8706d6314" start-line="80" end-line="80"/>
+        <art:range hash="sha256:6eee7b61823fb8ba479f9c2dbe25333c17ba87b2cd777284d2561c60c19f8e97" start-line="178" end-line="178"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Single-line gaps between schema type definitions (closing/opening tags).</art:note>
+  </art:mapping>
+</spec:clayers>

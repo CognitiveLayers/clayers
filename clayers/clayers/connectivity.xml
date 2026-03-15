@@ -1,0 +1,497 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Connectivity: Graph analysis of the relation layer.
+  How the CLI tool builds a directed graph from spec nodes and relations,
+  then reports connectivity metrics using NetworkX.
+-->
+<spec:clayers xmlns:spec="urn:clayers:spec"
+       xmlns:pr="urn:clayers:prose"
+       xmlns:trm="urn:clayers:terminology"
+       xmlns:org="urn:clayers:organization"
+       xmlns:rel="urn:clayers:relation"
+       xmlns:art="urn:clayers:artifact"
+       xmlns:llm="urn:clayers:llm"
+       spec:index="index.xml">
+
+  <!-- Vocabulary -->
+
+  <trm:term id="term-spec-connectivity">
+    <trm:name>Specification Connectivity</trm:name>
+    <trm:definition>A graph-theoretic measure of how well a specification's
+    content nodes are linked through the relation layer. A fully connected
+    specification has one weakly connected component and zero isolated nodes,
+    meaning every concept is reachable from every other concept via semantic
+    links. Fragmented specifications have disconnected clusters or orphaned
+    nodes that are not part of any relation.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-reference-synthesis">
+    <trm:name>Reference Synthesis</trm:name>
+    <trm:definition>The automatic generation of rel:relation type="references"
+    edges from trm:ref elements in the prose layer. Every trm:ref that cites
+    a term creates an implicit semantic link from the nearest ancestor node
+    (the section or term containing the reference) to the cited term. These
+    implicit links are made explicit by an XSLT post-processing step applied
+    to the combined document, so that the relation layer reflects the actual
+    usage patterns in the prose without requiring authors to hand-write
+    reference relations.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-acyclic-relation">
+    <trm:name>Acyclic Relation</trm:name>
+    <trm:definition>A relation type whose edges must form a directed acyclic
+    graph (DAG). Cycles involving acyclic relation types are specification
+    errors because they violate the inherent semantics of the relation.
+    Two of the seven relation kinds are acyclic: depends-on (a dependency
+    cycle means nothing can be built first) and precedes (a temporal ordering
+    cycle means nothing can happen first). The remaining five kinds (refines,
+    conflicts-with, implements, constrains, reverses) may legitimately
+    participate in cycles without indicating an error.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-extension-relation-type">
+    <trm:name>Extension Relation Type</trm:name>
+    <trm:definition>A relation type defined by an extension layer rather than
+    the core RelationKind enumeration. Extension types are XSD complexTypes
+    annotated with rel:relation-type-properties in xs:appinfo, activated by a
+    refines edge from their type id to type-relation-kind. The tooling discovers
+    them via two-pass collection and treats their instances as graph edges
+    using the declared attribute names for source and target node IDs.</trm:definition>
+  </trm:term>
+
+  <!-- Content -->
+
+  <pr:section id="connectivity-analysis">
+    <pr:title>Connectivity Analysis</pr:title>
+    <pr:shortdesc>How the CLI tool analyzes the relation graph to measure
+    specification cohesion.</pr:shortdesc>
+
+    <pr:p>The <pr:code>connectivity</pr:code> command builds a directed graph
+    from the specification's content nodes and semantic relations, then reports
+    <trm:ref term="term-spec-connectivity">connectivity</trm:ref> metrics.
+    The graph excludes metadata nodes (artifact mappings and revisions) because
+    they are administrative, not conceptual.</pr:p>
+
+    <pr:p>Graph construction collects all elements with @id attributes from
+    all layer files and from all <pr:code>.xsd</pr:code> schema files (making
+    XSD types with <pr:code>@id</pr:code> attributes addressable graph nodes).
+    It filters out <pr:code>art:mapping</pr:code> and
+    <pr:code>rev:revision</pr:code> elements, and adds each remaining node
+    as a vertex. Relations are collected via a two-pass process: pass 1
+    gathers explicit <pr:code>rel:relation</pr:code> elements, pass 2 discovers
+    and collects instances of extension relation types (see
+    <trm:ref term="term-extension-relation-type">extensible relation
+    types</trm:ref>). Each relation becomes a directed edge, provided both
+    endpoints exist in the graph and the relation is local (cross-spec
+    relations with a <pr:code>to-spec</pr:code> attribute are skipped).</pr:p>
+
+    <pr:p>The command reports seven metrics:</pr:p>
+
+    <pr:ul>
+      <pr:li><pr:b>Summary</pr:b>: node count, edge count, and graph density.</pr:li>
+      <pr:li><pr:b>Relation type distribution</pr:b>: count of each relation
+      kind (depends-on, precedes, refines, etc.).</pr:li>
+      <pr:li><pr:b>Connected components</pr:b>: number of weakly connected
+      components, with per-component detail when fragmented.</pr:li>
+      <pr:li><pr:b>Isolated nodes</pr:b>: nodes with zero in-degree and zero
+      out-degree, indicating completely disconnected content.</pr:li>
+      <pr:li><pr:b>Hub nodes</pr:b>: top 5 nodes by total degree, revealing
+      the most connected concepts.</pr:li>
+      <pr:li><pr:b>Bridge nodes</pr:b>: top 5 by betweenness centrality,
+      identifying nodes whose removal would fragment the graph.</pr:li>
+      <pr:li><pr:b>Cycles</pr:b>: simple cycles in the directed graph,
+      which may indicate circular dependencies.</pr:li>
+    </pr:ul>
+
+    <pr:p>The command exits with code 0 when the specification is fully
+    connected (one component, zero isolated nodes) and code 1 when
+    fragmentation is detected. This enables CI/CD integration for
+    connectivity enforcement.</pr:p>
+  </pr:section>
+
+  <pr:section id="acyclic-cycle-detection">
+    <pr:title>Acyclic Relation Cycle Detection</pr:title>
+    <pr:shortdesc>How the connectivity tool classifies cycles as errors or
+    benign based on relation type semantics.</pr:shortdesc>
+
+    <pr:p>Not all cycles are equal. The seven relation kinds fall into two
+    categories based on whether cycles are semantically valid:</pr:p>
+
+    <pr:table>
+      <pr:thead>
+        <pr:tr>
+          <pr:th>Category</pr:th>
+          <pr:th>Relation Types</pr:th>
+          <pr:th>Cycle Meaning</pr:th>
+        </pr:tr>
+      </pr:thead>
+      <pr:tbody>
+        <pr:tr>
+          <pr:td><trm:ref term="term-acyclic-relation">Acyclic</trm:ref> (must be DAG)</pr:td>
+          <pr:td>depends-on, precedes</pr:td>
+          <pr:td>Error: circular dependency or impossible temporal ordering</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>Cyclic-tolerant</pr:td>
+          <pr:td>refines, conflicts-with, implements, constrains, reverses</pr:td>
+          <pr:td>Benign: mutual refinement, bidirectional constraints, etc.</pr:td>
+        </pr:tr>
+      </pr:tbody>
+    </pr:table>
+
+    <pr:p>The connectivity tool detects all simple cycles in the directed
+    graph, then inspects the relation types along each cycle's edges.
+    If any edge in a cycle uses an acyclic relation type, the cycle is
+    flagged as an error requiring review. Cycles composed entirely of
+    cyclic-tolerant types are reported without an error marker.</pr:p>
+
+    <pr:p>A depends-on cycle (A depends-on B depends-on A) means neither
+    node can be understood or built without the other already existing.
+    A precedes cycle (X precedes Y precedes X) means neither event can
+    happen first. Both are logical contradictions in the specification
+    that must be resolved by removing or redirecting one of the
+    relations.</pr:p>
+
+    <pr:note type="info">Mixed-type cycles (e.g., A depends-on B, B refines A)
+    are also flagged as errors if any edge is acyclic. The acyclic constraint
+    applies per-edge, not per-cycle: a single depends-on or precedes edge in
+    a cycle is sufficient to flag it.</pr:note>
+  </pr:section>
+
+  <pr:section id="reference-synthesis">
+    <pr:title>Reference Synthesis via XSLT</pr:title>
+    <pr:shortdesc>How trm:ref elements in prose become rel:relation edges
+    in the relation layer.</pr:shortdesc>
+
+    <pr:p>When an author writes <pr:code>&lt;trm:ref term="some-term"&gt;</pr:code>
+    in prose, they are making a semantic statement: this section uses or cites
+    that term. This is the same relationship that <pr:code>rel:relation
+    type="references"</pr:code> expresses in the relation layer. Rather than
+    forcing authors to maintain both the inline reference and a separate
+    relation element, <trm:ref term="term-reference-synthesis">reference
+    synthesis</trm:ref> derives the relation automatically.</pr:p>
+
+    <pr:p>The synthesis happens during combined document assembly. After all
+    layer files are merged into a single document, an XSLT 1.0 post-processing
+    transform (<pr:code>postprocess.xslt</pr:code>) scans the combined tree
+    for <pr:code>trm:ref</pr:code> elements. For each unique (ancestor-id,
+    term) pair, the transform emits a <pr:code>rel:relation type="references"
+    from="{ancestor-id}" to="{term}"</pr:code> element. The ancestor is the
+    nearest enclosing element with an <pr:code>@id</pr:code> attribute,
+    which is typically a section or term definition. Self-references (where
+    the ancestor is the cited term itself) are skipped.</pr:p>
+
+    <pr:p>The XSLT uses Muenchian grouping to deduplicate: if a section
+    references the same term three times, only one relation edge is emitted.
+    The transform is an identity transform that copies the entire document
+    unchanged and appends the synthesized relations at the root, so existing
+    content and explicit relations are preserved.</pr:p>
+
+    <pr:p>The Python tooling applies this transform via lxml (which provides
+    XSLT 1.0 support through libxslt). Both <pr:code>assemble_combined()</pr:code>
+    (used by validation) and <pr:code>_collect_relations()</pr:code> (used by
+    the <trm:ref term="term-spec-connectivity">connectivity</trm:ref> command)
+    go through the same XSLT pipeline, ensuring that validation and connectivity
+    analysis see identical relation graphs.</pr:p>
+  </pr:section>
+
+  <!-- Topic typing -->
+
+  <org:task ref="connectivity-analysis">
+    <org:purpose>The CLI tool analyzes the relation graph to measure
+    specification cohesion, identifying fragmentation, hubs, bridges,
+    and cycles.</org:purpose>
+    <org:actor>clayers-cli CLI tool</org:actor>
+  </org:task>
+
+  <org:task ref="reference-synthesis">
+    <org:purpose>The XSLT post-processing step synthesizes relation edges
+    from terminology references, bridging the prose and relation layers
+    without manual duplication.</org:purpose>
+    <org:actor>postprocess.xslt (applied by clayers-cli)</org:actor>
+  </org:task>
+
+  <org:reference ref="acyclic-cycle-detection">
+    <org:purpose>Reference material on which relation types are acyclic,
+    how cycles are classified, and what constitutes an error.</org:purpose>
+  </org:reference>
+
+  <!-- Relations -->
+
+  <rel:relation type="depends-on" from="connectivity-analysis" to="term-spec-connectivity">
+    <rel:note>Connectivity analysis depends on the specification connectivity
+    concept for its semantic foundation.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="connectivity-analysis" to="layered-architecture">
+    <rel:note>Connectivity analysis depends on the layered architecture for
+    understanding which nodes are content and which are metadata.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="reference-synthesis" to="term-reference-synthesis">
+    <rel:note>The reference synthesis section depends on the reference synthesis
+    concept for its semantic foundation.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="reference-synthesis" to="term-cross-layer-ref">
+    <rel:note>Reference synthesis depends on trm:ref being a cross-layer
+    reference mechanism: the prose layer's term references become the
+    input that the XSLT transforms into relation-layer edges.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="connectivity-analysis" to="reference-synthesis">
+    <rel:note>Connectivity analysis depends on reference synthesis to connect
+    terminology nodes that would otherwise be isolated in the graph.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="acyclic-cycle-detection" to="term-acyclic-relation">
+    <rel:note>The cycle detection section depends on the acyclic relation
+    concept for its classification rules.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="connectivity-analysis" to="term-extension-relation-type">
+    <rel:note>Connectivity analysis depends on the extension relation type
+    concept for its two-pass collection process.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="acyclic-cycle-detection" to="connectivity-analysis">
+    <rel:note>Acyclic cycle detection is a sub-feature of the connectivity
+    analysis command.</rel:note>
+  </rel:relation>
+
+  <!-- Artifact mappings -->
+
+  <art:mapping id="map-connectivity-analysis-main">
+    <art:spec-ref node="connectivity-analysis"
+              revision="draft-1"
+              node-hash="sha256:4d490fa4effb87e188cd1a0ddefe2385221498865a175e7e88c4d2de02233c82"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="crates/clayers-spec/src/connectivity.rs">
+        <art:range hash="sha256:46cdec5f76bacc9e2c46367261d43b9c5017b8284e52b947214577f750a0de64"
+                   start-line="56" end-line="143"/>
+      </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>analyze_connectivity() main function: graph construction,
+    schema discovery, and orchestration of the analysis pipeline.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-connectivity-collect-relations">
+    <art:spec-ref node="connectivity-analysis"
+              revision="draft-1"
+              node-hash="sha256:4d490fa4effb87e188cd1a0ddefe2385221498865a175e7e88c4d2de02233c82"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="crates/clayers-spec/src/connectivity.rs">
+        <art:range hash="sha256:24e4c633766580292b593399c91e849c968e4b990298db05d81b9dc937dd6145"
+                   start-line="146" end-line="192"/>
+      </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>Relation struct, collect_nodes_and_relations: extract typed relations from combined document.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-connectivity-collect-from-tree">
+    <art:spec-ref node="connectivity-analysis"
+              revision="draft-1"
+              node-hash="sha256:4d490fa4effb87e188cd1a0ddefe2385221498865a175e7e88c4d2de02233c82"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="crates/clayers-spec/src/connectivity.rs">
+        <art:range hash="sha256:6faabc7381e18f5604765b0dd47919c0c384293c7fbb2c426e35d66c54dd84ae"
+                   start-line="195" end-line="261"/>
+      </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>collect_from_tree: recursive XML tree traversal to extract nodes, relations, and acyclic type references.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-connectivity-relation-schema">
+    <art:spec-ref node="connectivity-analysis"
+              revision="draft-1"
+              node-hash="sha256:4d490fa4effb87e188cd1a0ddefe2385221498865a175e7e88c4d2de02233c82"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="schemas/relation.xsd">
+        <art:range hash="sha256:2987b2f793c0e2fb373b25853fbfac1960f96c3ce189823060fe71d4da1f2e47"
+                   start-line="1" end-line="75"/>
+      </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>RelationType complex type defines the structure that connectivity
+    analysis consumes: type, from, to attributes for graph edges, plus
+    to-spec/to-revision for cross-spec filtering.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-term-spec-connectivity">
+    <art:spec-ref node="term-spec-connectivity"
+              revision="draft-1"
+              node-hash="sha256:e44711f307cc6490656fc1f2872a579e8aa386fb93d54fe0f0c1f8a2a525599c"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="crates/clayers-spec/src/connectivity.rs">
+        <art:range hash="sha256:46cdec5f76bacc9e2c46367261d43b9c5017b8284e52b947214577f750a0de64"
+                   start-line="56" end-line="143"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>_build_spec_graph() implements the connectivity concept by building
+    a directed graph from content nodes and relation edges.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-acyclic-cycle-detection">
+    <art:spec-ref node="acyclic-cycle-detection"
+              revision="draft-1"
+              node-hash="sha256:2d19a054902411c40c112baa2bbede312c76dc9fdacfb3476263988b18e51699"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="crates/clayers-spec/src/connectivity.rs">
+        <art:range hash="sha256:a042ca732cfdebcfbf358dfca36779f8193857022555b100fa7a664eec8768a7"
+                   start-line="56" end-line="63"/>
+        <art:range hash="sha256:d8cab5559be519c07a9f1ecf41c8057088d1b7e3f316a63859589ac8504d7d91"
+                   start-line="482" end-line="550"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>discover_acyclic_types() (37-52) reads rel:acyclic annotations
+    from relation.xsd. Cycle classification in _analyze_connectivity() (483-525)
+    uses ACYCLIC_RELATION_TYPES to flag cycles containing acyclic types.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-term-acyclic-relation">
+    <art:spec-ref node="term-acyclic-relation"
+              revision="draft-1"
+              node-hash="sha256:49d5abb44e0b8b11976a8ead964c1e48e7437c5a4bd66efee1303921a9bdf71b"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="schemas/relation.xsd">
+        <art:range hash="sha256:b56900d798d3e2a5a74ed58de65882e6698ed2f54f9f36ccd45129a422e1468d"
+                   start-line="77" end-line="129"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>RelationKind simpleType with rel:acyclic annotations on each
+    enumeration value defines which relation types must form DAGs.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-reference-synthesis-xslt">
+    <art:spec-ref node="reference-synthesis"
+              revision="draft-1"
+              node-hash="sha256:2b7ec0381976b2522c676f5169daa201ac3d593bfe2768fb860db95936f7c5fe"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="schemas/postprocess.xslt">
+        <art:range hash="sha256:78a07c46cc744f9b198a29f2787aed0cebfbc167fc557b1c3980797970183e50"
+                   start-line="1" end-line="70"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>postprocess.xslt: XSLT 1.0 identity transform + Muenchian grouping
+    that synthesizes rel:relation type="references" from trm:ref elements.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-reference-synthesis-py">
+    <art:spec-ref node="reference-synthesis"
+              revision="draft-1"
+              node-hash="sha256:2b7ec0381976b2522c676f5169daa201ac3d593bfe2768fb860db95936f7c5fe"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="crates/clayers-spec/src/assembly.rs">
+        <art:range hash="sha256:095e23e75d9aa9f449388f8f9c09a656e616217a19835b3cda4021badb3101fc"
+                   start-line="16" end-line="111"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>_apply_reference_synthesis() and assemble_combined() (252-296)
+    apply the XSLT via lxml during combined document assembly.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-term-reference-synthesis">
+    <art:spec-ref node="term-reference-synthesis"
+              revision="draft-1"
+              node-hash="sha256:8bbcdb32f8aad4eef02e347570276a3cd2a4a05f3bfac95bf382d9f2f4f48693"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="schemas/postprocess.xslt">
+        <art:range hash="sha256:78a07c46cc744f9b198a29f2787aed0cebfbc167fc557b1c3980797970183e50"
+                   start-line="1" end-line="70"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>The postprocess.xslt transform is the canonical implementation
+    of the reference synthesis concept.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-term-extension-relation-type">
+    <art:spec-ref node="term-extension-relation-type"
+              revision="draft-1"
+              node-hash="sha256:af78291dc53ea9eaaa5dd81cca20fdd3a234b6e8b99a96b22d7b6ba06819de03"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="crates/clayers-spec/src/schema.rs">
+        <art:range hash="sha256:5c0a02d86eb74a5e9c342e2c24e5f0705e3fb2b2d0ec8222e60f21990f079cb5"
+                   start-line="27" end-line="116"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>discover_extension_relation_types() (389-451) implements the
+    annotation scanning that defines extension types. _collect_relations_extended()
+    (454-519) implements the two-pass discovery and collection process.</art:note>
+  </art:mapping>
+
+  <!-- Machine descriptions -->
+
+  <llm:node ref="connectivity-analysis">
+    The connectivity command builds a directed graph from spec nodes and
+    relations using NetworkX, then reports: summary (nodes, edges, density),
+    relation type distribution, connected components, isolated nodes, hub
+    nodes (top 5 by degree), bridge nodes (top 5 by betweenness centrality),
+    and cycles. Exit code 0 means fully connected, 1 means fragmented.
+    Metadata nodes (art:mapping, rev:revision) are excluded from the graph.
+    Cross-spec relations are skipped.
+  </llm:node>
+
+  <llm:node ref="term-spec-connectivity">
+    Specification connectivity measures how well content nodes are linked
+    through semantic relations. A fully connected spec has one weakly
+    connected component and zero isolated nodes. The connectivity command
+    uses NetworkX graph algorithms to compute this.
+  </llm:node>
+
+  <llm:node ref="acyclic-cycle-detection">
+    The connectivity tool classifies each detected cycle by inspecting
+    edge relation types. depends-on and precedes are acyclic (must form
+    DAGs); cycles containing these types are flagged as errors. The other
+    five relation kinds (refines, conflicts-with, implements, constrains,
+    reverses) tolerate cycles. Mixed-type cycles are flagged if any edge
+    is acyclic. The acyclicity constraint is annotated in relation.xsd
+    via rel:acyclic appinfo on the RelationKind enumeration values.
+  </llm:node>
+
+  <llm:node ref="reference-synthesis">
+    The postprocess.xslt transform scans the combined document for trm:ref
+    elements and emits one rel:relation type="references" per unique
+    (ancestor-id, term) pair. The ancestor is the nearest element with an
+    @id attribute. Muenchian grouping deduplicates. Self-references are
+    skipped. The transform is applied via lxml by both assemble_combined()
+    (validation path) and _collect_relations() (connectivity path), so
+    both see the same synthesized edges.
+  </llm:node>
+
+  <llm:node ref="term-reference-synthesis">
+    Reference synthesis automatically generates rel:relation type="references"
+    edges from trm:ref elements in prose. This bridges the prose and relation
+    layers: authors write inline term references, and the tooling derives
+    the corresponding semantic links via XSLT post-processing. Without
+    synthesis, terminology nodes would appear isolated in the connectivity
+    graph despite being actively used in prose.
+  </llm:node>
+
+  <llm:node ref="term-extension-relation-type">
+    A relation type defined outside the core RelationKind enum. Extension
+    layers create XSD complexTypes with rel:relation-type-properties
+    annotations declaring relation-name, acyclicity, and from/to attribute
+    names. A refines edge to type-relation-kind activates the type. The
+    two-pass connectivity collection discovers these types in pass 1
+    (via the refines edge) and collects their instances in pass 2.
+  </llm:node>
+
+  <llm:node ref="term-acyclic-relation">
+    An acyclic relation type must form a DAG: cycles are specification
+    errors. depends-on cycles mean circular dependencies; precedes cycles
+    mean impossible temporal ordering. The remaining five relation kinds
+    tolerate cycles. The relation.xsd schema annotates each enumeration
+    value with rel:acyclic="true" or rel:acyclic="false".
+  </llm:node>
+
+</spec:clayers>

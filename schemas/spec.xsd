@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:spec="urn:clayers:spec"
+           xmlns:llm="urn:clayers:llm"
+           targetNamespace="urn:clayers:spec"
+           elementFormDefault="qualified"
+           version="1.1">
+
+  <xs:annotation>
+    <xs:documentation>
+      Spec Layer Schema.
+      Defines the universal root element for all clayers files.
+      Uses xs:any namespace="##other" processContents="strict" to
+      accept children from any layer namespace, enabling open-world
+      extensibility and cross-layer mixing within a single file.
+    </xs:documentation>
+    <xs:appinfo>
+      <llm:describe>
+        The spec schema defines the universal clayers root element
+        shared by all files. It uses xs:any namespace="##other"
+        processContents="strict" so children from any layer namespace
+        are accepted and validated. This enables open-world extensibility
+        (new layers don't modify existing schemas) and cross-layer mixing
+        (a single file can contain elements from multiple layers).
+        Attributes: spec and version identify the specification (index
+        files), index back-references the index file (non-index files).
+      </llm:describe>
+    </xs:appinfo>
+  </xs:annotation>
+
+  <!-- Global attributes (qualified as spec:spec, spec:version, spec:index) -->
+
+  <xs:attribute name="spec" type="xs:string">
+    <xs:annotation>
+      <xs:documentation>
+        Unique identifier for this specification. Used by index
+        and revision files.
+      </xs:documentation>
+    </xs:annotation>
+  </xs:attribute>
+
+  <xs:attribute name="version" type="xs:string">
+    <xs:annotation>
+      <xs:documentation>
+        Version of this index snapshot. Used by index files.
+      </xs:documentation>
+    </xs:annotation>
+  </xs:attribute>
+
+  <xs:attribute name="index" type="xs:anyURI">
+    <xs:annotation>
+      <xs:documentation>
+        Back-reference to the index file. Used by non-index,
+        non-revision layer files to make each file self-describing.
+      </xs:documentation>
+    </xs:annotation>
+  </xs:attribute>
+
+  <xs:element name="content-element">
+    <xs:annotation>
+      <xs:documentation>
+        Annotation marker for global elements that are top-level content.
+        Place inside xs:annotation/xs:appinfo on a global element declaration
+        to indicate it should appear in the combined document's choice group.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:complexType/>
+  </xs:element>
+
+  <xs:element name="keyref">
+    <xs:annotation>
+      <xs:documentation>
+        Declares a cross-layer keyref constraint. Place inside the schema-level
+        xs:annotation/xs:appinfo. The generator collects these and emits
+        xs:keyref elements in the combined schema.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:complexType>
+      <xs:attribute name="name" type="xs:string" use="required"/>
+      <xs:attribute name="selector" type="xs:string" use="required"/>
+      <xs:attribute name="field" type="xs:string" use="required"/>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="clayers">
+    <xs:annotation>
+      <xs:documentation>
+        Universal root element for all clayers files. Children
+        are validated against their own namespace schemas via
+        processContents="strict".
+      </xs:documentation>
+      <xs:appinfo>
+        <llm:describe>
+          The one root element for every clayers file. Children from
+          any layer namespace are accepted and validated against their
+          schemas. The namespace is the sole discriminator for layer
+          content. Files can mix elements from multiple layers.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:complexType>
+      <xs:sequence>
+        <xs:any namespace="##other" processContents="strict"
+                minOccurs="0" maxOccurs="unbounded"/>
+      </xs:sequence>
+      <xs:attribute ref="spec:spec"/>
+      <xs:attribute ref="spec:version"/>
+      <xs:attribute ref="spec:index"/>
+    </xs:complexType>
+  </xs:element>
+
+</xs:schema>

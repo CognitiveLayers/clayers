@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:pr="urn:clayers:prose"
+           xmlns:trm="urn:clayers:terminology"
+           xmlns:src="urn:clayers:source"
+           xmlns:llm="urn:clayers:llm"
+           xmlns:spec="urn:clayers:spec"
+           targetNamespace="urn:clayers:prose"
+           elementFormDefault="qualified"
+           version="1.1">
+
+  <xs:import namespace="urn:clayers:terminology" schemaLocation="terminology.xsd"/>
+  <xs:import namespace="urn:clayers:source" schemaLocation="source.xsd"/>
+
+  <xs:annotation>
+    <xs:documentation>
+      Prose Layer Schema.
+      DITA-style technical writing elements for specification content.
+      Borrows DITA's internal prose primitives: paragraphs, lists,
+      steps, notes, short descriptions, cross-references.
+    </xs:documentation>
+    <xs:appinfo>
+      <llm:describe>
+        The prose schema provides DITA-style technical writing elements.
+        Content is organized into sections (each with a required id and
+        title). Sections contain paragraphs, lists, ordered steps, notes
+        with severity types, code blocks, tables, and cross-references.
+        Inline content can embed terminology references and markup.
+        Steps can have optional IDs for cross-layer referencing.
+      </llm:describe>
+      <spec:keyref name="prose-xrefs" selector=".//pr:xref" field="@ref"/>
+    </xs:appinfo>
+  </xs:annotation>
+
+  <!-- Global section element -->
+  <xs:element name="section" type="pr:SectionType">
+    <xs:annotation><xs:appinfo><spec:content-element/></xs:appinfo></xs:annotation>
+  </xs:element>
+
+  <!-- Section: the primary structural unit -->
+  <xs:complexType name="SectionType">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          A structural unit of prose. Requires an id (for cross-layer
+          referencing) and a title. Contains optional shortdesc, then
+          body elements: p, ul, ol, steps, note, codeblock, table,
+          or nested sections. Sections are the addressable nodes that
+          other layers reference.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="title" type="xs:string"/>
+      <xs:element name="shortdesc" type="pr:InlineContentType" minOccurs="0"/>
+      <xs:choice maxOccurs="unbounded">
+        <xs:element name="p" type="pr:InlineContentType"/>
+        <xs:element name="ul" type="pr:UnorderedListType"/>
+        <xs:element name="ol" type="pr:OrderedListType"/>
+        <xs:element name="steps" type="pr:StepsType"/>
+        <xs:element name="note" type="pr:NoteType"/>
+        <xs:element name="codeblock" type="pr:CodeBlockType"/>
+        <xs:element name="table" type="pr:TableType"/>
+        <xs:element name="section" type="pr:SectionType"/>
+      </xs:choice>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID" use="required"/>
+  </xs:complexType>
+
+  <!-- Inline content: mixed text with embedded references -->
+  <xs:complexType name="InlineContentType" mixed="true">
+    <xs:choice minOccurs="0" maxOccurs="unbounded">
+      <xs:element ref="trm:ref"/>
+      <xs:element ref="src:cite"/>
+      <xs:element name="xref" type="pr:CrossRefType"/>
+      <xs:element name="b" type="xs:string"/>
+      <xs:element name="i" type="xs:string"/>
+      <xs:element name="code" type="xs:string"/>
+    </xs:choice>
+  </xs:complexType>
+
+  <!-- Cross-reference to another node -->
+  <xs:complexType name="CrossRefType" mixed="true">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          A cross-reference to another node in the specification. The
+          ref attribute is a node ID, validated via keyref in the
+          combined schema. Element content is display text.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:attribute name="ref" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>
+          Node ID reference. Uses xs:string (not xs:IDREF) because
+          target nodes may live in other layer documents.
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <!-- Lists -->
+  <xs:complexType name="UnorderedListType">
+    <xs:sequence>
+      <xs:element name="li" type="pr:InlineContentType" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="OrderedListType">
+    <xs:sequence>
+      <xs:element name="li" type="pr:InlineContentType" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Step: individual procedural step with optional addressability -->
+  <xs:complexType name="StepType" mixed="true">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          An individual step in a procedural sequence. Extends inline
+          content with an optional id attribute for cross-layer referencing.
+          Steps with IDs become addressable nodes that can have artifact
+          mappings, relations, and LLM descriptions.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:complexContent mixed="true">
+      <xs:extension base="pr:InlineContentType">
+        <xs:attribute name="id" type="xs:ID" use="optional"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <!-- Steps: ordered procedural sequence -->
+  <xs:complexType name="StepsType">
+    <xs:sequence>
+      <xs:element name="step" type="pr:StepType" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Note with type classification -->
+  <xs:complexType name="NoteType" mixed="true">
+    <xs:complexContent mixed="true">
+      <xs:extension base="pr:InlineContentType">
+        <xs:attribute name="type" type="pr:NoteKind" default="info"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:simpleType name="NoteKind">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="info"/>
+      <xs:enumeration value="important"/>
+      <xs:enumeration value="warning"/>
+      <xs:enumeration value="tip"/>
+      <xs:enumeration value="danger"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Code block -->
+  <xs:complexType name="CodeBlockType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="language" type="xs:string" use="optional"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <!-- Simple table -->
+  <xs:complexType name="TableType">
+    <xs:sequence>
+      <xs:element name="thead" type="pr:TableRowGroupType" minOccurs="0"/>
+      <xs:element name="tbody" type="pr:TableRowGroupType"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="TableRowGroupType">
+    <xs:sequence>
+      <xs:element name="tr" type="pr:TableRowType" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="TableRowType">
+    <xs:sequence>
+      <xs:choice maxOccurs="unbounded">
+        <xs:element name="th" type="pr:InlineContentType"/>
+        <xs:element name="td" type="pr:InlineContentType"/>
+      </xs:choice>
+    </xs:sequence>
+  </xs:complexType>
+
+</xs:schema>

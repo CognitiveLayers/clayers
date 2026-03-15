@@ -1,0 +1,13 @@
+# Smoke test battery - fast validation that everything works.
+# Uses Flask (small project), 1 round, 1 run per experiment.
+#
+# Run: uv run --script clayers-harness.py --battery experiments/smoke-battery.yaml
+#
+# Estimated cost: ~$30-40
+# Estimated time: 1-2 hours
+
+name: smoke-test
+
+experiments:
+  - name: flask-smoke
+    config: flask-ratelimiter.yaml

@@ -1,0 +1,632 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Schema Design: XSD design decisions, extensibility model,
+  and the index and revision layers.
+-->
+<spec:clayers xmlns:spec="urn:clayers:spec"
+       xmlns:pr="urn:clayers:prose"
+       xmlns:trm="urn:clayers:terminology"
+       xmlns:org="urn:clayers:organization"
+       xmlns:rel="urn:clayers:relation"
+       xmlns:art="urn:clayers:artifact"
+       xmlns:llm="urn:clayers:llm"
+       spec:index="index.xml">
+
+  <!-- Content -->
+
+  <pr:section id="schema-design">
+    <pr:title>Schema Design Decisions</pr:title>
+    <pr:shortdesc>Key choices in the XSD schemas and their rationale.</pr:shortdesc>
+
+    <pr:p>Individual layer schemas handle structural validation: element shapes,
+    attribute types, enumerations. The combined schema handles referential
+    validation: ensuring all cross-layer references resolve.</pr:p>
+
+    <pr:ul>
+      <pr:li>xs:string for cross-layer reference attributes (not xs:IDREF, which
+      is single-document scoped).</pr:li>
+      <pr:li>xs:unique for the unified ID space (not xs:key, which requires every
+      matched element to have the field).</pr:li>
+      <pr:li>Explicit element refs in the generated combined schema (not xs:any,
+      which breaks keyref enforcement in the xmlschema library). Each layer
+      schema marks its content elements with <pr:code>spec:content-element</pr:code>
+      appinfo annotations, and the generator collects these into the choice
+      group.</pr:li>
+      <pr:li>The spec:clayers root element with xs:any namespace="##other"
+      processContents="strict" for open-world extensibility.</pr:li>
+      <pr:li>Every layer root element is spec:clayers, distinguished only
+      by the namespaces of its children. Layer schemas are element libraries:
+      they define global elements and types but no root element.</pr:li>
+    </pr:ul>
+
+    <pr:p>Cross-layer keyrefs are declared in individual layer schemas via
+    <pr:code>spec:keyref</pr:code> appinfo annotations, but are emitted in the
+    generated combined schema. xs:keyref requires its referenced xs:unique
+    to be in scope (same element or ancestor). In standalone layer files,
+    target IDs from other layers are not present, so the keyrefs can only
+    be enforced in the combined document.</pr:p>
+  </pr:section>
+
+  <pr:section id="open-world-layers">
+    <pr:title>Open-World Layer Model</pr:title>
+    <pr:shortdesc>How xs:any enables adding layers and mixing content without
+    modifying existing schemas.</pr:shortdesc>
+
+    <pr:p>The layer system follows an open-world model. The spec schema
+    (spec.xsd) defines a single <pr:code>clayers</pr:code> root element with
+    <pr:code>xs:any namespace="##other" processContents="strict"</pr:code> for
+    its content model. This means any element from any namespace (other than
+    the spec namespace itself) is accepted as a child, and each child is
+    validated against its own namespace's schema.</pr:p>
+
+    <pr:p>This design enables two key capabilities. First, new layers can be
+    added by creating a new schema with global element declarations, without
+    modifying spec.xsd or any existing layer schema. Second, a single file
+    can contain elements from multiple layers, enabling cross-layer mixing
+    at the file level.</pr:p>
+
+    <pr:p>The combined schema for cross-layer validation is generated
+    dynamically. Each layer schema annotates its content elements with
+    <pr:code>spec:content-element</pr:code> in appinfo, and declares its
+    cross-layer keyrefs with <pr:code>spec:keyref</pr:code> annotations. The
+    validator scans all .xsd files, collects these annotations, and
+    generates the combined schema at validation time. Adding a new layer
+    requires only the layer schema itself: no central schema file needs
+    editing.</pr:p>
+
+    <pr:note type="info">All files share the same root element name
+    (spec:clayers). The namespace of the children is the sole
+    discriminator for content type. A file with pr:section children is a
+    prose file, one with idx:file children is an index, etc. This makes
+    the format instantly recognizable: any file starting with clayers
+    is a clayers file.</pr:note>
+  </pr:section>
+
+  <pr:section id="index-layer">
+    <pr:title>Index and Spec Identity</pr:title>
+    <pr:shortdesc>How the index manifest defines a spec's boundary, identity,
+    and file structure.</pr:shortdesc>
+
+    <pr:p>The <trm:ref term="term-index">index</trm:ref> is the entry point for
+    a specification. Its root element carries two identity attributes:
+    <pr:code>spec</pr:code> (a unique identifier for the specification) and
+    <pr:code>version</pr:code> (the index snapshot version).</pr:p>
+
+    <pr:p>The index lists all layer files via <pr:code>file</pr:code> elements,
+    each with an <pr:code>href</pr:code> (relative path) and an optional
+    <pr:code>layer</pr:code> (namespace URI identifying the primary layer type).
+    This manifest defines the spec boundary: only files listed here participate
+    in combined-document assembly and cross-layer validation.</pr:p>
+
+    <pr:p>The index attribute on the clayers root element serves as the
+    back-reference. Each non-index layer declares its index, making every
+    file self-describing: given any layer file, the validator can resolve
+    which spec it belongs to without relying on directory structure or
+    naming conventions.</pr:p>
+  </pr:section>
+
+  <pr:section id="revision-layer">
+    <pr:title>Revisions and Temporal Anchoring</pr:title>
+    <pr:shortdesc>How named snapshots anchor artifact mappings to specific points
+    in a spec's evolution.</pr:shortdesc>
+
+    <pr:p>Each revision records a named snapshot: a name (such as "draft-1" or
+    "v1.0"), a timestamp, a reference to the index file, and a hash of that
+    index. The name is the stable handle that artifact mappings use to pin
+    their spec-refs to a specific point in time.</pr:p>
+
+    <pr:p>The revision layer uses a <pr:code>spec</pr:code> attribute on its root
+    element rather than the index back-reference used by other layers.
+    This is because revisions identify the specification by name, not by
+    file path: the same spec identity persists even if the index file is
+    renamed or moved.</pr:p>
+
+    <pr:p>When the tooling needs to determine the "current" revision (for
+    example, when deciding which artifact hashes to update), it selects the
+    revision with the latest timestamp. Spec-refs pinned to older revisions
+    are left unchanged: their hashes are historically correct for the spec
+    content at that point in time.</pr:p>
+  </pr:section>
+
+  <pr:section id="extensible-relation-types">
+    <pr:title>Extensible Relation Types</pr:title>
+    <pr:shortdesc>How extension layers define their own relation types without
+    modifying relation.xsd.</pr:shortdesc>
+
+    <pr:p>The <pr:code>RelationKind</pr:code> enumeration in relation.xsd is a
+    closed set. Extension layers cannot add values to it without modifying the
+    core schema. Extensible relation types solve this by turning XSD types into
+    graph nodes and using the spec's own relation graph for discovery.</pr:p>
+
+    <pr:p>The mechanism has three parts:</pr:p>
+
+    <pr:ol>
+      <pr:li><pr:b>Addressable schema types.</pr:b> XSD types carry
+      <pr:code>id</pr:code> attributes (e.g.,
+      <pr:code>id="type-relation-kind"</pr:code> on the
+      <pr:code>RelationKind</pr:code> simpleType), making them nodes in the
+      spec graph alongside content nodes. The tooling scans all
+      <pr:code>.xsd</pr:code> files for elements with <pr:code>@id</pr:code>
+      attributes and merges them into the graph.</pr:li>
+
+      <pr:li><pr:b>Extension type annotation.</pr:b> An extension layer defines
+      its own XSD element and complexType in its own namespace. The complexType
+      carries a <pr:code>rel:relation-type-properties</pr:code> annotation in
+      <pr:code>xs:appinfo</pr:code>, declaring: the canonical
+      <pr:code>relation-name</pr:code> for graph edges and reports, whether the
+      type is <pr:code>acyclic</pr:code> (must form a DAG), and which attributes
+      hold the source and target node IDs (<pr:code>from-attr</pr:code> and
+      <pr:code>to-attr</pr:code>, defaulting to "from" and "to").</pr:li>
+
+      <pr:li><pr:b>Activation via refines edge.</pr:b> A
+      <pr:code>rel:relation type="refines"</pr:code> edge from the extension
+      type's <pr:code>@id</pr:code> to <pr:code>type-relation-kind</pr:code>
+      declares the extension as a relation type. The tooling follows these
+      edges to discover which annotated types are active.</pr:li>
+    </pr:ol>
+
+    <pr:p>For example, a traceability extension layer might define:</pr:p>
+
+    <pr:codeblock>
+&lt;xs:complexType name="TraceLinkType" id="type-trace-link"&gt;
+  &lt;xs:annotation&gt;&lt;xs:appinfo&gt;
+    &lt;rel:relation-type-properties acyclic="true"
+      relation-name="trace-link"
+      from-attr="source" to-attr="target"/&gt;
+  &lt;/xs:appinfo&gt;&lt;/xs:annotation&gt;
+  &lt;xs:attribute name="source" type="xs:string" use="required"/&gt;
+  &lt;xs:attribute name="target" type="xs:string" use="required"/&gt;
+&lt;/xs:complexType&gt;</pr:codeblock>
+
+    <pr:p>With a refines edge in spec content:
+    <pr:code>&lt;rel:relation type="refines" from="type-trace-link"
+    to="type-relation-kind"/&gt;</pr:code></pr:p>
+
+    <pr:p>The connectivity tool uses a two-pass collection process to resolve
+    the chicken-and-egg problem (extension types are discovered from
+    <pr:code>refines</pr:code> edges, but those edges are themselves relations).
+    Pass 1 collects all explicit <pr:code>rel:relation</pr:code> elements,
+    including the <pr:code>refines</pr:code> edges that activate extensions.
+    Pass 2 scans the combined document for instances of the discovered extension
+    elements, using the declared attribute names to extract source and target
+    node IDs.</pr:p>
+
+    <pr:note type="info">Extension types use domain-specific attribute names
+    (like <pr:code>source</pr:code>/<pr:code>target</pr:code>) instead of
+    the generic <pr:code>from</pr:code>/<pr:code>to</pr:code>. The
+    <pr:code>from-attr</pr:code>/<pr:code>to-attr</pr:code> properties in
+    the annotation tell the tooling which attributes to read.</pr:note>
+  </pr:section>
+
+  <pr:section id="schema-discovery">
+    <pr:title>Schema Directory Discovery</pr:title>
+    <pr:shortdesc>How the tooling locates schema files automatically by walking
+    up from the working directory.</pr:shortdesc>
+
+    <pr:p>Several commands need access to the layer schemas: the
+    <pr:code>schema</pr:code> command exports them as RNC, and the
+    <pr:code>connectivity</pr:code> command reads them to discover
+    acyclic relation type annotations. Rather than requiring an explicit
+    schema path every time, the tooling auto-discovers the schema
+    directory.</pr:p>
+
+    <pr:p>Discovery walks up the directory tree from a starting point
+    (the spec directory for connectivity, the current working directory
+    for the schema command). At each level it checks two locations in
+    order:</pr:p>
+
+    <pr:ol>
+      <pr:li><pr:code>schemas/</pr:code> — the canonical location in the
+      source repository (used during development).</pr:li>
+      <pr:li><pr:code>.clayers/schemas/</pr:code> — the adopted location
+      planted by <pr:code>clayers adopt</pr:code> (used in downstream
+      projects).</pr:li>
+    </pr:ol>
+
+    <pr:p>The first directory found wins. This means a project that has
+    both locations (e.g., the clayers repo after self-adoption) will
+    prefer <pr:code>schemas/</pr:code>, preserving the source-of-truth
+    behavior for schema development. Downstream projects that only have
+    the adopted schemas will find <pr:code>.clayers/schemas/</pr:code>
+    automatically.</pr:p>
+
+    <pr:p>The <pr:code>schema</pr:code> command's path argument becomes
+    optional: when omitted, it uses auto-discovery from the current
+    directory. When provided, it bypasses discovery entirely.</pr:p>
+  </pr:section>
+
+  <!-- Topic typing -->
+
+  <org:reference ref="schema-design">
+    <org:purpose>Rationale for key XSD design decisions, useful when extending
+    or debugging schemas.</org:purpose>
+  </org:reference>
+
+  <org:concept ref="open-world-layers">
+    <org:purpose>Understanding how the type hierarchy enables extensibility
+    without modifying existing layer schemas.</org:purpose>
+  </org:concept>
+
+  <org:concept ref="index-layer">
+    <org:purpose>Understanding how the index defines spec identity, boundary,
+    and file structure.</org:purpose>
+  </org:concept>
+
+  <org:concept ref="revision-layer">
+    <org:purpose>Understanding how revisions provide temporal anchoring for
+    artifact mappings and how the tooling determines the current revision.</org:purpose>
+  </org:concept>
+
+  <org:concept ref="schema-discovery">
+    <org:purpose>Understanding how the tooling locates schema files
+    automatically, enabling adopted projects to use clayers commands
+    without explicit schema paths.</org:purpose>
+  </org:concept>
+
+  <org:concept ref="extensible-relation-types">
+    <org:purpose>Understanding how extension layers define custom relation
+    types without modifying the core relation schema, and how the tooling
+    discovers and processes them via the spec's own relation graph.</org:purpose>
+  </org:concept>
+
+  <!-- Relations -->
+
+  <rel:relation type="refines" from="schema-design" to="cross-layer-integrity">
+    <rel:note>Schema design decisions are the XSD implementation of the
+    cross-layer integrity concept.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="open-world-layers" to="layered-architecture">
+    <rel:note>The open-world model explains how the layered architecture
+    achieves extensibility via xs:any in spec.xsd.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="open-world-layers" to="schema-design">
+    <rel:note>The xs:any namespace="##other" pattern is a key schema design
+    decision that enables open-world extensibility and mixing.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="revision-layer" to="layered-architecture">
+    <rel:note>The revision layer details temporal anchoring, a key property
+    of the layered architecture.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="index-layer" to="layered-architecture">
+    <rel:note>The index layer details spec identity and boundary, the
+    foundation of the layered architecture.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="extensible-relation-types" to="open-world-layers">
+    <rel:note>Extensible relation types extend the open-world model from
+    structural layers (adding new element namespaces) to semantic types
+    (adding new relation kinds via annotation and graph discovery).</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="extensible-relation-types" to="connectivity-analysis">
+    <rel:note>Extensible relation types depend on the connectivity analysis
+    tool to discover and process extension types via the two-pass collection.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="extensible-relation-types" to="acyclic-cycle-detection">
+    <rel:note>Extension types can declare acyclicity, which feeds into the
+    cycle detection mechanism.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="schema-discovery" to="term-adoption">
+    <rel:note>Schema discovery finds .clayers/schemas/ directories that
+    are planted by the adopt command.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="schema-discovery" to="open-world-layers">
+    <rel:note>Schema discovery is the runtime mechanism that connects
+    the open-world layer model to adopted projects by locating
+    their planted schemas.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="constrains" from="schema-design" to="validation-flow">
+    <rel:note>XSD design choices (xs:unique vs xs:key, explicit refs vs xs:any)
+    directly constrain how the validator can operate.</rel:note>
+  </rel:relation>
+
+  <!-- Schema type nodes: connect XSD-defined IDs to the spec graph -->
+
+  <trm:term id="type-relation">
+    <trm:name>RelationType</trm:name>
+    <trm:definition>The XSD complexType that defines the structure of relation
+    elements. Extension relation types extend this type.</trm:definition>
+  </trm:term>
+
+  <trm:term id="type-relation-kind">
+    <trm:name>RelationKind</trm:name>
+    <trm:definition>The XSD simpleType that enumerates recognized relation type
+    values. Extension relation types add values via a refines edge to this
+    type.</trm:definition>
+  </trm:term>
+
+  <rel:relation type="refines" from="type-relation" to="extensible-relation-types">
+    <rel:note>The RelationType complexType (id="type-relation") is the schema
+    definition that extensible relation types extend.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="type-relation-kind" to="extensible-relation-types">
+    <rel:note>The RelationKind simpleType (id="type-relation-kind") is the
+    activation target for extension relation types.</rel:note>
+  </rel:relation>
+
+  <!-- Artifact mappings -->
+
+  <art:mapping id="map-schema-design-acyclic">
+    <art:spec-ref node="schema-design"
+              revision="draft-1"
+              node-hash="sha256:0d82daa69bc10a35f3838a7b0c6f41a8326b736287758aee67b13a18b2d511fd"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="crates/clayers-spec/src/schema.rs">
+        <art:range hash="sha256:ecd7c7e084c305bc020fa4974a603f8ea10f1e52ff6af342c4017de7fd6a296b"
+                   start-line="1" end-line="95"/>
+      </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>Acyclic type discovery and collection: discover_acyclic_types(),
+    collect_acyclic_types(), has_acyclic_true().</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-schema-design-content-discover">
+    <art:spec-ref node="schema-design"
+              revision="draft-1"
+              node-hash="sha256:0d82daa69bc10a35f3838a7b0c6f41a8326b736287758aee67b13a18b2d511fd"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="crates/clayers-spec/src/schema.rs">
+        <art:range hash="sha256:5d79971db3782aa2baf4dcc1b94d162121568b9beaefdf9590620ccc75c787e7"
+                   start-line="97" end-line="176"/>
+      </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>Content element discovery from XSD: discover_content_elements(),
+    discover_from_xsd() scanning appinfo annotations.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-schema-design-content-collect">
+    <art:spec-ref node="schema-design"
+              revision="draft-1"
+              node-hash="sha256:0d82daa69bc10a35f3838a7b0c6f41a8326b736287758aee67b13a18b2d511fd"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="crates/clayers-spec/src/schema.rs">
+        <art:range hash="sha256:e6be004049680db4366ad4023ee6922cda8435a1fc8c6b81fd7eaeeb52a5cd32"
+                   start-line="179" end-line="226"/>
+      </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>Content element collection and schema output generation:
+    collect_content_elements(), has_content_element_annotation().</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-open-world-layers">
+    <art:spec-ref node="open-world-layers"
+              revision="draft-1"
+              node-hash="sha256:40b6d55d850ac4e6d2feb489c58daca226cf0537f4f646786470be15e55f9d56"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="schemas/spec.xsd">
+        <art:range hash="sha256:234bf8c69c6a274621397fca511739016f134f810c88fcacf9c5f47a118f1b09"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>spec.xsd defines the clayers root element with xs:any
+    namespace="##other" processContents="strict", enabling the open-world
+    layer model and cross-layer mixing.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-revision-layer">
+    <art:spec-ref node="revision-layer"
+              revision="draft-1"
+              node-hash="sha256:a60a6b29b929ed2c6545b46665c9c4128f3d8941df5909312f434cfb598bc43e"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="schemas/revision.xsd">
+        <art:range hash="sha256:308a42679efcdd5847c642093aaa8dc39f2d2367577ac11370913afedeb398b2"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>revision.xsd defines the revision structure: name, timestamp,
+    index reference, and index-hash attributes.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-index-layer">
+    <art:spec-ref node="index-layer"
+              revision="draft-1"
+              node-hash="sha256:bdc2512903513b67f3a91599c2f5ec29b318f5f9eacfda218b77687a59a17121"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="schemas/index.xsd">
+        <art:range hash="sha256:35cc714aaef100ed8b8fdb2bb8ec02d5d37fbbfcdf897d571bec6d4e8a4e5355"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>index.xsd defines the file manifest element and spec identity.
+    The index attribute back-reference is now in spec.xsd.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-extensible-relation-types-xsd">
+    <art:spec-ref node="extensible-relation-types"
+              revision="draft-1"
+              node-hash="sha256:5084df0ef85d9c64b94db4b6cf6ded574888dbe894610a8f3ecd7be7d5612932"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="schemas/relation.xsd">
+        <art:range hash="sha256:e1637987b3932ea720468ec23ef34aebd5bea25d56abdfe29f8bb9b62d02dfea"
+                   start-line="37" end-line="108"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>RelationType id attribute (37), relation-type-properties element
+    declaration (77-108), RelationKind id attribute (110). These three XSD
+    additions make types addressable and provide the annotation mechanism.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-extensible-relation-types-py">
+    <art:spec-ref node="extensible-relation-types"
+              revision="draft-1"
+              node-hash="sha256:5084df0ef85d9c64b94db4b6cf6ded574888dbe894610a8f3ecd7be7d5612932"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="crates/clayers-spec/src/schema.rs">
+        <art:range hash="sha256:5c0a02d86eb74a5e9c342e2c24e5f0705e3fb2b2d0ec8222e60f21990f079cb5"
+                   start-line="27" end-line="116"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>collect_schema_nodes() (373-386), discover_extension_relation_types()
+    (389-451), _collect_relations_extended() two-pass collection (454-519),
+    connectivity command integration (1757-1761).</art:note>
+  </art:mapping>
+
+  <!-- Machine descriptions -->
+
+  <llm:schema namespace="urn:clayers:index">
+    The index schema defines the file manifest for a specification.
+    The &lt;file&gt; element lists layer files via href (relative path)
+    and an optional layer (namespace URI) attribute. The index
+    establishes the ID uniqueness domain: all @id values across listed
+    files must be unique.
+  </llm:schema>
+
+  <llm:schema namespace="urn:clayers:index" element="file">
+    A file reference within the index manifest. The href attribute is a
+    relative path to the layer file. The optional layer attribute is the
+    namespace URI identifying the primary layer type the file contains.
+  </llm:schema>
+
+  <llm:schema namespace="urn:clayers:revision">
+    The revision schema records named snapshots of a specification at
+    points in time. Each &lt;revision&gt; has a name (like "draft-1" or
+    "v1.0"), a timestamp, a reference to the index file, and a hash of
+    that index. Artifact mappings pin to revision names so that hashes
+    can be anchored to a specific point in the spec's evolution.
+  </llm:schema>
+
+  <llm:node ref="schema-design">
+    Rationale for key XSD design decisions. Consult this when
+    extending schemas or debugging validation errors. Covers:
+    xs:unique vs xs:key, xs:string vs xs:IDREF, explicit refs vs
+    xs:any, spec:content-element and spec:keyref annotations, and
+    why keyrefs are emitted in the generated combined schema.
+  </llm:node>
+
+  <llm:node ref="open-world-layers">
+    Explains the open-world layer model: spec.xsd defines a clayers
+    root element with xs:any namespace="##other" processContents="strict",
+    accepting children from any layer namespace. New layers can be added
+    without modifying existing schemas. Files can mix elements from
+    multiple layers. The combined schema is generated dynamically from
+    layer schema annotations.
+  </llm:node>
+
+  <llm:node ref="index-layer">
+    Describes the index as the spec entry point: spec/version identity
+    attributes, file manifest with href+layer, and the index attribute
+    on the clayers root that makes every layer file self-describing.
+    Foundation for understanding spec discovery and validation.
+  </llm:node>
+
+  <llm:node ref="extensible-relation-types">
+    Explains how extension layers define custom relation types. Three-part
+    mechanism: (1) XSD types get id attributes making them graph nodes,
+    (2) extension complexTypes carry rel:relation-type-properties annotations
+    declaring relation-name, acyclicity, and from/to attribute names,
+    (3) a refines edge from the extension type id to type-relation-kind
+    activates the extension. The connectivity tool uses two-pass collection:
+    pass 1 gathers explicit rel:relation elements (discovering refines edges),
+    pass 2 scans for instances of activated extension elements. Extension
+    types can use domain-specific attribute names (e.g. source/target instead
+    of from/to) via from-attr/to-attr properties.
+  </llm:node>
+
+  <llm:node ref="revision-layer">
+    Explains revision semantics: named snapshots with timestamps, how
+    artifact mappings pin to revision names, the spec attribute (not
+    index), and how tooling picks the current revision by latest
+    timestamp. Important context for understanding artifact hash
+    maintenance.
+  </llm:node>
+
+  <art:mapping id="map-schema-discovery-lib">
+    <art:spec-ref node="schema-discovery"
+              revision="draft-1"
+              node-hash="sha256:44b27f8a8db336cfb0044a1029f9b20a94091c9b614c52a564ee9d606ab25232"/>
+    <art:artifact repo="clayers"
+              repo-revision="HEAD"
+              path="crates/clayers-spec/src/discovery.rs">
+      <art:range hash="sha256:a164ebeb1add7ac941eb33e5048770565a9f5a0017dddb530d10482886efb871"
+                 start-line="173" end-line="194"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>find_schema_dir() walks up from a starting path checking
+    schemas/ then .clayers/schemas/ at each level.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-schema-discovery-connectivity">
+    <art:spec-ref node="schema-discovery"
+              revision="draft-1"
+              node-hash="sha256:44b27f8a8db336cfb0044a1029f9b20a94091c9b614c52a564ee9d606ab25232"/>
+    <art:artifact repo="clayers"
+              repo-revision="HEAD"
+              path="crates/clayers-spec/src/connectivity.rs">
+      <art:range hash="sha256:5f757a13dccab3c1fb4872750a3488c11b897642f97ffebb0d067e9ec9db2cb4"
+                 start-line="56" end-line="62"/>
+    </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>analyze_connectivity() uses find_schema_dir() to locate
+    schemas for acyclic relation type discovery.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-schema-discovery-cli">
+    <art:spec-ref node="schema-discovery"
+              revision="draft-1"
+              node-hash="sha256:44b27f8a8db336cfb0044a1029f9b20a94091c9b614c52a564ee9d606ab25232"/>
+    <art:artifact repo="clayers"
+              repo-revision="HEAD"
+              path="crates/clayers/src/cli.rs">
+      <art:range hash="sha256:2732a67f5bdab6b471453de53c74b1295b12af1efac6d1b4d95a0dea858d9f97"
+                 start-line="393" end-line="413"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>resolve_schema_dir() and cmd_schema() make the schema
+    command's path argument optional via auto-discovery.</art:note>
+  </art:mapping>
+
+  <llm:node ref="schema-discovery">
+    Schema directory discovery walks up the directory tree checking two
+    locations at each level: schemas/ (canonical source location) and
+    .clayers/schemas/ (adopted location). First match wins. This enables
+    the schema and connectivity commands to work without explicit schema
+    paths in both development repos (where schemas/ exists) and adopted
+    projects (where .clayers/schemas/ was planted by clayers adopt).
+    The schema command's path argument becomes optional when discovery
+    is available.
+  </llm:node>
+
+  <!-- Type→schema mappings -->
+
+  <art:mapping id="map-type-relation-schema">
+    <art:spec-ref node="type-relation"
+              revision="draft-1"
+              node-hash="sha256:a8b4825ba43165a5b92d49b9c5224bb9b4295bcc39465b8ae352e0a9f87ae441"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="schemas/relation.xsd">
+        <art:range hash="sha256:5a0b2521b1116af572c4717cc3bfa3d575618b1b431ae4f35110b568adce6259" start-line="37" end-line="75"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>RelationType complexType defines the structure of relation elements with from, to, type, acyclic attributes and note child.</art:note>
+  </art:mapping>
+
+
+  <art:mapping id="map-type-relation-kind-schema">
+    <art:spec-ref node="type-relation-kind"
+              revision="draft-1"
+              node-hash="sha256:89b27b93dcfc9bcc187d9930479508ce54a5bba23ca35496a31b225560505990"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="schemas/relation.xsd">
+        <art:range hash="sha256:4dea6ea78dab0a56818cea4ce4e4810cad05478208d11cad93cf017c22513078" start-line="110" end-line="164"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>RelationKind simpleType enumerates allowed relation types: depends-on, references, refines, constrains, and extension types via union.</art:note>
+  </art:mapping>
+
+</spec:clayers>

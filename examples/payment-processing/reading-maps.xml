@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Reading Maps: Guided reading path through the payment processing spec.
+-->
+<spec:clayers xmlns:spec="urn:clayers:spec"
+       xmlns:org="urn:clayers:organization"
+       spec:index="index.xml">
+
+  <org:map id="payment-processing-guide" audience="developer">
+    <org:title>Payment Processing Reading Guide</org:title>
+
+    <org:part experience-level="beginner">
+      <org:title>Concepts</org:title>
+      <org:topicref ref="overview">
+        <org:title>Payment Processing Overview</org:title>
+      </org:topicref>
+      <org:topicref ref="term-transaction"/>
+      <org:topicref ref="term-settlement"/>
+    </org:part>
+
+    <org:part>
+      <org:title>Transaction Lifecycle</org:title>
+      <org:topicref ref="authorization-flow">
+        <org:topicref ref="term-authorization" required="false"/>
+        <org:topicref ref="term-merchant" required="false"/>
+        <org:topicref ref="term-acquirer" required="false"/>
+        <org:topicref ref="term-issuer" required="false"/>
+      </org:topicref>
+      <org:topicref ref="capture-and-clearing">
+        <org:topicref ref="term-clearing" required="false"/>
+      </org:topicref>
+      <org:topicref ref="settlement"/>
+    </org:part>
+
+    <org:part audience="developer" role="operator">
+      <org:title>Exception Handling</org:title>
+      <org:topicref ref="disputes">
+        <org:topicref ref="term-chargeback" required="false"/>
+      </org:topicref>
+    </org:part>
+  </org:map>
+
+</spec:clayers>

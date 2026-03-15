@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Cognitive Layersifications: What they are and why they exist.
+  Introduces the layered format and its core vocabulary.
+-->
+<spec:clayers xmlns:spec="urn:clayers:spec"
+       xmlns:pr="urn:clayers:prose"
+       xmlns:trm="urn:clayers:terminology"
+       xmlns:org="urn:clayers:organization"
+       xmlns:art="urn:clayers:artifact"
+       xmlns:llm="urn:clayers:llm"
+       spec:index="index.xml">
+
+  <!-- Vocabulary -->
+
+  <trm:term id="term-layer">
+    <trm:name>Layer</trm:name>
+    <trm:definition>A separate XML document representing one dimension of meaning
+    within a specification. Each layer has its own namespace and schema.
+    Layers are orthogonal: prose describes content, organization classifies it,
+    relations link it, artifacts trace it to code.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-namespace">
+    <trm:name>Namespace</trm:name>
+    <trm:definition>An XML namespace URI that uniquely identifies a layer type.
+    Each layer schema defines a target namespace (e.g., urn:clayers:prose).
+    Namespaces enable the combined document to contain elements from all
+    layers without name collisions.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-node">
+    <trm:name>Node</trm:name>
+    <trm:definition>Any element within a layer that carries an @id attribute.
+    Nodes are the addressable units of a specification. All node IDs across
+    all layers of a spec must be unique, forming a single ID space enforced
+    by the index.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-index">
+    <trm:name>Index</trm:name>
+    <trm:definition>The file manifest that defines the boundary of a specification.
+    Lists all layer files, declares the ID uniqueness domain, and provides
+    the spec identifier and version. Non-index layers reference their index
+    via the index attribute on the clayers root element.</trm:definition>
+  </trm:term>
+
+  <!-- Content -->
+
+  <pr:section id="overview">
+    <pr:title>Cognitive Layersifications</pr:title>
+    <pr:shortdesc>A layered XML format for software specifications that
+    co-evolve with their implementations.</pr:shortdesc>
+
+    <pr:p>Software code is a degraded version of intent. Specifications are either
+    implicit, scattered across disconnected documentation, or maintained in
+    heavyweight tools that drift from reality. Code becomes the de facto spec,
+    but code only captures how, not why.</pr:p>
+
+    <pr:p>A cognitive layers inverts this. Instead of iterating directly on
+    code, iterate on the specification. The spec is the source of truth for
+    software construction. Code is a produced artifact that implements the
+    spec, and tooling can verify the mapping between them.</pr:p>
+
+    <pr:p>The format is a set of XML documents, each representing a distinct
+    <trm:ref term="term-layer">layer</trm:ref> of meaning. Every layer has
+    its own <trm:ref term="term-namespace">namespace</trm:ref> and schema.
+    The specification matures over time: it starts as prose and gains
+    precision through additional semantic layers.</pr:p>
+  </pr:section>
+
+  <pr:section id="layered-architecture">
+    <pr:title>Layered Architecture</pr:title>
+    <pr:shortdesc>Orthogonal layers, each adding meaning without replacing
+    the others.</pr:shortdesc>
+
+    <pr:p>Each <trm:ref term="term-layer">layer</trm:ref> is a separate file
+    for three reasons: file organization (each can be versioned and reviewed
+    independently), context size control (an LLM updating artifact mappings
+    does not need to load the prose layer), and independent evolution (prose
+    can go through ten revisions while the artifact mapping stays pinned).</pr:p>
+
+    <pr:table>
+      <pr:thead>
+        <pr:tr>
+          <pr:th>Layer</pr:th>
+          <pr:th>Purpose</pr:th>
+        </pr:tr>
+      </pr:thead>
+      <pr:tbody>
+        <pr:tr>
+          <pr:td>Index</pr:td>
+          <pr:td>File manifest, defines spec boundary and ID uniqueness domain</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>Revision</pr:td>
+          <pr:td>Named snapshots for temporal anchoring of artifact mappings</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>Prose</pr:td>
+          <pr:td>DITA-style technical writing elements</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>Terminology</pr:td>
+          <pr:td>Controlled vocabulary with canonical definitions</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>Organization</pr:td>
+          <pr:td>Topic typing: concept, task, reference</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>Relation</pr:td>
+          <pr:td>Typed semantic links within and across specs</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>Decision</pr:td>
+          <pr:td>Architecture Decision Records with status lifecycle and alternatives</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>Source</pr:td>
+          <pr:td>External references, bibliography, and provenance tracking</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>Plan</pr:td>
+          <pr:td>Implementation plans with itemized steps and acceptance criteria</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>Artifact Mapping</pr:td>
+          <pr:td>Code traceability with drift detection</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>LLM</pr:td>
+          <pr:td>Machine-readable descriptions for language model consumption</pr:td>
+        </pr:tr>
+      </pr:tbody>
+    </pr:table>
+
+    <pr:p>All layers share a common ID space. Every
+    <trm:ref term="term-node">node</trm:ref> across all layer files must
+    have a unique @id. The <trm:ref term="term-index">index</trm:ref>
+    defines this uniqueness domain. Every non-index layer declares which
+    index it belongs to via the index attribute on the clayers root,
+    making each file self-describing.</pr:p>
+  </pr:section>
+
+  <!-- Topic typing -->
+
+  <org:concept ref="overview">
+    <org:purpose>Orientation for readers new to the clayers format.</org:purpose>
+  </org:concept>
+
+  <org:concept ref="layered-architecture">
+    <org:purpose>Understanding why specifications are split into layers and how
+    layers interact.</org:purpose>
+  </org:concept>
+
+  <!-- Artifact mappings -->
+
+  <art:mapping id="map-overview-readme">
+    <art:spec-ref node="overview"
+              revision="draft-1"
+              node-hash="sha256:6c0c1970053760e780b9aa3844250e75896dd6744bf45f1653faafa3bd5d0a33"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="README.md">
+        <art:range hash="sha256:85cac3707ed2d4c3b20ea41bb6a498990cec1e236dd9ffb7d4c00f260ecace5b"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>README.md captures the full motivation, thesis, and overview
+    of the clayers format.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-layered-architecture">
+    <art:spec-ref node="layered-architecture"
+              revision="draft-1"
+              node-hash="sha256:daf961e0acffae79aa71fc7d75f4375550ac335bb34fd47f73bcdf7470574e48"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="schemas/index.xsd">
+        <art:range hash="sha256:35cc714aaef100ed8b8fdb2bb8ec02d5d37fbbfcdf897d571bec6d4e8a4e5355"/>
+      </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>index.xsd defines the file manifest structure. The full layered
+    architecture spans all schema files.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-term-node">
+    <art:spec-ref node="term-node"
+              revision="draft-1"
+              node-hash="sha256:d832bf49bea5b2bfe854ca963390bcb872f72768b511c4d121ead181e4d26505"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="crates/clayers-spec/src/validate.rs">
+        <art:range hash="sha256:3219dea8da301b373dfcdbde55b33d1f9687ca81fff012ddfb0e62362f366596"
+                   start-line="95" end-line="141"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>collect_nodes() collects all elements with @id attributes,
+    which is the definition of a node.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-term-index">
+    <art:spec-ref node="term-index"
+              revision="draft-1"
+              node-hash="sha256:0b271fa0db4f174e34bca807c1d664c6b76c61ae4cc60f792072fcd2638739a4"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="crates/clayers-spec/src/discovery.rs">
+        <art:range hash="sha256:4fa05751230b86d97492c9ad075f8ddffea8918286875bf6c20ee8b081791ced"
+                   start-line="15" end-line="69"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>is_index_file(), resolve_index(), and discover_spec_files()
+    implement the index concept: detection, resolution, and manifest reading.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-term-namespace">
+    <art:spec-ref node="term-namespace"
+              revision="draft-1"
+              node-hash="sha256:3fc93c2b8f5563fa87f8d5d988c3f698a8301389a926c0d3242c9db14b4e3788"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="crates/clayers-spec/src/namespace.rs">
+        <art:range hash="sha256:68c9b0430c67f4e857e2b7007f3cf0730c1791acb7d1bc2a6764a260f63c4dba"
+                   start-line="1" end-line="63"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>SPEC_NS, XS_NS constants and discover_namespaces() implement
+    namespace discovery from layer schemas.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-term-layer">
+    <art:spec-ref node="term-layer"
+              revision="draft-1"
+              node-hash="sha256:72a05785e7d71da3b5eb4b06ce27796a985814e80e21bcee22d33bd3b44d2dd1"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="crates/clayers-spec/src/namespace.rs">
+        <art:range hash="sha256:e012e0c617f2138df658896b4c6c994b41c4990eef3ac8684ae5d44c8086733b"
+                   start-line="17" end-line="31"/>
+      </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>discover_namespaces() scans layer schemas to find namespaces,
+    implementing the layer discovery aspect of the layer concept.</art:note>
+  </art:mapping>
+
+  <!-- Machine descriptions -->
+
+  <llm:schema namespace="urn:clayers:spec">
+    The spec schema defines the universal clayers root element. It
+    uses xs:any namespace="##other" processContents="strict" so children
+    from any layer namespace are accepted and validated. This enables
+    open-world extensibility (new layers without modifying existing
+    schemas) and cross-layer mixing (a single file can contain elements
+    from multiple layers). Attributes: spec and version for identity
+    (index files), index for back-referencing (non-index files).
+  </llm:schema>
+
+  <llm:schema namespace="urn:clayers:terminology">
+    The terminology schema defines a controlled vocabulary. Each
+    &lt;term&gt; has an id, a canonical name, and a definition. Other
+    layers reference terms by ID via &lt;trm:ref term="..."&gt; elements
+    for precision. When prose says "settlement", it links to the
+    canonical definition rather than relying on implicit understanding.
+  </llm:schema>
+
+  <llm:schema namespace="urn:clayers:terminology" element="ref">
+    An inline reference to a defined term, used within prose content.
+    The term attribute is the ID of the referenced term. The element
+    content is display text, which may differ from the canonical term
+    name for grammatical reasons (e.g., "settlements" linking to
+    term-settlement).
+  </llm:schema>
+
+  <llm:schema namespace="urn:clayers:prose">
+    The prose schema provides DITA-style technical writing elements.
+    Content is organized into &lt;section&gt; elements, each with a
+    required id and title. Sections contain paragraphs, lists, ordered
+    steps, notes (with severity types), code blocks, tables, and
+    cross-references. Inline content can embed terminology references
+    and bold/italic/code markup.
+  </llm:schema>
+
+  <llm:schema namespace="urn:clayers:prose" element="section">
+    A structural unit of prose content. Requires an id (for
+    cross-referencing) and a title. Contains an optional shortdesc
+    followed by body elements: paragraphs, lists, steps, notes,
+    code blocks, tables, and nested sections.
+  </llm:schema>
+
+  <llm:schema namespace="urn:clayers:prose" element="xref">
+    A cross-reference to another node in the specification. The ref
+    attribute is a node ID. In the combined document, this is validated
+    via keyref to ensure the target exists.
+  </llm:schema>
+
+  <llm:schema namespace="urn:clayers:organization">
+    The organization schema classifies spec nodes by topic type,
+    inspired by DITA's specialization model. Three types: concept
+    (something to understand), task (something the system does), and
+    reference (lookup information). Each element has a ref attribute
+    pointing to the node being classified and a purpose child
+    explaining why it has that classification.
+  </llm:schema>
+
+  <llm:schema namespace="urn:clayers:relation">
+    The relation schema expresses typed, directional semantic links
+    between nodes. Relation types: precedes, depends-on, refines,
+    conflicts-with, implements, constrains, reverses. Each relation
+    has from and to attributes (node IDs). Cross-spec relations use
+    optional to-spec and to-revision attributes to address nodes in
+    other specifications.
+  </llm:schema>
+
+  <llm:node ref="overview">
+    The entry point for understanding cognitive layerss. Explains
+    why code alone is insufficient as a source of truth and how a
+    layered specification format addresses this. Start here when
+    orienting to the project.
+  </llm:node>
+
+  <llm:node ref="layered-architecture">
+    Describes the layered structure and why layers are separate files.
+    Key insight: separation enables independent versioning, context size
+    control for LLMs, and independent evolution rates. The table lists
+    all layers with their purpose.
+  </llm:node>
+</spec:clayers>

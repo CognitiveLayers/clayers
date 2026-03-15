@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:art="urn:clayers:artifact"
+           xmlns:llm="urn:clayers:llm"
+           xmlns:spec="urn:clayers:spec"
+           targetNamespace="urn:clayers:artifact"
+           elementFormDefault="qualified"
+           version="1.2">
+
+  <xs:annotation>
+    <xs:documentation>
+      Artifact Mapping Layer Schema.
+      Maps produced artifacts (files, file segments) to spec nodes
+      at specific revisions. Enables bidirectional traceability
+      and drift detection.
+
+      Each mapping pins a spec node (by ID at a revision) to an
+      artifact (file path at a repo revision) with hashes on both
+      sides for change detection.
+    </xs:documentation>
+    <xs:appinfo>
+      <llm:describe>
+        The artifact schema maps spec nodes to code artifacts for
+        traceability and drift detection. Each mapping contains a
+        spec-ref (node ID + revision + C14N hash) and an optional
+        artifact (repo + revision + path) with zero or more child
+        range elements. Each range carries its own content hash and
+        optional addressing (line range, byte offsets, line+column).
+        Zero ranges means pointer-only (no content hashing).
+        Coverage is explicit: full, partial, or none.
+        When either side's hash changes, tooling detects drift.
+      </llm:describe>
+      <spec:keyref name="artifact-node-refs" selector=".//art:spec-ref" field="@node"/>
+      <spec:keyref name="artifact-exempt-refs" selector=".//art:exempt" field="@node"/>
+    </xs:appinfo>
+  </xs:annotation>
+
+  <!-- Global mapping element -->
+  <xs:element name="mapping" type="art:MappingType">
+    <xs:annotation><xs:appinfo><spec:content-element/></xs:appinfo></xs:annotation>
+  </xs:element>
+
+  <!-- Coverage exemption element -->
+  <xs:element name="exempt">
+    <xs:annotation>
+      <xs:appinfo><spec:content-element/></xs:appinfo>
+      <xs:documentation>
+        Declares a spec node exempt from artifact coverage requirements.
+        Use for documentation-only nodes (terms, concepts, navigation
+        structures) that have no code counterpart.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:complexType mixed="true">
+      <xs:attribute name="node" type="xs:string" use="required">
+        <xs:annotation>
+          <xs:documentation>ID of the spec node exempt from coverage.</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:complexType name="MappingType">
+    <xs:sequence>
+      <xs:element name="spec-ref" type="art:SpecRefType" minOccurs="1"/>
+      <xs:element name="artifact" type="art:ArtifactRefType" minOccurs="0"/>
+      <xs:element name="coverage" type="art:CoverageKind"/>
+      <xs:element name="note" type="xs:string" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID" use="required"/>
+  </xs:complexType>
+
+  <!-- Reference to a spec node at a specific revision -->
+  <xs:complexType name="SpecRefType">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          References a spec node at a specific revision. node is the
+          node ID, revision is the revision name, and node-hash is
+          SHA-256 of the C14N form of the node subtree. Hash changes
+          when node content changes, enabling spec-side drift detection.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:attribute name="node" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>Node ID within the specification.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="revision" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>Spec revision name (from the revision layer).</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="node-hash" type="art:HashType" use="required">
+      <xs:annotation>
+        <xs:documentation>Hash of the C14N form of the referenced spec node.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <!-- Reference to a code artifact -->
+  <xs:complexType name="ArtifactRefType">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          References a code artifact. repo identifies the repository,
+          repo-revision pins a specific commit or tag (VCS-agnostic),
+          path is the file relative to repo root. Zero or more child
+          range elements specify content regions with their own hashes.
+          No range children means a pointer-only reference without
+          content hashing.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="range" type="art:RangeType" minOccurs="0" maxOccurs="unbounded">
+        <xs:annotation>
+          <xs:documentation>Content region with its own hash. Omit addressing attrs for whole file.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+    </xs:sequence>
+    <xs:attribute name="repo" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>Repository identifier.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="repo-revision" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>Repository revision (commit hash, tag, etc.). VCS-agnostic.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="path" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>File path relative to repository root.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <!-- Content region within an artifact -->
+  <xs:complexType name="RangeType">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          A content region within an artifact file. The hash attribute
+          is the SHA-256 of the selected content. Addressing is optional:
+          no addressing attrs means entire file; start-line/end-line
+          selects line ranges (1-based inclusive); start-col/end-col adds
+          column precision; start-offset/end-offset selects byte ranges.
+          Line+col and byte offsets may coexist for redundancy.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:attribute name="hash" type="art:HashType" use="required">
+      <xs:annotation>
+        <xs:documentation>SHA-256 hash of the content at this range.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="start-line" type="xs:positiveInteger" use="optional">
+      <xs:annotation>
+        <xs:documentation>First line (1-based inclusive).</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="end-line" type="xs:positiveInteger" use="optional">
+      <xs:annotation>
+        <xs:documentation>Last line (1-based inclusive).</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="start-col" type="xs:positiveInteger" use="optional">
+      <xs:annotation>
+        <xs:documentation>Start column (1-based). Requires all four line+col attrs.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="end-col" type="xs:positiveInteger" use="optional">
+      <xs:annotation>
+        <xs:documentation>End column (1-based). Requires all four line+col attrs.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="start-offset" type="xs:nonNegativeInteger" use="optional">
+      <xs:annotation>
+        <xs:documentation>Start byte offset (0-based).</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="end-offset" type="xs:nonNegativeInteger" use="optional">
+      <xs:annotation>
+        <xs:documentation>End byte offset (exclusive).</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+
+    <!-- XSD 1.1 assertions: paired attributes -->
+    <xs:assert test="if (@start-line) then @end-line else true()"/>
+    <xs:assert test="if (@end-line) then @start-line else true()"/>
+    <xs:assert test="if (@start-col or @end-col)
+                     then (@start-line and @end-line and @start-col and @end-col)
+                     else true()"/>
+    <xs:assert test="if (@start-offset) then @end-offset else true()"/>
+    <xs:assert test="if (@end-offset) then @start-offset else true()"/>
+  </xs:complexType>
+
+  <xs:simpleType name="CoverageKind">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="full">
+        <xs:annotation>
+          <xs:documentation>Artifact fully implements the spec node.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="partial">
+        <xs:annotation>
+          <xs:documentation>Artifact partially implements the spec node.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="none">
+        <xs:annotation>
+          <xs:documentation>No artifact yet. Spec node is unimplemented.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="HashType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[a-z0-9]+:[a-f0-9]+"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+</xs:schema>

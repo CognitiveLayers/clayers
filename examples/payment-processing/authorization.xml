@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Authorization: Verifying the payer can pay before moving funds.
+-->
+<spec:clayers xmlns:spec="urn:clayers:spec"
+       xmlns:pr="urn:clayers:prose"
+       xmlns:trm="urn:clayers:terminology"
+       xmlns:org="urn:clayers:organization"
+       xmlns:rel="urn:clayers:relation"
+       xmlns:art="urn:clayers:artifact"
+       spec:index="index.xml">
+
+  <trm:term id="term-authorization">
+    <trm:name>Authorization</trm:name>
+    <trm:definition>A preliminary approval confirming that the payer has
+    sufficient funds and the transaction passes risk checks, without
+    yet moving funds.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-merchant">
+    <trm:name>Merchant</trm:name>
+    <trm:definition>The party receiving payment in exchange for goods or
+    services.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-acquirer">
+    <trm:name>Acquirer</trm:name>
+    <trm:definition>The financial institution that processes payment
+    transactions on behalf of the merchant.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-issuer">
+    <trm:name>Issuer</trm:name>
+    <trm:definition>The financial institution that issued the payment
+    instrument (card, account) to the payer.</trm:definition>
+  </trm:term>
+
+  <pr:section id="authorization-flow">
+    <pr:title>Authorization</pr:title>
+    <pr:shortdesc>Verifying the payer can pay before moving funds.</pr:shortdesc>
+
+    <pr:p>When a <trm:ref term="term-merchant">merchant</trm:ref> initiates a
+    charge, the request flows through the
+    <trm:ref term="term-acquirer">acquirer</trm:ref> to the
+    <trm:ref term="term-issuer">issuer</trm:ref>. The issuer checks:</pr:p>
+
+    <pr:ul>
+      <pr:li>Sufficient funds or credit available</pr:li>
+      <pr:li>Card or account not blocked</pr:li>
+      <pr:li>Risk scoring within acceptable thresholds</pr:li>
+      <pr:li>Geographic and velocity checks pass</pr:li>
+    </pr:ul>
+
+    <pr:p>The issuer responds with an
+    <trm:ref term="term-authorization">authorization</trm:ref> code (approved)
+    or a decline reason.</pr:p>
+
+    <pr:note type="important">Authorization places a hold on funds but does
+    not transfer them. The hold expires if not captured within the
+    network-defined window (typically 7 days for card payments).</pr:note>
+  </pr:section>
+
+  <org:task ref="authorization-flow">
+    <org:purpose>The first phase of processing any payment.</org:purpose>
+    <org:actor>Issuer (automated decision)</org:actor>
+  </org:task>
+
+  <rel:relation type="depends-on" from="authorization-flow" to="term-issuer">
+    <rel:note>Authorization is an issuer-side decision.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="precedes" from="authorization-flow" to="capture-and-clearing">
+    <rel:note>Authorization must complete before capture can begin.</rel:note>
+  </rel:relation>
+
+  <art:mapping id="map-auth-service">
+    <art:spec-ref node="authorization-flow"
+              revision="draft-1"
+              node-hash="sha256:7ee0575880263afabebe1e8d5de9fc9818b1f9e56da06d735c019a4e364d0431"/>
+    <art:artifact repo="payment-service"
+              repo-revision="abc1234"
+              path="src/services/authorization.py">
+      <art:range hash="sha256:ddeeff0011223344556677889900aabbccddeeff0011223344556677889900aa"
+                 start-line="1" end-line="85"/>
+    </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>Implements fund check and risk scoring. Does not yet
+    implement geographic or velocity checks.</art:note>
+  </art:mapping>
+</spec:clayers>

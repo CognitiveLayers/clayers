@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:org="urn:clayers:organization"
+           xmlns:llm="urn:clayers:llm"
+           xmlns:spec="urn:clayers:spec"
+           targetNamespace="urn:clayers:organization"
+           elementFormDefault="qualified"
+           version="1.1">
+
+  <xs:annotation>
+    <xs:documentation>
+      Organization Layer Schema.
+      Topic typing inspired by DITA's specialization model.
+      Classifies what kind of thing each spec node is: concept
+      (something to understand), task (something the system does),
+      or reference (lookup information). Also provides reading maps
+      for composing nodes into guided reading sequences.
+
+      References node IDs defined in other layers.
+    </xs:documentation>
+    <xs:appinfo>
+      <llm:describe>
+        The organization schema classifies spec nodes by topic type,
+        inspired by DITA's specialization model. Three types: concept
+        (something to understand), task (something the system does),
+        and reference (lookup information). Each element has a ref
+        attribute pointing to the classified node and a purpose child.
+        Reading maps (org:map) compose nodes into linear reading
+        sequences for specific audiences, with parts for grouping
+        and topicrefs for individual entries. Profiling attributes
+        (audience, experience-level, role) enable audience-specific
+        filtering.
+      </llm:describe>
+      <spec:keyref name="org-concept-refs" selector=".//org:concept" field="@ref"/>
+      <spec:keyref name="org-task-refs" selector=".//org:task" field="@ref"/>
+      <spec:keyref name="org-reference-refs" selector=".//org:reference" field="@ref"/>
+      <spec:keyref name="org-topicref-refs" selector=".//org:topicref" field="@ref"/>
+    </xs:appinfo>
+  </xs:annotation>
+
+  <!-- Global elements -->
+  <xs:element name="concept" type="org:ConceptType">
+    <xs:annotation><xs:appinfo><spec:content-element/></xs:appinfo></xs:annotation>
+  </xs:element>
+  <xs:element name="task" type="org:TaskType">
+    <xs:annotation><xs:appinfo><spec:content-element/></xs:appinfo></xs:annotation>
+  </xs:element>
+  <xs:element name="reference" type="org:ReferenceType">
+    <xs:annotation><xs:appinfo><spec:content-element/></xs:appinfo></xs:annotation>
+  </xs:element>
+  <xs:element name="map" type="org:MapType">
+    <xs:annotation><xs:appinfo><spec:content-element/></xs:appinfo></xs:annotation>
+  </xs:element>
+
+  <!-- Concept: something to understand -->
+  <xs:complexType name="ConceptType">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          Classifies a node as a concept: something the reader needs
+          to understand. The ref attribute points to the node being
+          classified. Use for introductory material, domain definitions,
+          and architectural explanations.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="purpose" type="xs:string"/>
+    </xs:sequence>
+    <xs:attribute name="ref" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>Node ID of the classified element (defined in another layer).</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <!-- Task: something the system does -->
+  <xs:complexType name="TaskType">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          Classifies a node as a task: something the system does.
+          The ref points to the node, purpose explains why, and
+          optional actor identifies who or what performs the task.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="purpose" type="xs:string"/>
+      <xs:element name="actor" type="xs:string" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="ref" type="xs:string" use="required"/>
+  </xs:complexType>
+
+  <!-- Reference: lookup information -->
+  <xs:complexType name="ReferenceType">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          Classifies a node as reference material: lookup information.
+          Use for tables, checklists, threshold values, and other
+          content consulted on demand rather than read sequentially.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="purpose" type="xs:string"/>
+    </xs:sequence>
+    <xs:attribute name="ref" type="xs:string" use="required"/>
+  </xs:complexType>
+
+  <!-- Profiling attributes for audience-specific filtering -->
+  <xs:attributeGroup name="ProfilingAttrs">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          Profiling attributes for audience-specific content filtering.
+          All are optional, space-separated token lists, and inclusive
+          by default (absence means "for everyone"). Filtering is a
+          tooling concern; these attributes are metadata only.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:attribute name="audience" type="xs:string" use="optional">
+      <xs:annotation>
+        <xs:documentation>Space-separated audience tokens (e.g., "developer architect").</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="experience-level" type="xs:string" use="optional">
+      <xs:annotation>
+        <xs:documentation>Space-separated experience levels (e.g., "beginner intermediate advanced").</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="role" type="xs:string" use="optional">
+      <xs:annotation>
+        <xs:documentation>Space-separated role tokens (e.g., "implementor reviewer operator").</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:attributeGroup>
+
+  <!-- Map: a reading sequence composing nodes into a linear path -->
+  <xs:complexType name="MapType">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          A reading map composes spec nodes into a guided linear
+          reading sequence for a specific audience. Contains a title,
+          then a choice of parts (hierarchical groups) or topicrefs
+          (direct node references). Profiling attributes enable
+          audience-specific filtering. The id attribute is required
+          for cross-referencing.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="title" type="xs:string"/>
+      <xs:choice maxOccurs="unbounded">
+        <xs:element name="part" type="org:PartType"/>
+        <xs:element name="topicref" type="org:TopicRefType"/>
+      </xs:choice>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID" use="required"/>
+    <xs:attributeGroup ref="org:ProfilingAttrs"/>
+
+    <!-- XSD 1.1 assertion: no duplicate topicref refs within a map -->
+    <xs:assert test="count(distinct-values(.//org:topicref/@ref)) = count(.//org:topicref/@ref)"
+               xpathDefaultNamespace="urn:clayers:organization"/>
+  </xs:complexType>
+
+  <!-- Part: hierarchical grouping within a reading map -->
+  <xs:complexType name="PartType">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          A part groups topicrefs within a reading map, providing
+          hierarchical structure (like chapters in a book). Contains
+          a required title and one or more topicref children.
+          Profiling attributes can restrict the entire part to
+          specific audiences.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="title" type="xs:string"/>
+      <xs:element name="topicref" type="org:TopicRefType" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attributeGroup ref="org:ProfilingAttrs"/>
+  </xs:complexType>
+
+  <!-- TopicRef: a node reference within a reading map (recursive) -->
+  <xs:complexType name="TopicRefType">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          A reference to a spec node within a reading map. The ref
+          attribute points to a node ID. The optional title child
+          serves as a navtitle (display label for table of contents);
+          when absent, tooling resolves the title from the referenced
+          node's prose title. The required attribute (default true)
+          distinguishes mandatory stops from supplementary material.
+          Nested topicrefs enable sub-sections within a reading path.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="title" type="xs:string" minOccurs="0"/>
+      <xs:element name="purpose" type="xs:string" minOccurs="0"/>
+      <xs:element name="topicref" type="org:TopicRefType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="ref" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>Node ID of the referenced spec node.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="required" type="xs:boolean" default="true">
+      <xs:annotation>
+        <xs:documentation>Whether this is a mandatory stop (true) or supplementary material (false).</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attributeGroup ref="org:ProfilingAttrs"/>
+  </xs:complexType>
+
+</xs:schema>

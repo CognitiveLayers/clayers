@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:dec="urn:clayers:decision"
+           xmlns:rel="urn:clayers:relation"
+           xmlns:llm="urn:clayers:llm"
+           xmlns:spec="urn:clayers:spec"
+           targetNamespace="urn:clayers:decision"
+           elementFormDefault="qualified"
+           version="1.1">
+
+  <xs:import namespace="urn:clayers:relation"
+             schemaLocation="relation.xsd"/>
+
+  <xs:annotation>
+    <xs:documentation>
+      Decision Layer Schema.
+      Captures Architecture Decision Records (ADRs) with structured
+      metadata: status lifecycle, structured alternatives with rationale,
+      and supersession chains. Each decision references a prose section
+      that holds the narrative context.
+    </xs:documentation>
+    <xs:appinfo>
+      <llm:describe>
+        The decision schema captures Architecture Decision Records (ADRs)
+        as structured metadata. Each decision references a prose section
+        (via ref attribute) for narrative context and carries its own id
+        for cross-referencing. Status lifecycle: proposed, accepted,
+        deprecated, superseded. Structured alternatives record rejected
+        options with rationale. The supersedes element is an extension
+        relation type for supersession chains, activated via a refines
+        edge to type-relation-kind.
+      </llm:describe>
+      <spec:keyref name="decision-ref-refs" selector=".//dec:decision" field="@ref"/>
+      <spec:keyref name="supersedes-from-refs" selector=".//dec:supersedes" field="@from"/>
+      <spec:keyref name="supersedes-to-refs" selector=".//dec:supersedes" field="@to"/>
+    </xs:appinfo>
+  </xs:annotation>
+
+  <!-- Global decision element -->
+  <xs:element name="decision" type="dec:DecisionType">
+    <xs:annotation><xs:appinfo><spec:content-element/></xs:appinfo></xs:annotation>
+  </xs:element>
+
+  <!-- Global supersedes element (extension relation type) -->
+  <xs:element name="supersedes" type="dec:SupersedesType">
+    <xs:annotation><xs:appinfo><spec:content-element/></xs:appinfo></xs:annotation>
+  </xs:element>
+
+  <!-- Decision: ADR metadata referencing a prose section -->
+  <xs:complexType name="DecisionType" id="type-decision">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          An Architecture Decision Record. The ref attribute points to
+          the prose section containing the narrative (context, rationale).
+          The id attribute makes the decision an addressable node for
+          supersession chains, artifact mappings, and relations. Status
+          tracks the lifecycle; alternatives record rejected options.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="status" type="dec:StatusKind"/>
+      <xs:element name="date" type="xs:date" minOccurs="0"/>
+      <xs:element name="alternative" type="dec:AlternativeType"
+                  minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="ref" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>Node ID of the prose section with the decision narrative.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="id" type="xs:ID" use="required">
+      <xs:annotation>
+        <xs:documentation>Unique identifier for this decision node.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <!-- Alternative: a rejected option with rationale -->
+  <xs:complexType name="AlternativeType">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          A rejected alternative for a decision. Title names the option;
+          rationale explains why it was rejected. Optional id makes the
+          alternative individually addressable.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="title" type="xs:string"/>
+      <xs:element name="rationale" type="xs:string"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID" use="optional">
+      <xs:annotation>
+        <xs:documentation>Optional unique identifier for this alternative.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <!-- Status lifecycle enumeration -->
+  <xs:simpleType name="StatusKind">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="proposed">
+        <xs:annotation>
+          <xs:documentation>Decision is under consideration, not yet accepted.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="accepted">
+        <xs:annotation>
+          <xs:documentation>Decision is active and in effect.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="deprecated">
+        <xs:annotation>
+          <xs:documentation>Decision is discouraged but not yet replaced.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="superseded">
+        <xs:annotation>
+          <xs:documentation>Decision has been replaced by another decision.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Supersedes: extension relation type for supersession chains -->
+  <xs:complexType name="SupersedesType" id="type-supersedes">
+    <xs:annotation>
+      <xs:appinfo>
+        <rel:relation-type-properties
+          relation-name="supersedes"
+          acyclic="true"
+          from-attr="from"
+          to-attr="to"/>
+        <llm:describe>
+          An extension relation type for decision supersession chains.
+          The from attribute is the new decision that supersedes the old
+          decision in the to attribute. Acyclic: a supersession cycle is
+          logically impossible (a decision cannot transitively supersede
+          itself). Activated by a refines edge from type-supersedes to
+          type-relation-kind.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="note" type="xs:string" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="from" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>ID of the new decision (the one that supersedes).</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="to" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>ID of the old decision (the one being superseded).</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+</xs:schema>

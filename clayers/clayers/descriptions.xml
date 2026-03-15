@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  LLM Descriptions: Machine-readable descriptions for language models.
+  How the LLM layer works in-band and out-of-band.
+-->
+<spec:clayers xmlns:spec="urn:clayers:spec"
+       xmlns:pr="urn:clayers:prose"
+       xmlns:org="urn:clayers:organization"
+       xmlns:rel="urn:clayers:relation"
+       xmlns:art="urn:clayers:artifact"
+       xmlns:llm="urn:clayers:llm"
+       spec:index="index.xml">
+
+  <!-- Content -->
+
+  <pr:section id="llm-layer">
+    <pr:title>LLM Descriptions</pr:title>
+    <pr:shortdesc>Machine-readable descriptions embedded in schemas and layer
+    files for language model consumption.</pr:shortdesc>
+
+    <pr:p>The LLM layer provides descriptions optimized for language models. It
+    operates in two modes that serve different purposes:</pr:p>
+
+    <pr:ul>
+      <pr:li><pr:b>Out-of-band</pr:b> (llm.xml): a layer file containing two element
+      types. <pr:code>node</pr:code> elements describe spec nodes by ID reference
+      (validated via keyref in the combined schema). <pr:code>schema</pr:code>
+      elements describe schemas or specific schema elements by namespace URI,
+      with an optional element attribute to narrow the scope. This follows the
+      standard layer-file pattern with independent evolution.</pr:li>
+      <pr:li><pr:b>In-band</pr:b> (inside XSD files): <pr:code>llm:describe</pr:code>
+      elements placed inside <pr:code>xs:appinfo</pr:code> annotations, co-located
+      with the schema elements they describe. Any XSD can import the LLM
+      namespace and add descriptions to its type definitions, element
+      declarations, or top-level annotations.</pr:li>
+    </pr:ul>
+
+    <pr:p>The two modes complement each other. In-band descriptions travel with
+    the schema and are available to any tool that reads the XSD. Out-of-band
+    descriptions can reference nodes from any layer without modifying those
+    layers, and can evolve independently of the schemas they describe.</pr:p>
+
+    <pr:p>The layer is self-describing: llm.xsd contains in-band descriptions of
+    its own elements via xs:appinfo, and the clayers's llm.xml includes
+    out-of-band descriptions of all schemas including itself.</pr:p>
+  </pr:section>
+
+  <!-- Topic typing -->
+
+  <org:concept ref="llm-layer">
+    <org:purpose>Understanding how LLM descriptions work in-band and out-of-band,
+    and why the layer is self-describing.</org:purpose>
+  </org:concept>
+
+  <!-- Relations -->
+
+  <rel:relation type="refines" from="llm-layer" to="layered-architecture">
+    <rel:note>The LLM layer is one of the layers in the architecture, with a
+    unique dual-mode design (in-band and out-of-band).</rel:note>
+  </rel:relation>
+
+  <!-- Artifact mappings -->
+
+  <art:mapping id="map-llm-layer">
+    <art:spec-ref node="llm-layer"
+              revision="draft-1"
+              node-hash="sha256:70d716ed942e6698cec76012cf1ea34d4a7ec7783d7a1ee2bd24e0d7c744c605"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="schemas/llm.xsd">
+        <art:range hash="sha256:cbdae85e63cd958d16ddcd40fc3e572bc0cfeeec31e90f20f746361226f80d2d"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>llm.xsd defines both the out-of-band elements (node, schema) and
+    the in-band describe element. The schema is self-describing via its own
+    appinfo annotations.</art:note>
+  </art:mapping>
+
+  <!-- Machine descriptions -->
+
+  <llm:schema namespace="urn:clayers:llm">
+    The LLM layer embeds descriptions optimized for language model
+    consumption. Two element types: &lt;node&gt; describes a spec node
+    by ID reference (validated via keyref), and &lt;schema&gt; describes
+    a schema or a specific schema element by namespace URI. This layer
+    is self-describing: it contains a description of its own schema.
+    Use it to provide context about what each element means, how to
+    use it, and how it relates to other elements.
+  </llm:schema>
+
+  <llm:schema namespace="urn:clayers:llm" element="node">
+    Describes a spec node for LLM consumption. The ref attribute is a
+    node ID (validated against the unified ID space). The text content
+    should explain what the node means, how it relates to other nodes,
+    and any guidance for interpreting or modifying it.
+  </llm:schema>
+
+  <llm:schema namespace="urn:clayers:llm" element="schema">
+    Describes a schema or a specific element within a schema. The
+    namespace attribute is the schema's namespace URI. The optional
+    element attribute narrows the description to a specific element
+    within that schema. When element is omitted, the description
+    applies to the schema as a whole.
+  </llm:schema>
+
+  <llm:node ref="llm-layer">
+    Describes the LLM layer's dual-mode design: in-band descriptions
+    inside xs:appinfo in XSD files, and out-of-band descriptions in
+    llm.xml with node (by ID) and schema (by namespace) elements. The
+    layer is self-describing. Key for understanding how to add LLM
+    guidance to new schemas or spec nodes.
+  </llm:node>
+</spec:clayers>

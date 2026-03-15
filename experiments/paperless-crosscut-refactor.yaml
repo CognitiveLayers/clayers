@@ -1,0 +1,43 @@
+# Experiment: Does the spec shine on cross-cutting refactors?
+# A task that requires understanding relationships between many modules.
+# This is where relational knowledge (depends-on, refines, precedes)
+# should give the biggest advantage.
+
+repo: https://github.com/paperless-ngx/paperless-ngx
+rounds: 2
+runs: 3
+
+extraction_model: claude-opus-4-6
+with_spec_model: claude-sonnet-4-6
+without_spec_model: claude-opus-4-6
+
+feature: |
+  Implement a unified event/audit system that replaces all scattered logging
+  with structured, queryable events.
+
+  Currently, paperless-ngx logs document operations (create, update, delete,
+  download, consume, tag changes, correspondent changes) in various ad-hoc ways
+  across different modules. Consolidate these into a single event system.
+
+  Requirements:
+  1. Event model: type (enum of all tracked operations), timestamp, actor (user or
+     "system"), target document, target object (tag, correspondent, document type),
+     old_value/new_value for changes, metadata JSON field for extra context.
+  2. Event emission: find every place in the codebase where document state changes
+     occur (views, API endpoints, consumers, management commands, signals, bulk
+     operations) and emit structured events. This requires reading and understanding
+     the existing code paths across multiple modules.
+  3. Signal-based architecture: use Django signals for decoupled event emission.
+     Define custom signals (document_created, document_updated, tag_assigned, etc.)
+     and connect handlers that write event records.
+  4. REST API: list events with filtering (by document, by user, by type, by date
+     range), pagination, and ordering. Follow existing API patterns.
+  5. Bulk operation support: when a bulk operation (e.g., bulk tag assignment)
+     affects 100 documents, emit events efficiently (bulk_create, not 100 inserts).
+  6. Migration: create database tables. Optionally backfill events from the existing
+     Django admin log if present.
+  7. Tests: unit tests for event model, integration tests verifying events are emitted
+     for each operation type, API tests, bulk operation tests.
+  8. The key challenge is FINDING all the places where changes occur. The agent must
+     trace through views, serializers, consumers, management commands, and celery
+     tasks to identify every state mutation point.

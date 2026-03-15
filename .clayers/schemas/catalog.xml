@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE catalog PUBLIC "-//OASIS//DTD XML Catalogs V1.1//EN"
+  "http://www.oasis-open.org/committees/entity/release/1.1/catalog.dtd">
+<catalog xmlns="urn:oasis:names:tc:entity:xmlns:xml:catalog">
+
+  <!-- Clayers layer schemas: map URN namespaces to local XSD files -->
+
+  <uri name="urn:clayers:spec"          uri="spec.xsd"/>
+  <uri name="urn:clayers:index"         uri="index.xsd"/>
+  <uri name="urn:clayers:revision"      uri="revision.xsd"/>
+  <uri name="urn:clayers:prose"         uri="prose.xsd"/>
+  <uri name="urn:clayers:terminology"   uri="terminology.xsd"/>
+  <uri name="urn:clayers:organization"  uri="organization.xsd"/>
+  <uri name="urn:clayers:relation"      uri="relation.xsd"/>
+  <uri name="urn:clayers:decision"      uri="decision.xsd"/>
+  <uri name="urn:clayers:source"        uri="source.xsd"/>
+  <uri name="urn:clayers:plan"          uri="plan.xsd"/>
+  <uri name="urn:clayers:artifact"      uri="artifact.xsd"/>
+  <uri name="urn:clayers:llm"           uri="llm.xsd"/>
+
+</catalog>

@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:src="urn:clayers:source"
+           xmlns:llm="urn:clayers:llm"
+           xmlns:spec="urn:clayers:spec"
+           targetNamespace="urn:clayers:source"
+           elementFormDefault="qualified"
+           version="1.1">
+
+  <xs:annotation>
+    <xs:documentation>
+      Source Layer Schema.
+      Bibliography and provenance tracking for external resources that
+      influenced the specification's design. Sources are nodes (have IDs)
+      and participate in the unified ID space. The cite element enables
+      inline citations in prose, parallel to trm:ref for terminology.
+      Cached copies support offline LLM consumption.
+    </xs:documentation>
+    <xs:appinfo>
+      <llm:describe>
+        The source schema tracks external references and provenance:
+        papers, RFCs, standards, documentation, and other resources that
+        informed the specification. Each src:source declares an external
+        reference with classification, optional URL, and optional cached
+        copies with content hashes. The src:cite element enables inline
+        citations in prose (parallel to trm:ref), using xs:IDREF for
+        native validation against the combined document's ID space.
+        Sources are nodes with IDs, so existing rel:relation type="references"
+        works for structural links.
+      </llm:describe>
+    </xs:appinfo>
+  </xs:annotation>
+
+  <!-- Global source element -->
+  <xs:element name="source" type="src:SourceType">
+    <xs:annotation><xs:appinfo><spec:content-element/></xs:appinfo></xs:annotation>
+  </xs:element>
+
+  <!-- Global cite element (inline, referenced from prose.xsd) -->
+  <xs:element name="cite" type="src:CiteType">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          An inline citation of an external source, used within prose
+          content. The source attribute is an IDREF pointing to a
+          src:source element's id. Element content is display text.
+          Parallel to trm:ref for terminology references.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+  </xs:element>
+
+  <!-- Extension annotation element: declares a type as a source type -->
+  <xs:element name="source-type-properties">
+    <xs:annotation>
+      <xs:documentation>
+        Placed in xs:appinfo of an extension complexType to declare it as a
+        source type. Tooling discovers these annotations and treats instances
+        of the annotated element as source entries. Activated via a
+        rel:relation type="refines" edge from the extension type's id to
+        type-source-kind.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:complexType>
+      <xs:attribute name="type-name" type="xs:string" use="required">
+        <xs:annotation>
+          <xs:documentation>Canonical name for this source type in reports and queries.</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- SourceType: an external reference declaration -->
+  <xs:complexType name="SourceType">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          An external reference declaration. The id makes it a node in the
+          spec graph. The type classifies it (paper, rfc, standard, etc.).
+          The url is optional (physical books have no URL). When url is
+          present, accessed records when it was last verified. Children:
+          required title and overview, optional author(s), published date,
+          and cached copies with content hashes.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="title" type="xs:string"/>
+      <xs:element name="overview" type="xs:string"/>
+      <xs:element name="author" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="published" type="xs:date" minOccurs="0"/>
+      <xs:element name="cache" type="src:CacheType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID" use="required">
+      <xs:annotation>
+        <xs:documentation>Unique identifier for this source node.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="url" type="xs:anyURI" use="optional">
+      <xs:annotation>
+        <xs:documentation>Canonical URL of the source. Optional for physical books
+        and offline resources.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="type" type="src:SourceKind" use="required">
+      <xs:annotation>
+        <xs:documentation>Classification of the source material.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="accessed" type="xs:date" use="optional">
+      <xs:annotation>
+        <xs:documentation>Date when the URL was last verified. Requires url to be present.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+
+    <!-- XSD 1.1 assertion: accessed requires url -->
+    <xs:assert test="if (@accessed) then @url else true()"/>
+  </xs:complexType>
+
+  <!-- CiteType: inline citation reference -->
+  <xs:complexType name="CiteType" mixed="true">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          An inline citation. The source attribute is an IDREF to a
+          src:source element. Mixed content provides display text.
+          Used within prose paragraphs to cite external references.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:attribute name="source" type="xs:IDREF" use="required">
+      <xs:annotation>
+        <xs:documentation>
+          Source ID reference. Uses xs:IDREF because validation runs
+          against the combined document where all IDs are present.
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <!-- CacheType: a cached copy of one file from the source -->
+  <xs:complexType name="CacheType">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          A cached copy of a single file from the source, stored in the
+          spec's .sources/ directory. The path is relative to the spec
+          directory. The hash uses the same algo:hex format as the artifact
+          layer for consistency. Multi-file sources (documentation sites)
+          get one cache element per file.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:attribute name="path" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>Relative path to the cached file within .sources/.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="hash" type="src:HashType" use="required">
+      <xs:annotation>
+        <xs:documentation>Content hash of the cached file (algo:hex format).</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="fetched" type="xs:date" use="required">
+      <xs:annotation>
+        <xs:documentation>Date when this file was retrieved and cached.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <!-- SourceKind: classification of external sources -->
+  <xs:simpleType name="SourceKind" id="type-source-kind">
+    <xs:annotation>
+      <xs:documentation>
+        Enumeration of source type classifications. Extensible via the
+        source-type-properties annotation mechanism: define an extension
+        element annotated with src:source-type-properties, then activate
+        it via rel:relation type="refines" from the extension type's id
+        to type-source-kind.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="paper">
+        <xs:annotation>
+          <xs:documentation>Academic paper, research paper, or whitepaper.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="rfc">
+        <xs:annotation>
+          <xs:documentation>IETF Request for Comments document.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="standard">
+        <xs:annotation>
+          <xs:documentation>Formal standard (ISO, IEEE, W3C Recommendation, etc.).</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="documentation">
+        <xs:annotation>
+          <xs:documentation>Product or project documentation (API docs, user guides).</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="specification">
+        <xs:annotation>
+          <xs:documentation>Technical specification (not a formal standard).</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="book">
+        <xs:annotation>
+          <xs:documentation>Published book (physical or digital).</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="article">
+        <xs:annotation>
+          <xs:documentation>Magazine, journal, or news article.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="blog-post">
+        <xs:annotation>
+          <xs:documentation>Blog post or online essay.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="video">
+        <xs:annotation>
+          <xs:documentation>Video recording (talk, tutorial, presentation).</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="repository">
+        <xs:annotation>
+          <xs:documentation>Source code repository (GitHub, GitLab, etc.).</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- HashType: content hash in algo:hex format -->
+  <xs:simpleType name="HashType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[a-z0-9]+:[a-f0-9]+"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+</xs:schema>

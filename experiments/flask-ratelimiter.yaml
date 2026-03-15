@@ -1,0 +1,27 @@
+repo: https://github.com/pallets/flask
+rounds: 1
+runs: 1
+
+# Per-phase models
+extraction_model: claude-opus-4-6
+with_spec_model: claude-sonnet-4-6
+without_spec_model: claude-opus-4-6
+
+feature: |
+  Implement a built-in request rate limiter for this project as a reusable extension/middleware.
+
+  Requirements:
+  1. Token bucket algorithm with configurable rate (requests/second) and burst size
+  2. Per-route rate limits via a decorator: @rate_limit(rate=10, per=60, burst=20)
+  3. Global default rate limit configurable via app config (RATELIMIT_DEFAULT = "100/minute")
+  4. In-memory storage backend with a clean interface for swapping to Redis/memcached later
+  5. Proper HTTP 429 Too Many Requests response with:
+     - Retry-After header (seconds until next available token)
+     - X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset headers
+  6. Rate limit key based on client IP (request.remote_addr), with configurable key function
+  7. Exemption mechanism: @rate_limit(exempt_when=lambda: current_user.is_admin)
+  8. Thread-safe implementation (the token bucket must handle concurrent requests)
+  9. Comprehensive test suite: unit tests for the token bucket, integration tests for the
+     middleware/decorator, tests for edge cases (burst exhaustion, window reset, concurrent access)
+  10. Documentation: docstrings, a usage example in the module docstring, and inline comments
+      for non-obvious logic

@@ -1,0 +1,648 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Decisions: Architecture Decision Records for the clayers format.
+  Core format decisions that shaped the design of the specification system.
+-->
+<spec:clayers xmlns:spec="urn:clayers:spec"
+       xmlns:pr="urn:clayers:prose"
+       xmlns:trm="urn:clayers:terminology"
+       xmlns:org="urn:clayers:organization"
+       xmlns:rel="urn:clayers:relation"
+       xmlns:dec="urn:clayers:decision"
+       xmlns:art="urn:clayers:artifact"
+       xmlns:llm="urn:clayers:llm"
+       spec:index="index.xml">
+
+  <!-- ================================================================== -->
+  <!-- Decision Layer                                                     -->
+  <!-- ================================================================== -->
+
+  <pr:section id="decision-layer">
+    <pr:title>Decision Layer</pr:title>
+    <pr:shortdesc>Structured Architecture Decision Records with status lifecycle,
+    alternatives, and supersession chains.</pr:shortdesc>
+
+    <pr:p>Prose captures the narrative context of a decision: what problem existed,
+    what options were considered, what was chosen. But prose alone cannot express
+    the structured metadata that tooling needs: a machine-queryable status
+    (proposed, accepted, deprecated, superseded), a list of rejected alternatives
+    with individual rationales, or a typed supersession chain linking a decision
+    to the one it replaced.</pr:p>
+
+    <pr:p>The decision layer separates this structured metadata from the narrative.
+    Each <pr:code>dec:decision</pr:code> element references a prose section (via
+    <pr:code>ref</pr:code>) that holds the full context, while carrying its own
+    <pr:code>id</pr:code> to participate in the spec graph as an addressable node.
+    This means the same prose section can be read as a standalone document by a
+    developer, while tooling can query all accepted decisions, find supersession
+    chains, or enumerate rejected alternatives without parsing natural
+    language.</pr:p>
+
+    <pr:p>The status lifecycle follows a linear progression. A decision starts as
+    <pr:code>proposed</pr:code>, becomes <pr:code>accepted</pr:code> when adopted,
+    may be <pr:code>deprecated</pr:code> when a replacement is under consideration,
+    and becomes <pr:code>superseded</pr:code> when a new decision replaces it.
+    The <pr:code>dec:supersedes</pr:code> element records the replacement chain:
+    it is an extension relation type (see
+    <pr:xref ref="extensible-relation-types"/>) that participates in the
+    connectivity graph, with acyclicity enforced to prevent circular
+    supersession.</pr:p>
+
+    <pr:p>Each decision carries zero or more <pr:code>dec:alternative</pr:code>
+    children, each with a title and rationale. Alternatives document rejected
+    options: not just what was chosen, but what was considered and why it lost.
+    This is the distinguishing feature over plain prose: a structured record
+    that tooling can enumerate, compare, and report on.</pr:p>
+  </pr:section>
+
+  <org:concept ref="decision-layer">
+    <org:purpose>Understanding how the decision layer captures ADR metadata
+    separately from prose, enabling machine-queryable status tracking,
+    alternative enumeration, and supersession chains.</org:purpose>
+  </org:concept>
+
+  <!-- ================================================================== -->
+  <!-- ADR 1: Use XML as the specification format                         -->
+  <!-- ================================================================== -->
+
+  <pr:section id="adr-xml-format">
+    <pr:title>Use XML as the Specification Format</pr:title>
+    <pr:shortdesc>Specifications must be comprehensible and authorable by both
+    LLMs and programmatic tools.</pr:shortdesc>
+
+    <pr:p>The format must support schema-validated structure that tools can
+    reliably parse, query (XPath), and transform (XSLT), while remaining
+    readable enough for LLMs to understand and generate without special
+    training. XML satisfies both constraints: it has mature schema languages
+    (XSD), query languages (XPath), and transformation languages (XSLT),
+    while its tag-based syntax is well-represented in LLM training data.</pr:p>
+
+    <pr:p>The choice of XML also enables namespace-based extensibility: new
+    semantic dimensions can be added without modifying existing schemas,
+    because each layer occupies its own namespace. This is the foundation
+    for the open-world extensibility model.</pr:p>
+  </pr:section>
+
+  <dec:decision id="dec-xml-format" ref="adr-xml-format">
+    <dec:status>accepted</dec:status>
+    <dec:alternative>
+      <dec:title>JSON with JSON Schema</dec:title>
+      <dec:rationale>No mixed content for prose, no namespace extensibility,
+      poor readability for long-form technical content.</dec:rationale>
+    </dec:alternative>
+    <dec:alternative>
+      <dec:title>YAML</dec:title>
+      <dec:rationale>No formal schema comparable to XSD, significant whitespace
+      creates fragile documents, no native cross-document validation.</dec:rationale>
+    </dec:alternative>
+    <dec:alternative>
+      <dec:title>Markdown with frontmatter</dec:title>
+      <dec:rationale>No structural validation, no typed cross-references. LLMs
+      can parse it but tooling cannot enforce constraints.</dec:rationale>
+    </dec:alternative>
+  </dec:decision>
+
+  <org:concept ref="adr-xml-format">
+    <org:purpose>Understanding why XML was chosen as the specification format,
+    given the dual requirement of LLM comprehension and programmatic tool
+    support.</org:purpose>
+  </org:concept>
+
+  <!-- ================================================================== -->
+  <!-- ADR 2: Layered semantics via open-world schema extensibility       -->
+  <!-- ================================================================== -->
+
+  <pr:section id="adr-layered-schemas">
+    <pr:title>Layered Semantics via Open-World Schema Extensibility</pr:title>
+    <pr:shortdesc>Specifications gain precision incrementally through new
+    semantic layers, each with its own XSD namespace.</pr:shortdesc>
+
+    <pr:p>Each layer adds a new semantic dimension (prose, terminology,
+    organization, relation, artifact, LLM, decision) via its own XSD namespace
+    and schema. New layers can be added without modifying existing schemas
+    because <trm:ref term="term-layer">spec.xsd</trm:ref> uses
+    <pr:code>xs:any namespace="##other" processContents="strict"</pr:code>.
+    This open-world extensibility means the format evolves by accretion, not
+    mutation.</pr:p>
+
+    <pr:p>The layered model separates concerns: prose writers need not
+    understand artifact mapping schemas, and tool authors can consume only
+    the layers relevant to their task. Each layer's schema is independently
+    versioned and validated.</pr:p>
+  </pr:section>
+
+  <dec:decision id="dec-layered-schemas" ref="adr-layered-schemas">
+    <dec:status>accepted</dec:status>
+    <dec:alternative>
+      <dec:title>Monolithic schema</dec:title>
+      <dec:rationale>Adding a semantic dimension requires modifying the central
+      schema, coupling all layers. Every change risks breaking existing
+      content.</dec:rationale>
+    </dec:alternative>
+    <dec:alternative>
+      <dec:title>Plugin system with runtime registration</dec:title>
+      <dec:rationale>Introduces a runtime dependency and configuration step.
+      XSD namespaces provide the same extensibility declaratively with
+      schema-level validation.</dec:rationale>
+    </dec:alternative>
+  </dec:decision>
+
+  <org:concept ref="adr-layered-schemas">
+    <org:purpose>Understanding the open-world extensibility model that allows
+    new semantic layers to be added without modifying existing schemas.</org:purpose>
+  </org:concept>
+
+  <!-- ================================================================== -->
+  <!-- ADR 3: Topic-organized files with single root element              -->
+  <!-- ================================================================== -->
+
+  <pr:section id="adr-topic-files">
+    <pr:title>Topic-Organized Files with Single Root Element</pr:title>
+    <pr:shortdesc>Files mix content from multiple layers for the same topic,
+    all sharing spec:clayers as root element.</pr:shortdesc>
+
+    <pr:p>A file about "authorization" mixes prose, organization typing,
+    relations, artifacts, and LLM descriptions for the same topic. This
+    enables atomic reviews and co-located cross-layer content. Every file
+    uses <pr:code>spec:clayers</pr:code> as its root element,
+    distinguished only by child namespaces. This simplifies tooling (one
+    root element to detect) and enables the index back-reference mechanism
+    (<pr:code>spec:index</pr:code> attribute on root).</pr:p>
+
+    <pr:p>The single-root model means any tool that can parse a clayers
+    file can process any file in the spec, regardless of which layers it
+    contains. Layer detection is namespace-based, not root-element-based.</pr:p>
+  </pr:section>
+
+  <dec:decision id="dec-topic-files" ref="adr-topic-files">
+    <dec:status>accepted</dec:status>
+    <dec:alternative>
+      <dec:title>One file per layer</dec:title>
+      <dec:rationale>Editing a topic requires touching N files, violates
+      locality, blocks atomic reviews.</dec:rationale>
+    </dec:alternative>
+    <dec:alternative>
+      <dec:title>Per-layer root elements</dec:title>
+      <dec:rationale>Tooling must know all layer root element names, breaks
+      open-world extensibility, no shared back-reference mechanism.</dec:rationale>
+    </dec:alternative>
+    <dec:alternative>
+      <dec:title>One file per node</dec:title>
+      <dec:rationale>Fragment explosion, no file-level coherence, impractical
+      for cross-layer co-location.</dec:rationale>
+    </dec:alternative>
+  </dec:decision>
+
+  <org:concept ref="adr-topic-files">
+    <org:purpose>Understanding why files are organized by topic rather than by
+    layer, and why all files share the same root element.</org:purpose>
+  </org:concept>
+
+  <!-- ================================================================== -->
+  <!-- ADR 4: XSD 1.1 for schema validation                              -->
+  <!-- ================================================================== -->
+
+  <pr:section id="adr-xsd-11">
+    <pr:title>XSD 1.1 for Schema Validation</pr:title>
+    <pr:shortdesc>XSD 1.1 provides xs:assert for cross-attribute constraints,
+    xs:any with processContents="strict", and xs:keyref for cross-layer
+    referential integrity.</pr:shortdesc>
+
+    <pr:p>The clayers format requires conditional attribute constraints
+    (e.g., <pr:code>to-revision</pr:code> required when
+    <pr:code>to-spec</pr:code> is present), open-world extensibility via
+    <pr:code>xs:any</pr:code> with <pr:code>processContents="strict"</pr:code>,
+    and cross-layer referential integrity via <pr:code>xs:unique</pr:code>
+    and <pr:code>xs:keyref</pr:code>. Only XSD 1.1 provides all three
+    capabilities in a single schema language.</pr:p>
+
+    <pr:p>The <pr:code>xs:assert</pr:code> facility enables constraints that
+    would otherwise require Schematron or custom validation code, keeping
+    all structural validation within the schema system.</pr:p>
+  </pr:section>
+
+  <dec:decision id="dec-xsd-11" ref="adr-xsd-11">
+    <dec:status>accepted</dec:status>
+    <dec:alternative>
+      <dec:title>XSD 1.0</dec:title>
+      <dec:rationale>No xs:assert for conditional attribute requirements,
+      limited xs:any control.</dec:rationale>
+    </dec:alternative>
+    <dec:alternative>
+      <dec:title>RelaxNG</dec:title>
+      <dec:rationale>No keyref equivalent for cross-document reference
+      validation, weaker Python tooling ecosystem.</dec:rationale>
+    </dec:alternative>
+    <dec:alternative>
+      <dec:title>Schematron only</dec:title>
+      <dec:rationale>No structural validation, only constraint rules. Current
+      Python Schematron libraries lack document() for cross-file
+      validation.</dec:rationale>
+    </dec:alternative>
+  </dec:decision>
+
+  <org:concept ref="adr-xsd-11">
+    <org:purpose>Understanding why XSD 1.1 was chosen over other schema
+    validation approaches, and which specific features drive the
+    requirement.</org:purpose>
+  </org:concept>
+
+  <!-- ================================================================== -->
+  <!-- Relations                                                          -->
+  <!-- ================================================================== -->
+
+  <!-- Decision layer refines the layered architecture -->
+  <rel:relation type="refines" from="decision-layer" to="layered-architecture">
+    <rel:note>The decision layer adds ADR metadata as a semantic dimension
+    within the layered architecture.</rel:note>
+  </rel:relation>
+
+  <!-- Each ADR refines the layered architecture -->
+  <rel:relation type="refines" from="adr-xml-format" to="layered-architecture">
+    <rel:note>The choice of XML is a foundational decision for the layered
+    architecture.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="adr-layered-schemas" to="layered-architecture">
+    <rel:note>Open-world schema extensibility is the mechanism that enables
+    the layered architecture.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="adr-topic-files" to="layered-architecture">
+    <rel:note>Topic-organized files with a single root element are how the
+    layered architecture manifests in the file system.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="adr-xsd-11" to="layered-architecture">
+    <rel:note>XSD 1.1 provides the schema features that make the layered
+    architecture validatable.</rel:note>
+  </rel:relation>
+
+  <!-- Inter-ADR dependencies -->
+  <rel:relation type="depends-on" from="adr-layered-schemas" to="adr-xml-format">
+    <rel:note>Layered schemas depend on XML's namespace mechanism.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="adr-topic-files" to="adr-layered-schemas">
+    <rel:note>Topic-organized files depend on layered schemas to mix content
+    from multiple layers in a single file.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="adr-xsd-11" to="adr-xml-format">
+    <rel:note>XSD 1.1 is an XML schema language, so depends on the XML format
+    decision.</rel:note>
+  </rel:relation>
+
+  <trm:term id="type-decision">
+    <trm:name>DecisionType</trm:name>
+    <trm:definition>The XSD complexType that defines the structure of decision
+    elements in the decision layer.</trm:definition>
+  </trm:term>
+
+  <trm:term id="type-supersedes">
+    <trm:name>SupersedesType</trm:name>
+    <trm:definition>The XSD complexType that defines the structure of
+    supersession chains in the decision layer.</trm:definition>
+  </trm:term>
+
+  <!-- Activation edge: makes supersedes a recognized relation type -->
+  <rel:relation type="refines" from="type-supersedes" to="type-relation-kind">
+    <rel:note>Activates the supersedes extension relation type defined in
+    decision.xsd, enabling supersession chains in the connectivity
+    graph.</rel:note>
+  </rel:relation>
+
+  <!-- Schema type nodes: connect XSD-defined IDs to the decision layer -->
+  <rel:relation type="refines" from="type-decision" to="decision-layer">
+    <rel:note>The DecisionType complexType (id="type-decision") is the schema
+    definition for decision elements in the decision layer.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="type-supersedes" to="decision-layer">
+    <rel:note>The SupersedesType complexType (id="type-supersedes") is the schema
+    definition for supersession chains in the decision layer.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="decision-layer" to="extensible-relation-types">
+    <rel:note>The decision layer's supersedes element is an extension relation
+    type, depending on the extensible relation type mechanism for activation
+    and graph integration.</rel:note>
+  </rel:relation>
+
+  <!-- Decision nodes refine the decision layer concept -->
+  <rel:relation type="refines" from="dec-xml-format" to="adr-xml-format">
+    <rel:note>Decision metadata for the XML format ADR.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="dec-layered-schemas" to="adr-layered-schemas">
+    <rel:note>Decision metadata for the layered schemas ADR.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="dec-topic-files" to="adr-topic-files">
+    <rel:note>Decision metadata for the topic files ADR.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="dec-xsd-11" to="adr-xsd-11">
+    <rel:note>Decision metadata for the XSD 1.1 ADR.</rel:note>
+  </rel:relation>
+
+  <!-- ================================================================== -->
+  <!-- LLM descriptions                                                   -->
+  <!-- ================================================================== -->
+
+  <llm:node ref="decision-layer">
+    Describes the decision layer: structured ADR metadata separate from prose.
+    Each dec:decision references a prose section (ref) and has its own id.
+    Status lifecycle: proposed, accepted, deprecated, superseded. Alternatives
+    record rejected options with title and rationale. The dec:supersedes
+    element is an extension relation type for supersession chains, activated
+    via a refines edge to type-relation-kind. The four ADRs in this file
+    (XML format, layered schemas, topic files, XSD 1.1) are the first
+    instances of the decision layer applied to the format's own design.
+  </llm:node>
+
+  <llm:node ref="adr-xml-format">
+    ADR: Use XML as the specification format. XML satisfies the dual
+    requirement of LLM comprehension (tag-based syntax well-represented
+    in training data) and programmatic tool support (XSD validation,
+    XPath querying, XSLT transformation). Namespace-based extensibility
+    enables the open-world layer model. Alternatives rejected: JSON
+    (no mixed content, no namespaces), YAML (no comparable schema
+    language), Markdown (no structural validation).
+  </llm:node>
+
+  <llm:node ref="adr-layered-schemas">
+    ADR: Layered semantics via open-world schema extensibility. Each
+    layer adds a semantic dimension via its own XSD namespace. New layers
+    are added without modifying existing schemas because spec.xsd uses
+    xs:any namespace="##other" processContents="strict". This means the
+    format evolves by accretion, not mutation. Alternatives rejected:
+    monolithic schema (coupling), plugin system (runtime dependency).
+  </llm:node>
+
+  <llm:node ref="adr-topic-files">
+    ADR: Topic-organized files with single root element. Files mix
+    content from multiple layers for the same topic, enabling atomic
+    reviews. All files use spec:clayers as root, distinguished by
+    child namespaces. One root simplifies tooling and enables the index
+    back-reference mechanism. Alternatives rejected: one file per layer
+    (violates locality), per-layer roots (breaks extensibility), one
+    file per node (fragment explosion).
+  </llm:node>
+
+  <llm:node ref="adr-xsd-11">
+    ADR: XSD 1.1 for schema validation. Required for xs:assert
+    (conditional attribute constraints like to-revision required when
+    to-spec present), xs:any with processContents="strict" (open-world
+    extensibility), and xs:unique/xs:keyref (cross-layer referential
+    integrity). Alternatives rejected: XSD 1.0 (no xs:assert), RelaxNG
+    (no keyref), Schematron only (no structural validation).
+  </llm:node>
+
+  <llm:node ref="dec-xml-format">
+    Decision metadata for the XML format ADR. Status: accepted.
+    Three rejected alternatives: JSON with JSON Schema, YAML,
+    Markdown with frontmatter.
+  </llm:node>
+
+  <llm:node ref="dec-layered-schemas">
+    Decision metadata for the layered schemas ADR. Status: accepted.
+    Two rejected alternatives: monolithic schema, plugin system with
+    runtime registration.
+  </llm:node>
+
+  <llm:node ref="dec-topic-files">
+    Decision metadata for the topic files ADR. Status: accepted.
+    Three rejected alternatives: one file per layer, per-layer root
+    elements, one file per node.
+  </llm:node>
+
+  <llm:node ref="dec-xsd-11">
+    Decision metadata for the XSD 1.1 ADR. Status: accepted.
+    Three rejected alternatives: XSD 1.0, RelaxNG, Schematron only.
+  </llm:node>
+
+  <!-- Out-of-band schema descriptions for the decision layer -->
+  <llm:schema namespace="urn:clayers:decision">
+    The decision schema captures Architecture Decision Records (ADRs)
+    as structured metadata. Each &lt;dec:decision&gt; references a prose
+    section (via ref) for narrative context and carries its own id for
+    cross-referencing. Status lifecycle: proposed, accepted, deprecated,
+    superseded. Structured alternatives record rejected options with
+    title and rationale. The &lt;dec:supersedes&gt; element is an
+    extension relation type for supersession chains, activated by a
+    refines edge to type-relation-kind.
+  </llm:schema>
+
+  <llm:schema namespace="urn:clayers:decision" element="decision">
+    An Architecture Decision Record. The ref attribute points to the
+    prose section with the narrative. The id attribute makes it an
+    addressable node. Contains a required status element, optional date,
+    and zero or more alternative elements recording rejected options.
+  </llm:schema>
+
+  <llm:schema namespace="urn:clayers:decision" element="alternative">
+    A rejected alternative for a decision. Contains a title (naming the
+    option) and a rationale (explaining why it was rejected). Optional id
+    attribute for individual addressability.
+  </llm:schema>
+
+  <llm:schema namespace="urn:clayers:decision" element="supersedes">
+    An extension relation type for decision supersession chains. The from
+    attribute names the new decision, the to attribute names the old one.
+    Acyclic: a decision cannot transitively supersede itself. Must be
+    activated by a refines edge from type-supersedes to type-relation-kind
+    in spec content.
+  </llm:schema>
+
+  <!-- Coverage exemptions: documentation-only nodes with no code artifact -->
+
+  <art:exempt node="decision-layer">Conceptual documentation describing the decision
+  layer's purpose and design. No code implements this concept.</art:exempt>
+
+  <art:exempt node="adr-xml-format">Architecture Decision Record prose. Design
+  rationale, not a code-mapped node.</art:exempt>
+
+  <art:exempt node="adr-layered-schemas">Architecture Decision Record prose. Design
+  rationale, not a code-mapped node.</art:exempt>
+
+  <art:exempt node="adr-topic-files">Architecture Decision Record prose. Design
+  rationale, not a code-mapped node.</art:exempt>
+
+  <art:exempt node="adr-xsd-11">Architecture Decision Record prose. Design
+  rationale, not a code-mapped node.</art:exempt>
+
+  <art:exempt node="dec-xml-format">Decision metadata for an ADR. Structured
+  record, not a code-mapped node.</art:exempt>
+
+  <art:exempt node="dec-layered-schemas">Decision metadata for an ADR. Structured
+  record, not a code-mapped node.</art:exempt>
+
+  <art:exempt node="dec-topic-files">Decision metadata for an ADR. Structured
+  record, not a code-mapped node.</art:exempt>
+
+  <art:exempt node="dec-xsd-11">Decision metadata for an ADR. Structured
+  record, not a code-mapped node.</art:exempt>
+
+
+  <!-- Type→schema and self-referential mappings -->
+
+  <art:mapping id="map-type-decision-schema">
+    <art:spec-ref node="type-decision"
+              revision="draft-1"
+              node-hash="sha256:3a20e167e6d70581a153a530a4e330a931447111bea70abd5e57e750242630a8"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="schemas/decision.xsd">
+        <art:range hash="sha256:67a7e4253344be92301abc951b69ed96d09cbc47169ce44804b2aa6f0c1c9eca" start-line="50" end-line="78"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>DecisionType complexType: status, date, alternative, rationale children.</art:note>
+  </art:mapping>
+
+
+  <art:mapping id="map-type-supersedes-schema">
+    <art:spec-ref node="type-supersedes"
+              revision="draft-1"
+              node-hash="sha256:8ef3167621c2225a90d663976eece31d114457ecf68566276c30b2eda2ce837a"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="schemas/decision.xsd">
+        <art:range hash="sha256:2d7e2aaf43627fc5dedb2ec6c9693d692a3989b6b24899cf5e79b6d772cb9f1e" start-line="129" end-line="162"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>SupersedesType complexType: ref attribute linking to superseded decision.</art:note>
+  </art:mapping>
+
+
+  <art:mapping id="map-decision-layer-schema-header">
+    <art:spec-ref node="decision-layer"
+              revision="draft-1"
+              node-hash="sha256:4a3635de83e2c313a2901f4bf3d238eca848cfc7c77a4161d885eadef175b5dd"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="schemas/decision.xsd">
+        <art:range hash="sha256:2b63923990d27ee089167d74319643e212cede7fc824a54df6833876c28551a8" start-line="1" end-line="78"/>
+      </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>Schema header, decision and alternative elements, DecisionType, AlternativeType, StatusKind.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-decision-layer-schema-types">
+    <art:spec-ref node="decision-layer"
+              revision="draft-1"
+              node-hash="sha256:4a3635de83e2c313a2901f4bf3d238eca848cfc7c77a4161d885eadef175b5dd"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="schemas/decision.xsd">
+        <art:range hash="sha256:67c4eaaefe49f38a3a5f37e97edcbdc08a98d2969383f4fc5453fb8575c6daea" start-line="80" end-line="162"/>
+      </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>SupersedesType, extension relation type annotation, and remaining type definitions.</art:note>
+  </art:mapping>
+
+
+  <art:mapping id="map-adr-xml-format-self">
+    <art:spec-ref node="adr-xml-format"
+              revision="draft-1"
+              node-hash="sha256:6bc90d7dc4ef6089567a65d12a5a687133db697505adac4be5359c7a8847ec47"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="clayers/clayers/decisions.xml">
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>ADR section in decisions.xml documenting the design decision.</art:note>
+  </art:mapping>
+
+
+  <art:mapping id="map-dec-xml-format-self">
+    <art:spec-ref node="dec-xml-format"
+              revision="draft-1"
+              node-hash="sha256:f58b0f57216667faeea4572e94c8552980896046d97c7d2a18dc58a6f62bcd23"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="clayers/clayers/decisions.xml">
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Decision record in decisions.xml.</art:note>
+  </art:mapping>
+
+
+  <art:mapping id="map-adr-layered-schemas-self">
+    <art:spec-ref node="adr-layered-schemas"
+              revision="draft-1"
+              node-hash="sha256:d9f7fd92acaa5579e34b9b2c67a07e729959b955f57ab37d1fff2133a15d1699"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="clayers/clayers/decisions.xml">
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>ADR section in decisions.xml documenting the design decision.</art:note>
+  </art:mapping>
+
+
+  <art:mapping id="map-dec-layered-schemas-self">
+    <art:spec-ref node="dec-layered-schemas"
+              revision="draft-1"
+              node-hash="sha256:96b80c68cc71b652c5159d611c395515d12fe097ea0ade0c906799b2f73a40e1"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="clayers/clayers/decisions.xml">
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Decision record in decisions.xml.</art:note>
+  </art:mapping>
+
+
+  <art:mapping id="map-adr-topic-files-self">
+    <art:spec-ref node="adr-topic-files"
+              revision="draft-1"
+              node-hash="sha256:5ca7e4f62d73efbb9615ec15952fbfa808c9331c9a7824ee186d33341d4c7cdc"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="clayers/clayers/decisions.xml">
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>ADR section in decisions.xml documenting the design decision.</art:note>
+  </art:mapping>
+
+
+  <art:mapping id="map-dec-topic-files-self">
+    <art:spec-ref node="dec-topic-files"
+              revision="draft-1"
+              node-hash="sha256:9840b3a20dcc17e1823074ebfde481e2687d9873e963a793c3b22fb7d3aebd03"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="clayers/clayers/decisions.xml">
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Decision record in decisions.xml.</art:note>
+  </art:mapping>
+
+
+  <art:mapping id="map-adr-xsd-11-self">
+    <art:spec-ref node="adr-xsd-11"
+              revision="draft-1"
+              node-hash="sha256:82d5cf8df73acfccba7d37e0008012fbb3dcba9b09bfa4a48385344bebc77342"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="clayers/clayers/decisions.xml">
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>ADR section in decisions.xml documenting the design decision.</art:note>
+  </art:mapping>
+
+
+  <art:mapping id="map-dec-xsd-11-self">
+    <art:spec-ref node="dec-xsd-11"
+              revision="draft-1"
+              node-hash="sha256:9662b1f81a4fde36908d813596719ab1a02d01d07c11a023592b8c7e4a6e4bc6"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="clayers/clayers/decisions.xml">
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Decision record in decisions.xml.</art:note>
+  </art:mapping>
+
+</spec:clayers>

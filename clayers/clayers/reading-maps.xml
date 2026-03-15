@@ -1,0 +1,317 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Reading Maps: Guided reading sequences through spec content.
+  Introduces the reading map concept and provides a newcomer's guide
+  to the clayers format.
+-->
+<spec:clayers xmlns:spec="urn:clayers:spec"
+       xmlns:pr="urn:clayers:prose"
+       xmlns:trm="urn:clayers:terminology"
+       xmlns:org="urn:clayers:organization"
+       xmlns:rel="urn:clayers:relation"
+       xmlns:art="urn:clayers:artifact"
+       xmlns:llm="urn:clayers:llm"
+       spec:index="index.xml">
+
+  <!-- Vocabulary -->
+
+  <trm:term id="term-reading-map">
+    <trm:name>Reading Map</trm:name>
+    <trm:definition>A curated sequence of spec nodes arranged as a linear
+    reading path for a specific audience. Reading maps compose the spec's
+    graph structure into guided entry points without altering the underlying
+    node relationships.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-topicref">
+    <trm:name>Topic Reference</trm:name>
+    <trm:definition>An entry in a reading map that points to a spec node by
+    ID. Topicrefs can be marked as required (mandatory reading) or optional
+    (supplementary material), and can nest to form sub-sections within a
+    reading path.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-profiling">
+    <trm:name>Profiling</trm:name>
+    <trm:definition>Metadata attributes on reading map elements that identify
+    the intended audience, experience level, or role. Profiling is inclusive
+    by default: absence of an attribute means the content applies to everyone.
+    Filtering based on profiling values is a tooling concern.</trm:definition>
+  </trm:term>
+
+  <!-- Content -->
+
+  <pr:section id="reading-maps-concept">
+    <pr:title>Reading Maps</pr:title>
+    <pr:shortdesc>Composing the spec's graph structure into guided reading
+    sequences for specific audiences.</pr:shortdesc>
+
+    <pr:p>A specification's content forms a graph: nodes reference each other
+    through relations, terminology links, and cross-references. This structure
+    is powerful for precision but offers no guided entry point. A newcomer
+    cannot simply "start reading" without knowing which nodes matter and in
+    what order.</pr:p>
+
+    <pr:p>A <trm:ref term="term-reading-map">reading map</trm:ref> solves this
+    by composing nodes into a linear sequence. Each map has a title, optional
+    parts for hierarchical grouping, and
+    <trm:ref term="term-topicref">topic references</trm:ref> that point to
+    existing nodes by ID. The map does not duplicate content: it provides an
+    ordering overlay on the existing graph.</pr:p>
+
+    <pr:p>Maps support <trm:ref term="term-profiling">profiling</trm:ref>
+    attributes: audience, experience-level, and role. These are metadata only
+    and inclusive by default. A topicref with
+    <pr:code>audience="developer"</pr:code> is relevant to developers but not
+    excluded from other audiences unless tooling applies a filter.</pr:p>
+
+    <pr:note type="info">Reading maps are part of the organization layer
+    because they classify how content is navigated, complementing topic typing
+    (concept, task, reference) which classifies what content is.</pr:note>
+  </pr:section>
+
+  <pr:section id="reading-maps-structure">
+    <pr:title>Map Structure</pr:title>
+    <pr:shortdesc>How maps, parts, and topicrefs compose into a reading
+    path.</pr:shortdesc>
+
+    <pr:p>An <pr:code>org:map</pr:code> is the top-level container. It requires
+    an ID (for cross-referencing) and a title. Its children are either parts
+    (for grouping) or topicrefs (for direct node references). Parts contain
+    a title and one or more topicrefs.</pr:p>
+
+    <pr:p>Each topicref has a required <pr:code>ref</pr:code> attribute pointing
+    to a node ID. The optional <pr:code>title</pr:code> child serves as a
+    navtitle: a display label for tables of contents that may differ from the
+    referenced node's own title. When absent, tooling resolves the title from
+    the referenced node.</pr:p>
+
+    <pr:p>Topicrefs can nest, enabling sub-sections within a reading path.
+    The <pr:code>required</pr:code> attribute (default true) distinguishes
+    mandatory stops from supplementary material that readers can skip without
+    losing the main thread.</pr:p>
+  </pr:section>
+
+  <!-- Topic typing -->
+
+  <org:concept ref="reading-maps-concept">
+    <org:purpose>Understanding why reading maps exist and how they complement
+    the graph structure of a specification.</org:purpose>
+  </org:concept>
+
+  <org:reference ref="reading-maps-structure">
+    <org:purpose>Structural reference for the map, part, and topicref element
+    hierarchy and their attributes.</org:purpose>
+  </org:reference>
+
+  <!-- Relations -->
+
+  <rel:relation type="refines" from="reading-maps-concept" to="layered-architecture">
+    <rel:note>Reading maps add a navigation dimension to the layered
+    architecture without creating a new layer.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="reading-maps-structure" to="reading-maps-concept">
+    <rel:note>The structural reference assumes understanding of the reading
+    map concept.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="newcomers-guide" to="reading-maps-concept">
+    <rel:note>The newcomer's guide is a concrete instance of the reading map
+    concept, demonstrating the pattern with real content.</rel:note>
+  </rel:relation>
+
+  <!-- Machine descriptions -->
+
+  <llm:node ref="reading-maps-concept">
+    Explains why reading maps exist: the spec's graph structure lacks guided
+    entry points. Maps compose nodes into linear sequences with profiling
+    for audience targeting. Part of the organization layer because they
+    classify navigation, not content type.
+  </llm:node>
+
+  <llm:node ref="reading-maps-structure">
+    Reference for map/part/topicref structure: map requires ID and title,
+    contains parts or topicrefs. Topicrefs have ref (node ID), optional
+    navtitle, optional required flag, and support nesting. Parts group
+    topicrefs under a title.
+  </llm:node>
+
+  <llm:node ref="term-reading-map">
+    A curated linear reading path through spec nodes for a specific audience.
+    Provides ordering without duplicating content. Defined in the organization
+    layer as org:map elements.
+  </llm:node>
+
+  <llm:node ref="term-topicref">
+    An entry in a reading map pointing to a spec node by ID. Can be required
+    or optional, and can nest for sub-sections. Carries profiling attributes
+    for audience-specific filtering.
+  </llm:node>
+
+  <llm:node ref="term-profiling">
+    Metadata attributes (audience, experience-level, role) on reading map
+    elements. Inclusive by default: absence means "for everyone." Filtering
+    is a tooling concern, not a schema constraint.
+  </llm:node>
+
+  <!-- Coverage exemptions: documentation-only nodes with no code artifact -->
+
+  <art:exempt node="reading-maps-concept">Conceptual documentation describing
+  the reading map pattern. No code implements this concept.</art:exempt>
+
+  <art:exempt node="reading-maps-structure">Structural reference for map/part/topicref
+  element hierarchy. Schema definition exists but is not yet implemented.</art:exempt>
+
+  <art:exempt node="term-reading-map">Vocabulary term defining the reading map concept.
+  No code artifact corresponds to this definition.</art:exempt>
+
+  <art:exempt node="term-topicref">Vocabulary term defining topic references.
+  No code artifact corresponds to this definition.</art:exempt>
+
+  <art:exempt node="term-profiling">Vocabulary term defining profiling metadata.
+  No code artifact corresponds to this definition.</art:exempt>
+
+  <art:exempt node="newcomers-guide">Navigation structure composing existing nodes
+  into a guided reading path. No code artifact needed.</art:exempt>
+
+  <!-- Actual reading map: a newcomer's guide to the clayers format -->
+
+  <org:map id="newcomers-guide" audience="developer architect" experience-level="beginner intermediate">
+    <org:title>Newcomer's Guide to Cognitive Layersifications</org:title>
+
+    <org:part experience-level="beginner">
+      <org:title>Orientation</org:title>
+      <org:topicref ref="overview">
+        <org:title>What are Cognitive Layersifications?</org:title>
+      </org:topicref>
+      <org:topicref ref="layered-architecture">
+        <org:title>The Layer System</org:title>
+      </org:topicref>
+    </org:part>
+
+    <org:part>
+      <org:title>Schema and Design</org:title>
+      <org:topicref ref="index-layer"/>
+      <org:topicref ref="revision-layer"/>
+      <org:topicref ref="open-world-layers" audience="architect">
+        <org:purpose>Deep dive into how xs:any enables extensibility.</org:purpose>
+      </org:topicref>
+      <org:topicref ref="source-layer" required="false">
+        <org:title>External References and Citations</org:title>
+      </org:topicref>
+      <org:topicref ref="schema-design" required="false" role="implementor">
+        <org:title>XSD Design Decisions (Reference)</org:title>
+      </org:topicref>
+    </org:part>
+
+    <org:part>
+      <org:title>Validation and Integrity</org:title>
+      <org:topicref ref="cross-layer-integrity"/>
+      <org:topicref ref="validation-flow">
+        <org:topicref ref="connectivity-analysis" required="false">
+          <org:purpose>Advanced: graph connectivity checks.</org:purpose>
+        </org:topicref>
+      </org:topicref>
+    </org:part>
+
+    <org:part audience="developer" role="implementor">
+      <org:title>Traceability</org:title>
+      <org:topicref ref="artifact-drift"/>
+      <org:topicref ref="artifact-hash-tooling" required="false"/>
+      <org:topicref ref="drift-detection-tooling" required="false"/>
+    </org:part>
+
+    <org:part>
+      <org:title>Tooling</org:title>
+      <org:topicref ref="xpath-query-tooling"/>
+      <org:topicref ref="llm-layer">
+        <org:title>Machine-Readable Descriptions</org:title>
+      </org:topicref>
+      <org:topicref ref="reading-maps-concept" required="false">
+        <org:title>Reading Maps (This Feature)</org:title>
+      </org:topicref>
+    </org:part>
+  </org:map>
+
+
+  <!-- Self-referential mappings -->
+
+  <art:mapping id="map-term-reading-map-self">
+    <art:spec-ref node="term-reading-map"
+              revision="draft-1"
+              node-hash="sha256:e918c444e6becb8a29420c35a8cbdebc9f334554f6119fc2e47e6f5659c1af2b"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="clayers/clayers/reading-maps.xml">
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Documentation section/term in reading-maps.xml describing reading map concepts.</art:note>
+  </art:mapping>
+
+
+  <art:mapping id="map-term-topicref-self">
+    <art:spec-ref node="term-topicref"
+              revision="draft-1"
+              node-hash="sha256:a726cd4df418b89ba94909fc30e0f4e0492787d856382a67ad13d56e0b6b93c9"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="clayers/clayers/reading-maps.xml">
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Documentation section/term in reading-maps.xml describing reading map concepts.</art:note>
+  </art:mapping>
+
+
+  <art:mapping id="map-term-profiling-self">
+    <art:spec-ref node="term-profiling"
+              revision="draft-1"
+              node-hash="sha256:a90e77693f41b66e9fa0c5dcd8ad784d34288b47d88ee6f0aa1378602ef70e3d"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="clayers/clayers/reading-maps.xml">
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Documentation section/term in reading-maps.xml describing reading map concepts.</art:note>
+  </art:mapping>
+
+
+  <art:mapping id="map-newcomers-guide-self">
+    <art:spec-ref node="newcomers-guide"
+              revision="draft-1"
+              node-hash="sha256:4cddaf3208480249becbcf0a8d9ea06ef00fb6841b08fd347b3393600f7c0c6f"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="clayers/clayers/reading-maps.xml">
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Documentation section/term in reading-maps.xml describing reading map concepts.</art:note>
+  </art:mapping>
+
+
+  <art:mapping id="map-reading-maps-concept-self">
+    <art:spec-ref node="reading-maps-concept"
+              revision="draft-1"
+              node-hash="sha256:17f9cf3cd8de47f68c428494002189900a9cdd1410db99797631ae9dd9d28750"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="clayers/clayers/reading-maps.xml">
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Documentation section/term in reading-maps.xml describing reading map concepts.</art:note>
+  </art:mapping>
+
+
+  <art:mapping id="map-reading-maps-structure-self">
+    <art:spec-ref node="reading-maps-structure"
+              revision="draft-1"
+              node-hash="sha256:2107d47492c58099765c6410b8efdbe53321040edfb7f46edf30510a3fab97ff"/>
+    <art:artifact repo="clayers"
+              repo-revision="753ad37"
+              path="clayers/clayers/reading-maps.xml">
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Documentation section/term in reading-maps.xml describing reading map concepts.</art:note>
+  </art:mapping>
+
+</spec:clayers>

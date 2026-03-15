@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Query: XPath querying over the combined spec document.
+  How agents and developers can use XPath 1.0 to navigate between
+  concepts, definitions, code artifacts, and relations programmatically.
+-->
+<spec:clayers xmlns:spec="urn:clayers:spec"
+       xmlns:pr="urn:clayers:prose"
+       xmlns:trm="urn:clayers:terminology"
+       xmlns:org="urn:clayers:organization"
+       xmlns:rel="urn:clayers:relation"
+       xmlns:art="urn:clayers:artifact"
+       xmlns:llm="urn:clayers:llm"
+       spec:index="index.xml">
+
+  <!-- Vocabulary -->
+
+  <trm:term id="term-xpath-query">
+    <trm:name>XPath Query</trm:name>
+    <trm:definition>A mechanism for running XPath 1.0 expressions against
+    the combined spec document to extract terms, definitions, relations,
+    artifact mappings, and LLM descriptions programmatically. The query
+    command pre-registers all namespace prefixes (spec, pr, trm, org, rel,
+    art, llm, rev, idx, cmb) so that XPath expressions can reference any
+    layer without manual namespace declaration. Results are returned as
+    raw XML fragments, plain text (with --text), or counts (with --count),
+    making them suitable for agent pipelines and shell scripting.</trm:definition>
+  </trm:term>
+
+  <!-- Content -->
+
+  <pr:section id="xpath-query-tooling">
+    <pr:title>XPath Query Tooling</pr:title>
+    <pr:shortdesc>How the CLI query command turns the combined spec document
+    into a queryable knowledge base.</pr:shortdesc>
+
+    <pr:p>The <pr:code>query</pr:code> command assembles all layer files
+    into a single combined document (including XSLT-synthesized relations),
+    converts it to lxml for full XPath 1.0 support, and evaluates the given
+    expression with all namespace prefixes pre-registered. This lets agents
+    trace from a concept to its definition, its code, its dependencies,
+    and its machine description in a single pipeline.</pr:p>
+
+    <pr:p>The command accepts two positional arguments: a spec directory path
+    and an XPath expression. It supports two optional flags:</pr:p>
+
+    <pr:ul>
+      <pr:li><pr:b>--text</pr:b>: extract text content only, stripping XML
+      tags. Useful for getting definitions, titles, and LLM descriptions
+      as plain strings.</pr:li>
+      <pr:li><pr:b>--count</pr:b>: print just the count of matching nodes.
+      Useful for quick cardinality checks in CI or agent scripts.</pr:li>
+    </pr:ul>
+
+    <pr:p>Return types are handled automatically: element results are
+    serialized as XML fragments (or text with --text), while scalar results
+    (attribute values, strings, numbers, booleans) are printed as plain
+    text. Invalid XPath expressions produce a clean error message and
+    exit code 1, allowing agents to distinguish bad queries from empty
+    results.</pr:p>
+
+    <pr:p>Because the query runs against the post-XSLT combined document,
+    it sees all synthesized <trm:ref term="term-reference-synthesis">reference
+    relations</trm:ref> in addition to explicitly authored relations. This
+    means queries like <pr:code>//rel:relation[@from="some-section"]</pr:code>
+    will find both hand-written and auto-generated edges.</pr:p>
+
+    <pr:note type="info">XPath 1.0 only: no regex, no if/then/else. Use
+    contains(), starts-with(), and substring() for string matching within
+    XPath expressions.</pr:note>
+  </pr:section>
+
+  <!-- Topic typing -->
+
+  <org:task ref="xpath-query-tooling">
+    <org:purpose>The CLI query command evaluates XPath 1.0 expressions
+    against the combined spec document, enabling programmatic navigation
+    of the knowledge base.</org:purpose>
+    <org:actor>clayers-cli CLI tool</org:actor>
+  </org:task>
+
+  <!-- Relations -->
+
+  <rel:relation type="depends-on" from="xpath-query-tooling" to="term-combined-document">
+    <rel:note>The query command depends on combined document assembly to
+    produce the queryable XML tree.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="xpath-query-tooling" to="term-xpath-query">
+    <rel:note>The query tooling section depends on the XPath query concept
+    for its semantic foundation.</rel:note>
+  </rel:relation>
+
+  <!-- Artifact mappings -->
+
+  <art:mapping id="map-xpath-query-tooling">
+    <art:spec-ref node="xpath-query-tooling"
+              revision="draft-1"
+              node-hash="sha256:77a51d5c5578e02b18c521b2207184be3e3bb4be55079f84d42eedeac8d2c19a"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="crates/clayers-spec/src/query.rs">
+        <art:range hash="sha256:94b115e97ac48f69a74a88f4fca5d2c6278efbd83e2d86f13889fde3c49b2a36"
+                   start-line="24" end-line="71"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>query() click command: assembles combined doc, converts to lxml,
+    evaluates XPath, handles --text and --count flags.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-term-xpath-query">
+    <art:spec-ref node="term-xpath-query"
+              revision="draft-1"
+              node-hash="sha256:b88bf4e9d227228635e09c3311ea8dc654b207d497c280fd0e1b967587165c08"/>
+    <art:artifact repo="clayers"
+              repo-revision="ae7434a"
+              path="crates/clayers-spec/src/query.rs">
+        <art:range hash="sha256:94b115e97ac48f69a74a88f4fca5d2c6278efbd83e2d86f13889fde3c49b2a36"
+                   start-line="24" end-line="71"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>The query command is the canonical implementation of the
+    XPath query concept.</art:note>
+  </art:mapping>
+
+  <!-- Machine descriptions -->
+
+  <llm:node ref="xpath-query-tooling">
+    The query command assembles all spec layer files into a combined
+    document (with XSLT reference synthesis), converts to lxml, and
+    evaluates an XPath 1.0 expression with all namespace prefixes
+    pre-registered. Elements are output as XML fragments; scalars as
+    plain text. --text strips XML tags for plain text extraction.
+    --count prints the number of matching nodes. Invalid XPath gives
+    exit code 1. The command enables agents to trace concepts to
+    definitions, code, dependencies, and LLM descriptions in a
+    single pipeline.
+  </llm:node>
+
+  <llm:node ref="term-xpath-query">
+    XPath querying is the mechanism for programmatic access to the
+    combined spec document. All namespace prefixes (spec, pr, trm, org,
+    rel, art, llm, rev, idx, cmb) are pre-registered, so expressions
+    like //trm:term[@id="X"]/trm:definition work without manual
+    namespace setup. The query command converts the stdlib ET combined
+    doc to lxml for full XPath 1.0 support (stdlib ET has very limited
+    XPath). Results can be XML fragments, plain text (--text), or
+    counts (--count).
+  </llm:node>
+
+</spec:clayers>

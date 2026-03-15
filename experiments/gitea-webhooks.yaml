@@ -1,0 +1,40 @@
+# Experiment: Does the spec help on a Go project?
+# Tests generalizability beyond Python/Django.
+# Go is explicit and less "magical" - the spec's relational knowledge
+# may matter less when the code is already self-documenting.
+
+repo: https://github.com/go-gitea/gitea
+rounds: 2
+runs: 3
+
+extraction_model: claude-opus-4-6
+with_spec_model: claude-sonnet-4-6
+without_spec_model: claude-opus-4-6
+
+feature: |
+  Implement a webhook retry system with exponential backoff and dead letter queue.
+
+  Gitea sends webhooks on events (push, PR, issue, etc.). Currently, failed deliveries
+  are lost. Implement reliable delivery with retries and observability.
+
+  Requirements:
+  1. Retry policy: failed webhook deliveries are retried with exponential backoff
+     (1s, 2s, 4s, 8s, 16s, max 5 retries). Configurable per-webhook via API.
+  2. Dead letter queue: after max retries, the delivery is moved to a dead letter
+     table with the full payload, error details, and all attempt timestamps.
+  3. Retry worker: a background goroutine (or cron job using existing task infra)
+     that polls for pending retries and executes them. Must be concurrency-safe.
+  4. Circuit breaker: if a webhook endpoint fails 10 consecutive times across any
+     events, pause all deliveries to that URL and mark it "circuit-open". Auto-retry
+     after a configurable cooldown (default 1 hour).
+  5. API endpoints: list dead letter entries, retry a dead letter entry manually,
+     view delivery history with attempt details, reset circuit breaker.
+     Follow existing API patterns (structs, routing, auth middleware).
+  6. Observability: log each attempt with status code, duration, error. Add Prometheus
+     metrics: webhook_deliveries_total, webhook_retries_total, webhook_dead_letters_total.
+  7. Database migrations: new tables for retry queue and dead letters. Use existing
+     migration framework (XORM models).
+  8. Tests: unit tests for backoff calculation and circuit breaker logic, integration
+     tests for the retry worker lifecycle, API endpoint tests.
+  9. Follow existing code conventions: discover patterns from models/, routers/api/,
+     services/, modules/ structure.

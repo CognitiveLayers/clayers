@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Settlement: From capture through clearing to final fund transfer.
+-->
+<spec:clayers xmlns:spec="urn:clayers:spec"
+       xmlns:pr="urn:clayers:prose"
+       xmlns:trm="urn:clayers:terminology"
+       xmlns:org="urn:clayers:organization"
+       xmlns:rel="urn:clayers:relation"
+       xmlns:art="urn:clayers:artifact"
+       spec:index="index.xml">
+
+  <trm:term id="term-clearing">
+    <trm:name>Clearing</trm:name>
+    <trm:definition>The exchange of transaction details between acquirer and
+    issuer to calculate net obligations before settlement.</trm:definition>
+  </trm:term>
+
+  <pr:section id="capture-and-clearing">
+    <pr:title>Capture and Clearing</pr:title>
+    <pr:shortdesc>Finalizing the charge and exchanging details.</pr:shortdesc>
+
+    <pr:p>After goods or services are delivered, the merchant captures the
+    authorized amount. This triggers
+    <trm:ref term="term-clearing">clearing</trm:ref>: the acquirer and issuer
+    exchange transaction details to compute net obligations.</pr:p>
+
+    <pr:steps>
+      <pr:step>Merchant submits capture request with authorization reference.</pr:step>
+      <pr:step>Acquirer batches captures for the clearing network.</pr:step>
+      <pr:step>Clearing network computes net positions between institutions.</pr:step>
+      <pr:step>Net settlement instructions are sent to both parties.</pr:step>
+    </pr:steps>
+  </pr:section>
+
+  <pr:section id="settlement">
+    <pr:title>Settlement</pr:title>
+    <pr:shortdesc>Actual movement of funds between institutions.</pr:shortdesc>
+
+    <pr:p><trm:ref term="term-settlement">Settlement</trm:ref> occurs when the
+    clearing network instructs fund transfers between the acquirer and
+    issuer. Once settled, the transaction is final under normal
+    circumstances.</pr:p>
+  </pr:section>
+
+  <org:task ref="capture-and-clearing">
+    <org:purpose>Transition from authorized to settled.</org:purpose>
+    <org:actor>Merchant initiates, acquirer and network execute.</org:actor>
+  </org:task>
+
+  <rel:relation type="precedes" from="capture-and-clearing" to="settlement">
+    <rel:note>Clearing computes obligations; settlement executes them.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="capture-and-clearing" to="term-acquirer">
+    <rel:note>Capture is initiated through the acquirer.</rel:note>
+  </rel:relation>
+
+  <art:mapping id="map-capture-handler">
+    <art:spec-ref node="capture-and-clearing"
+              revision="draft-1"
+              node-hash="sha256:58e69c54a654a59d1a1297315c985c30ef15c6ec83b0d36f5c0e9cbe72bed513"/>
+    <art:artifact repo="payment-service"
+              repo-revision="abc1234"
+              path="src/handlers/capture.py">
+      <art:range hash="sha256:4455667788990011223344556677889900aabbccddeeff001122334455667788"
+                 start-line="1" end-line="120"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <art:mapping id="map-settlement-job">
+    <art:spec-ref node="settlement"
+              revision="draft-1"
+              node-hash="sha256:29a2d51d4a790beb61b8adf0d05fc996b94aa5c991079278417403dc117a3fd1"/>
+    <art:artifact repo="payment-service"
+              repo-revision="abc1234"
+              path="src/jobs/settlement_batch.py">
+      <art:range hash="sha256:aabb1122334455667788990011223344556677889900aabbccddeeff00112233"
+                 start-line="15" end-line="90"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+</spec:clayers>

@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:rel="urn:clayers:relation"
+           xmlns:llm="urn:clayers:llm"
+           xmlns:spec="urn:clayers:spec"
+           targetNamespace="urn:clayers:relation"
+           elementFormDefault="qualified"
+           version="1.1">
+
+  <xs:annotation>
+    <xs:documentation>
+      Relation Layer Schema.
+      Semantic links between nodes, within a spec or across specs.
+      Relations are typed and directional.
+    </xs:documentation>
+    <xs:appinfo>
+      <llm:describe>
+        The relation schema expresses typed, directional semantic links
+        between nodes. Types: precedes, depends-on, refines,
+        conflicts-with, implements, constrains, reverses. Each relation
+        has from and to attributes (node IDs). Cross-spec relations use
+        optional to-spec and to-revision for inter-spec addressing.
+        Two types are acyclic (must form DAGs): depends-on and precedes.
+        Each enumeration value carries a rel:acyclic annotation that
+        tooling reads to classify cycles as errors or benign.
+      </llm:describe>
+      <spec:keyref name="relation-from-refs" selector=".//rel:relation" field="@from"/>
+      <spec:keyref name="relation-to-refs" selector=".//rel:relation" field="@to"/>
+    </xs:appinfo>
+  </xs:annotation>
+
+  <!-- Global relation element -->
+  <xs:element name="relation" type="rel:RelationType">
+    <xs:annotation><xs:appinfo><spec:content-element/></xs:appinfo></xs:annotation>
+  </xs:element>
+
+  <xs:complexType name="RelationType" id="type-relation">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          A single directional link between two nodes. The type
+          attribute is the relation kind, from is the source node ID,
+          to is the target. For cross-spec relations, to-spec and
+          to-revision address nodes in another specification.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="note" type="xs:string" minOccurs="0"/>
+    </xs:sequence>
+
+    <!-- Relation type -->
+    <xs:attribute name="type" type="rel:RelationKind" use="required"/>
+
+    <!-- Source node (always local to this spec) -->
+    <xs:attribute name="from" type="xs:string" use="required"/>
+
+    <!-- Target node (local) -->
+    <xs:attribute name="to" type="xs:string" use="required"/>
+
+    <!-- Cross-spec targeting (optional, for inter-spec relations) -->
+    <xs:attribute name="to-spec" type="xs:string" use="optional">
+      <xs:annotation>
+        <xs:documentation>Target spec identifier, if the relation crosses spec boundaries.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="to-revision" type="xs:string" use="optional">
+      <xs:annotation>
+        <xs:documentation>Target spec revision. Required when to-spec is present.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+
+    <!-- XSD 1.1 assertion: to-revision required when to-spec is present -->
+    <xs:assert test="if (@to-spec) then @to-revision else true()"/>
+  </xs:complexType>
+
+  <!-- Extension annotation element: declares a type as relation-like -->
+  <xs:element name="relation-type-properties">
+    <xs:annotation>
+      <xs:documentation>
+        Placed in xs:appinfo of an extension complexType to declare it as a
+        relation type. Tooling discovers these annotations and treats instances
+        of the annotated element as graph edges.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:complexType>
+      <xs:attribute name="relation-name" type="xs:string" use="required">
+        <xs:annotation>
+          <xs:documentation>Canonical name for this relation type in graph edges and reports.</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="acyclic" type="xs:boolean" default="false">
+        <xs:annotation>
+          <xs:documentation>Whether edges of this type must form a DAG.</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="from-attr" type="xs:string" default="from">
+        <xs:annotation>
+          <xs:documentation>Attribute name on the extension element that holds the source node ID.</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="to-attr" type="xs:string" default="to">
+        <xs:annotation>
+          <xs:documentation>Attribute name on the extension element that holds the target node ID.</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:simpleType name="RelationKind" id="type-relation-kind">
+    <xs:annotation>
+      <xs:documentation>
+        Enumeration of relation kinds. Each value carries a rel:acyclic
+        annotation: "true" means edges of this type must form a DAG (cycles
+        are specification errors), "false" means cycles are tolerated.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="precedes">
+        <xs:annotation><xs:appinfo><rel:acyclic value="true"/></xs:appinfo>
+          <xs:documentation>Temporal ordering: source happens before target. Acyclic: a temporal cycle is an impossible ordering.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="depends-on">
+        <xs:annotation><xs:appinfo><rel:acyclic value="true"/></xs:appinfo>
+          <xs:documentation>Dependency: source requires target. Acyclic: a dependency cycle means nothing can be built first.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="refines">
+        <xs:annotation><xs:appinfo><rel:acyclic value="false"/></xs:appinfo>
+          <xs:documentation>Refinement: source adds detail to target. Cycles tolerated (mutual refinement).</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="conflicts-with">
+        <xs:annotation><xs:appinfo><rel:acyclic value="false"/></xs:appinfo>
+          <xs:documentation>Conflict: source and target are incompatible. Inherently symmetric, cycles tolerated.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="implements">
+        <xs:annotation><xs:appinfo><rel:acyclic value="false"/></xs:appinfo>
+          <xs:documentation>Implementation: source implements target. Cycles tolerated (co-implementation).</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="constrains">
+        <xs:annotation><xs:appinfo><rel:acyclic value="false"/></xs:appinfo>
+          <xs:documentation>Constraint: source constrains target. Cycles tolerated (mutual constraints).</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="reverses">
+        <xs:annotation><xs:appinfo><rel:acyclic value="false"/></xs:appinfo>
+          <xs:documentation>Reversal: source undoes target. Cycles tolerated (undo/redo pairs).</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="references">
+        <xs:annotation><xs:appinfo><rel:acyclic value="false"/></xs:appinfo>
+          <xs:documentation>Reference: source uses or cites target. Synthesized automatically
+          from trm:ref elements during combined document assembly. Cycles tolerated
+          (mutual references are natural).</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+    </xs:restriction>
+  </xs:simpleType>
+
+</xs:schema>

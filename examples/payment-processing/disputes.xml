@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Disputes: Reversing settled transactions via chargebacks.
+-->
+<spec:clayers xmlns:spec="urn:clayers:spec"
+       xmlns:pr="urn:clayers:prose"
+       xmlns:trm="urn:clayers:terminology"
+       xmlns:org="urn:clayers:organization"
+       xmlns:rel="urn:clayers:relation"
+       xmlns:art="urn:clayers:artifact"
+       spec:index="index.xml">
+
+  <trm:term id="term-chargeback">
+    <trm:name>Chargeback</trm:name>
+    <trm:definition>A reversal of a settled transaction initiated by the
+    issuer on behalf of the payer, returning funds to the payer.</trm:definition>
+  </trm:term>
+
+  <pr:section id="disputes">
+    <pr:title>Disputes and Chargebacks</pr:title>
+    <pr:shortdesc>Reversing settled transactions.</pr:shortdesc>
+
+    <pr:p>A <trm:ref term="term-chargeback">chargeback</trm:ref> reverses a
+    settled transaction. The merchant bears the burden of proof to
+    demonstrate the transaction was legitimate.</pr:p>
+
+    <pr:note type="warning">Excessive chargebacks (typically above 1% of
+    transaction volume) trigger monitoring programs with the card
+    networks, leading to increased fees or termination.</pr:note>
+  </pr:section>
+
+  <org:reference ref="disputes">
+    <org:purpose>Chargeback rules and thresholds.</org:purpose>
+  </org:reference>
+
+  <rel:relation type="reverses" from="disputes" to="settlement">
+    <rel:note>A chargeback undoes a completed settlement.</rel:note>
+  </rel:relation>
+
+  <art:mapping id="map-disputes-unimplemented">
+    <art:spec-ref node="disputes"
+              revision="draft-1"
+              node-hash="sha256:e6344e88ce4118638d0a42c380c1e318abffeb68852569f7a2bf65c292d345be"/>
+    <art:artifact repo="payment-service"
+              repo-revision="abc1234"
+              path="src/handlers/disputes.py">
+      <art:range hash="sha256:0000000000000000000000000000000000000000000000000000000000000000"
+                 start-line="1" end-line="1"/>
+    </art:artifact>
+    <art:coverage>none</art:coverage>
+    <art:note>Chargeback handling not yet implemented.</art:note>
+  </art:mapping>
+</spec:clayers>
