@@ -248,6 +248,72 @@
   </org:concept>
 
   <!-- ================================================================== -->
+  <!-- ADR 5: Migrate from bare @id to xml:id                            -->
+  <!-- ================================================================== -->
+
+  <pr:section id="adr-xml-id-migration">
+    <pr:title>Migrate from Bare @id to xml:id</pr:title>
+    <pr:shortdesc>All Clayers content will eventually use W3C xml:id instead
+    of bare @id for element addressability.</pr:shortdesc>
+
+    <pr:p>Clayers currently uses bare <pr:code>@id</pr:code> attributes for
+    element addressability. This works for Clayers-native content but creates
+    a conflict when integrating external standards like XMI/UML, which use
+    <pr:code>xml:id</pr:code> (the W3C standard, namespace
+    <pr:code>http://www.w3.org/XML/1998/namespace</pr:code>). Bare
+    <pr:code>@id</pr:code> is a local, unnamespaced convention; xml:id is a
+    universally recognized W3C standard that any XML processor understands.</pr:p>
+
+    <pr:p>During the transition period, the validator, connectivity analyzer,
+    and coverage tools recognize both <pr:code>@id</pr:code> and
+    <pr:code>xml:id</pr:code>. Both participate in uniqueness checking,
+    cross-layer reference resolution, and graph construction. An element may
+    carry either or both (though carrying both with different values on the
+    same element is discouraged).</pr:p>
+
+    <pr:p>The migration path is: new content (especially XMI/UML model files)
+    uses <pr:code>xml:id</pr:code> from the start. Existing content continues
+    to use bare <pr:code>@id</pr:code> until a bulk migration is performed.
+    Once all content uses <pr:code>xml:id</pr:code>, bare <pr:code>@id</pr:code>
+    support can be removed from the tooling.</pr:p>
+  </pr:section>
+
+  <dec:decision id="dec-xml-id-migration" ref="adr-xml-id-migration">
+    <dec:status>proposed</dec:status>
+    <dec:alternative>
+      <dec:title>Keep bare @id permanently</dec:title>
+      <dec:rationale>Works for Clayers-native content but conflicts with XMI/UML
+      standards. External tools and specifications use xml:id; maintaining a
+      parallel convention creates friction and prevents reuse of standard XML
+      tooling for ID resolution.</dec:rationale>
+    </dec:alternative>
+    <dec:alternative>
+      <dec:title>Immediate bulk migration</dec:title>
+      <dec:rationale>High risk of breaking all existing artifact mappings,
+      cross-references, and external tooling in a single step. Gradual
+      migration with dual support is safer.</dec:rationale>
+    </dec:alternative>
+    <dec:alternative>
+      <dec:title>Use xmi:id for XMI content only</dec:title>
+      <dec:rationale>xmi:id is XMI-specific, not a universal standard.
+      xml:id works across all XML vocabularies and is recognized by standard
+      XML processors without namespace-specific configuration.</dec:rationale>
+    </dec:alternative>
+  </dec:decision>
+
+  <org:concept ref="adr-xml-id-migration">
+    <org:purpose>Understanding the migration strategy from bare @id to W3C
+    xml:id, the transition period with dual support, and why xml:id is the
+    target convention.</org:purpose>
+  </org:concept>
+
+  <art:exempt node="adr-xml-id-migration">Architecture Decision Record prose.
+  Design rationale, not a code-mapped node.</art:exempt>
+
+  <art:exempt node="dec-xml-id-migration">Decision metadata for an ADR.
+  Structured record, not a code-mapped node.</art:exempt>
+
+  <!-- ================================================================== -->
   <!-- Relations                                                          -->
   <!-- ================================================================== -->
 
@@ -276,6 +342,15 @@
   <rel:relation type="refines" from="adr-xsd-11" to="layered-architecture">
     <rel:note>XSD 1.1 provides the schema features that make the layered
     architecture validatable.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="adr-xml-id-migration" to="layered-architecture">
+    <rel:note>The xml:id migration enables standard identification across all
+    layers, including external standards like XMI/UML.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="dec-xml-id-migration" to="adr-xml-id-migration">
+    <rel:note>Decision metadata for the xml:id migration ADR.</rel:note>
   </rel:relation>
 
   <!-- Inter-ADR dependencies -->
@@ -420,6 +495,22 @@
   <llm:node ref="dec-xsd-11">
     Decision metadata for the XSD 1.1 ADR. Status: accepted.
     Three rejected alternatives: XSD 1.0, RelaxNG, Schematron only.
+  </llm:node>
+
+  <llm:node ref="adr-xml-id-migration">
+    ADR: Migrate from bare @id to W3C xml:id. Current bare @id convention
+    conflicts with XMI/UML standards that use xml:id. Transition strategy:
+    dual support (both @id and xml:id recognized by validator, connectivity,
+    coverage), new content uses xml:id, eventual bulk migration of existing
+    content. Alternatives rejected: keep bare @id permanently (friction with
+    standards), immediate bulk migration (high breakage risk), xmi:id only
+    (XMI-specific, not universal).
+  </llm:node>
+
+  <llm:node ref="dec-xml-id-migration">
+    Decision metadata for the xml:id migration ADR. Status: accepted.
+    Three rejected alternatives: keep bare @id permanently, immediate
+    bulk migration, use xmi:id for XMI content only.
   </llm:node>
 
   <!-- Out-of-band schema descriptions for the decision layer -->

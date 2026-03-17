@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:uml="http://www.omg.org/spec/UML/20131001"
+           targetNamespace="http://www.omg.org/spec/UML/20131001"
+           elementFormDefault="qualified">
+
+  <xs:annotation>
+    <xs:documentation>
+      Permissive schema for UML 2.5 namespace.
+
+      UML does not publish an official XSD (it uses XMI for its metamodel).
+      The XMI XSD's xmi:XMI type uses processContents="strict" for children,
+      which requires every child namespace to have a resolvable schema.
+
+      This permissive schema accepts any element in the UML namespace with
+      any attributes and any children, allowing XMI files with UML content
+      to pass XSD validation without a full UML metamodel schema.
+    </xs:documentation>
+  </xs:annotation>
+
+  <xs:complexType name="AnyUMLType">
+    <xs:sequence>
+      <xs:any namespace="##any" processContents="lax"
+              minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:anyAttribute namespace="##any" processContents="lax"/>
+  </xs:complexType>
+
+  <xs:element name="Model" type="uml:AnyUMLType"/>
+  <xs:element name="Package" type="uml:AnyUMLType"/>
+  <xs:element name="Profile" type="uml:AnyUMLType"/>
+
+</xs:schema>

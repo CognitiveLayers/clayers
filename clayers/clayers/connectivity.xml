@@ -283,7 +283,7 @@
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/connectivity.rs">
-        <art:range hash="sha256:24e4c633766580292b593399c91e849c968e4b990298db05d81b9dc937dd6145"
+        <art:range hash="sha256:a3963d95b5af54dcaa2de5ca715e262d7b28a3dde0a0e5057d46208300623dcf"
                    start-line="146" end-line="192"/>
       </art:artifact>
     <art:coverage>partial</art:coverage>
@@ -297,7 +297,7 @@
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/connectivity.rs">
-        <art:range hash="sha256:6faabc7381e18f5604765b0dd47919c0c384293c7fbb2c426e35d66c54dd84ae"
+        <art:range hash="sha256:32cd2faf9c13c88ae9a4dd5eb771f26d6b2b8b93ff665153945bd875d14fb74d"
                    start-line="195" end-line="261"/>
       </art:artifact>
     <art:coverage>partial</art:coverage>
@@ -344,7 +344,7 @@
               path="crates/clayers-spec/src/connectivity.rs">
         <art:range hash="sha256:a042ca732cfdebcfbf358dfca36779f8193857022555b100fa7a664eec8768a7"
                    start-line="56" end-line="63"/>
-        <art:range hash="sha256:d8cab5559be519c07a9f1ecf41c8057088d1b7e3f316a63859589ac8504d7d91"
+        <art:range hash="sha256:f3b61862f114d9674bf9f0aaa212ce7f023246c8bd6258c9098cc4e454c8f134"
                    start-line="482" end-line="550"/>
       </art:artifact>
     <art:coverage>full</art:coverage>
@@ -375,7 +375,7 @@
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="schemas/postprocess.xslt">
-        <art:range hash="sha256:78a07c46cc744f9b198a29f2787aed0cebfbc167fc557b1c3980797970183e50"
+        <art:range hash="sha256:bdb51516b4118d4cc295eedfcf12c7c95cc2aed5ce90b4e6353b56ca7de56192"
                    start-line="1" end-line="70"/>
       </art:artifact>
     <art:coverage>full</art:coverage>
@@ -405,7 +405,7 @@
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="schemas/postprocess.xslt">
-        <art:range hash="sha256:78a07c46cc744f9b198a29f2787aed0cebfbc167fc557b1c3980797970183e50"
+        <art:range hash="sha256:bdb51516b4118d4cc295eedfcf12c7c95cc2aed5ce90b4e6353b56ca7de56192"
                    start-line="1" end-line="70"/>
       </art:artifact>
     <art:coverage>full</art:coverage>

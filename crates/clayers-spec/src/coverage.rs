@@ -123,7 +123,9 @@ pub fn analyze_coverage(
             let doc = xot.parse(&content)?;
             let root = xot.document_element(doc)?;
             let id_attr = xot.add_name("id");
-            collect_node_ids(&xot, root, id_attr, &mut all_node_ids);
+            let xml_ns = xot.add_namespace(crate::namespace::XML);
+            let xml_id_attr = xot.add_name_ns("id", xml_ns);
+            collect_node_ids(&xot, root, id_attr, xml_id_attr, &mut all_node_ids);
         }
 
         // Collect artifact mappings
@@ -178,15 +180,19 @@ fn collect_node_ids(
     xot: &xot::Xot,
     node: xot::Node,
     id_attr: xot::NameId,
+    xml_id_attr: xot::NameId,
     ids: &mut std::collections::HashSet<String>,
 ) {
-    if xot.is_element(node)
-        && let Some(id) = xot.element(node).and_then(|e| e.get_attribute(id_attr))
-    {
-        ids.insert(id.to_string());
+    if xot.is_element(node) {
+        if let Some(id) = xot.element(node).and_then(|e| e.get_attribute(id_attr)) {
+            ids.insert(id.to_string());
+        }
+        if let Some(xml_id) = xot.element(node).and_then(|e| e.get_attribute(xml_id_attr)) {
+            ids.insert(xml_id.to_string());
+        }
     }
     for child in xot.children(node) {
-        collect_node_ids(xot, child, id_attr, ids);
+        collect_node_ids(xot, child, id_attr, xml_id_attr, ids);
     }
 }
 

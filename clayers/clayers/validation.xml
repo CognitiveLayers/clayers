@@ -200,7 +200,7 @@
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/validate.rs">
-        <art:range hash="sha256:765fe797cce4600111807dfe9b69aa2c76ec28154d7ba4911a1986bd3cb4286c"
+        <art:range hash="sha256:9c9a0fab6e4f4e728c1973a66e2873625c39708ea82e9096521bac9b749a7486"
                    start-line="143" end-line="199"/>
       </art:artifact>
     <art:coverage>full</art:coverage>
@@ -215,7 +215,7 @@
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/validate.rs">
-        <art:range hash="sha256:fc6513587b492294280331a0f9e25615ee2927e96eadef021f1f968a1451c7bb"
+        <art:range hash="sha256:2cf72c1ead6b7f8b2abbe4b9c58743a08d70532abdd18cdbda29b1712bca0ccc"
                    start-line="202" end-line="249"/>
       </art:artifact>
     <art:coverage>full</art:coverage>

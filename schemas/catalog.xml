@@ -18,4 +18,13 @@
   <uri name="urn:clayers:artifact"      uri="artifact.xsd"/>
   <uri name="urn:clayers:llm"           uri="llm.xsd"/>
 
+  <!-- External standard schemas: XMI and UML model integration -->
+
+  <uri name="http://www.omg.org/spec/XMI/20131001"
+       uri="http://www.omg.org/spec/XMI/20131001/XMI.xsd"/>
+
+  <!-- UML has no official XSD; permissive local schema accepts any UML content -->
+  <uri name="http://www.omg.org/spec/UML/20131001"
+       uri="uml-permissive.xsd"/>
+
 </catalog>

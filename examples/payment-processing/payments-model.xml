@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  UML Model Layer: Structural model for the payment processing domain.
+  XMI content wrapped in spec:clayers, with xml:id on key classifiers
+  for Clayers addressability.
+-->
+<spec:clayers spec:index="index.xml"
+    xmlns:spec="urn:clayers:spec"
+    xmlns:art="urn:clayers:artifact"
+    xmlns:xmi="http://www.omg.org/spec/XMI/20131001"
+    xmlns:uml="http://www.omg.org/spec/UML/20131001"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+  <xmi:XMI>
+    <uml:Model xml:id="model-payments" xmi:id="_model" name="Payments">
+
+      <!-- Core domain classes -->
+
+      <packagedElement xsi:type="uml:Class"
+          xml:id="class-transaction" xmi:id="_tx" name="Transaction">
+        <ownedAttribute xmi:id="_tx-amount" name="amount" type="_dt-money"/>
+        <ownedAttribute xmi:id="_tx-currency" name="currency"/>
+        <ownedAttribute xmi:id="_tx-status" name="status"/>
+        <ownedAttribute xmi:id="_tx-created" name="createdAt"/>
+      </packagedElement>
+
+      <packagedElement xsi:type="uml:Class"
+          xml:id="class-settlement" xmi:id="_stl" name="Settlement">
+        <ownedAttribute xmi:id="_stl-amount" name="amount" type="_dt-money"/>
+        <ownedAttribute xmi:id="_stl-date" name="settledAt"/>
+        <!-- Association navigable end: references Transaction -->
+        <ownedAttribute xmi:id="_stl-tx" name="transaction"
+                        type="_tx" association="_assoc-stl-tx"/>
+      </packagedElement>
+
+      <packagedElement xsi:type="uml:Class"
+          xml:id="class-dispute" xmi:id="_dsp" name="Dispute">
+        <ownedAttribute xmi:id="_dsp-reason" name="reason"/>
+        <ownedAttribute xmi:id="_dsp-status" name="status"/>
+        <ownedAttribute xmi:id="_dsp-tx" name="transaction"
+                        type="_tx" association="_assoc-dsp-tx"/>
+      </packagedElement>
+
+      <!-- Generalization: CreditTransaction refines Transaction -->
+      <packagedElement xsi:type="uml:Class"
+          xml:id="class-credit-transaction" xmi:id="_ctx" name="CreditTransaction">
+        <generalization xmi:id="_gen-ctx" general="_tx"/>
+        <ownedAttribute xmi:id="_ctx-card" name="cardNumber"/>
+      </packagedElement>
+
+      <!-- Interface + Realization -->
+      <packagedElement xsi:type="uml:Interface"
+          xml:id="interface-payment-gateway" xmi:id="_ipg" name="PaymentGateway">
+        <ownedOperation xmi:id="_ipg-charge" name="charge"/>
+        <ownedOperation xmi:id="_ipg-refund" name="refund"/>
+      </packagedElement>
+
+      <packagedElement xsi:type="uml:Class"
+          xml:id="class-stripe-gateway" xmi:id="_sg" name="StripeGateway">
+        <interfaceRealization xmi:id="_real-sg" contract="_ipg"/>
+      </packagedElement>
+
+      <!-- Associations -->
+      <packagedElement xsi:type="uml:Association"
+          xmi:id="_assoc-stl-tx" name="SettlementTransaction">
+        <memberEnd xmi:idref="_stl-tx"/>
+        <ownedEnd xmi:id="_assoc-stl-tx-end" type="_stl"/>
+      </packagedElement>
+
+      <packagedElement xsi:type="uml:Association"
+          xmi:id="_assoc-dsp-tx" name="DisputeTransaction">
+        <memberEnd xmi:idref="_dsp-tx"/>
+        <ownedEnd xmi:id="_assoc-dsp-tx-end" type="_dsp"/>
+      </packagedElement>
+
+      <!-- Dependency -->
+      <packagedElement xsi:type="uml:Dependency"
+          xmi:id="_dep-stl-gw" name="SettlementUsesGateway"
+          client="_stl" supplier="_ipg"/>
+
+      <!-- DataType for money amounts (no xml:id: internal, not Clayers-addressable) -->
+      <packagedElement xsi:type="uml:DataType" xmi:id="_dt-money" name="Money">
+        <ownedAttribute xmi:id="_dt-money-val" name="value"/>
+        <ownedAttribute xmi:id="_dt-money-cur" name="currency"/>
+      </packagedElement>
+
+    </uml:Model>
+  </xmi:XMI>
+
+  <art:exempt node="model-payments">UML model element.</art:exempt>
+  <art:exempt node="class-transaction">UML model element.</art:exempt>
+  <art:exempt node="class-settlement">UML model element.</art:exempt>
+  <art:exempt node="class-dispute">UML model element.</art:exempt>
+  <art:exempt node="class-credit-transaction">UML model element.</art:exempt>
+  <art:exempt node="interface-payment-gateway">UML model element.</art:exempt>
+  <art:exempt node="class-stripe-gateway">UML model element.</art:exempt>
+
+</spec:clayers>

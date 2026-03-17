@@ -12,6 +12,7 @@
   <file href="authorization.xml"/>
   <file href="settlement.xml"/>
   <file href="disputes.xml"/>
+  <file href="payments-model.xml"/>
   <file href="reading-maps.xml"/>
   <file href="revision.xml" layer="urn:clayers:revision"/>
 </spec:clayers>

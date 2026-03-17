@@ -132,6 +132,8 @@ pub fn fix_node_hashes(spec_dir: &Path) -> Result<FixReport, crate::Error> {
     let total_mappings = mappings.len();
 
     let id_attr = xot.add_name("id");
+    let xml_ns = xot.add_namespace(crate::namespace::XML);
+    let xml_id_attr = xot.add_name_ns("id", xml_ns);
 
     let mut results = Vec::new();
     let mut file_changes: HashMap<PathBuf, Vec<NodeHashChange>> = HashMap::new();
@@ -146,7 +148,9 @@ pub fn fix_node_hashes(spec_dir: &Path) -> Result<FixReport, crate::Error> {
             continue;
         }
 
-        let Some(node) = find_node_by_id(&xot, root, id_attr, &mapping.spec_ref_node) else {
+        let Some(node) =
+            find_node_by_id(&xot, root, id_attr, xml_id_attr, &mapping.spec_ref_node)
+        else {
             continue;
         };
 
@@ -211,18 +215,29 @@ fn find_node_by_id(
     xot: &xot::Xot,
     node: xot::Node,
     id_attr: xot::NameId,
+    xml_id_attr: xot::NameId,
     target_id: &str,
 ) -> Option<xot::Node> {
-    if xot.is_element(node)
-        && xot
+    if xot.is_element(node) {
+        // Check bare @id
+        if xot
             .element(node)
             .and_then(|e| e.get_attribute(id_attr))
             .is_some_and(|id| id == target_id)
-    {
-        return Some(node);
+        {
+            return Some(node);
+        }
+        // Check xml:id
+        if xot
+            .element(node)
+            .and_then(|e| e.get_attribute(xml_id_attr))
+            .is_some_and(|id| id == target_id)
+        {
+            return Some(node);
+        }
     }
     for child in xot.children(node) {
-        if let Some(found) = find_node_by_id(xot, child, id_attr, target_id) {
+        if let Some(found) = find_node_by_id(xot, child, id_attr, xml_id_attr, target_id) {
             return Some(found);
         }
     }

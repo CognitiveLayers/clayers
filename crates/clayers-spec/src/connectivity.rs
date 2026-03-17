@@ -162,6 +162,8 @@ fn collect_nodes_and_relations(
         let root = xot.document_element(doc)?;
 
         let id_attr = xot.add_name("id");
+        let xml_ns = xot.add_namespace(namespace::XML);
+        let xml_id_attr = xot.add_name_ns("id", xml_ns);
         let relation_ns = xot.add_namespace(namespace::RELATION);
         let relation_tag = xot.add_name_ns("relation", relation_ns);
         let art_ns = xot.add_namespace(namespace::ARTIFACT);
@@ -177,6 +179,7 @@ fn collect_nodes_and_relations(
             &xot,
             root,
             id_attr,
+            xml_id_attr,
             relation_tag,
             mapping_tag,
             revision_tag,
@@ -196,6 +199,7 @@ fn collect_from_tree(
     xot: &xot::Xot,
     node: xot::Node,
     id_attr: xot::NameId,
+    xml_id_attr: xot::NameId,
     relation_tag: xot::NameId,
     mapping_tag: xot::NameId,
     revision_tag: xot::NameId,
@@ -210,14 +214,21 @@ fn collect_from_tree(
         let name = xot.element(node).map(xot::Element::name);
 
         // Skip art:mapping and rev:revision from graph nodes
-        if name != Some(mapping_tag)
-            && name != Some(revision_tag)
-            && let Some(id) = xot.element(node).and_then(|e| e.get_attribute(id_attr))
-        {
-            let tag = name
-                .map(|n| xot.name_ns_str(n).0.to_string())
-                .unwrap_or_default();
-            nodes.insert(id.to_string(), tag);
+        if name != Some(mapping_tag) && name != Some(revision_tag) {
+            // Check bare @id
+            if let Some(id) = xot.element(node).and_then(|e| e.get_attribute(id_attr)) {
+                let tag = name
+                    .map(|n| xot.name_ns_str(n).0.to_string())
+                    .unwrap_or_default();
+                nodes.insert(id.to_string(), tag.clone());
+            }
+            // Check xml:id (W3C standard, used by XMI/UML elements)
+            if let Some(xml_id) = xot.element(node).and_then(|e| e.get_attribute(xml_id_attr)) {
+                let tag = name
+                    .map(|n| xot.name_ns_str(n).0.to_string())
+                    .unwrap_or_default();
+                nodes.insert(xml_id.to_string(), tag);
+            }
         }
 
         if name == Some(relation_tag) {
@@ -247,6 +258,7 @@ fn collect_from_tree(
             xot,
             child,
             id_attr,
+            xml_id_attr,
             relation_tag,
             mapping_tag,
             revision_tag,

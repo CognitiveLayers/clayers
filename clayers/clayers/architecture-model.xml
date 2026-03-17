@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  UML Model Layer: Structural model of the clayers architecture.
+  Dogfoods the model layer by modeling clayers' own layer system.
+-->
+<spec:clayers spec:index="index.xml"
+    xmlns:spec="urn:clayers:spec"
+    xmlns:art="urn:clayers:artifact"
+    xmlns:xmi="http://www.omg.org/spec/XMI/20131001"
+    xmlns:uml="http://www.omg.org/spec/UML/20131001"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+  <xmi:XMI>
+    <uml:Model xml:id="model-clayers-architecture" xmi:id="_arch" name="ClayersArchitecture">
+
+      <!-- Abstract base: all layers share this structure -->
+      <packagedElement xsi:type="uml:Class"
+          xml:id="class-layer" xmi:id="_layer" name="Layer" isAbstract="true">
+        <ownedAttribute xmi:id="_layer-ns" name="namespaceURI"/>
+        <ownedAttribute xmi:id="_layer-prefix" name="prefix"/>
+        <ownedAttribute xmi:id="_layer-xsd" name="schema"/>
+      </packagedElement>
+
+      <!-- Content layers -->
+      <packagedElement xsi:type="uml:Class"
+          xml:id="class-prose-layer" xmi:id="_prose" name="ProseLayer">
+        <generalization xmi:id="_gen-prose" general="_layer"/>
+      </packagedElement>
+
+      <packagedElement xsi:type="uml:Class"
+          xml:id="class-terminology-layer" xmi:id="_term" name="TerminologyLayer">
+        <generalization xmi:id="_gen-term" general="_layer"/>
+      </packagedElement>
+
+      <packagedElement xsi:type="uml:Class"
+          xml:id="class-relation-layer" xmi:id="_rel" name="RelationLayer">
+        <generalization xmi:id="_gen-rel" general="_layer"/>
+      </packagedElement>
+
+      <packagedElement xsi:type="uml:Class"
+          xml:id="class-artifact-layer" xmi:id="_artl" name="ArtifactLayer">
+        <generalization xmi:id="_gen-art" general="_layer"/>
+      </packagedElement>
+
+      <packagedElement xsi:type="uml:Class"
+          xml:id="class-model-layer" xmi:id="_mdl" name="ModelLayer">
+        <generalization xmi:id="_gen-mdl" general="_layer"/>
+      </packagedElement>
+
+      <!-- Core infrastructure -->
+      <packagedElement xsi:type="uml:Class"
+          xml:id="class-spec-file" xmi:id="_sf" name="SpecFile">
+        <ownedAttribute xmi:id="_sf-path" name="path"/>
+        <ownedAttribute xmi:id="_sf-root" name="rootElement"/>
+      </packagedElement>
+
+      <packagedElement xsi:type="uml:Class"
+          xml:id="class-combined-document" xmi:id="_cd" name="CombinedDocument">
+        <ownedAttribute xmi:id="_cd-root" name="root"/>
+      </packagedElement>
+
+      <packagedElement xsi:type="uml:Interface"
+          xml:id="interface-validator" xmi:id="_ival" name="Validator">
+        <ownedOperation xmi:id="_ival-validate" name="validate"/>
+      </packagedElement>
+
+      <!-- Dependency: CombinedDocument depends on SpecFile -->
+      <packagedElement xsi:type="uml:Dependency"
+          xmi:id="_dep-cd-sf"
+          client="_cd" supplier="_sf"/>
+
+    </uml:Model>
+  </xmi:XMI>
+
+  <art:exempt node="model-clayers-architecture">UML model element. Structural model, not directly code-mapped.</art:exempt>
+  <art:exempt node="class-layer">UML model element.</art:exempt>
+  <art:exempt node="class-prose-layer">UML model element.</art:exempt>
+  <art:exempt node="class-terminology-layer">UML model element.</art:exempt>
+  <art:exempt node="class-relation-layer">UML model element.</art:exempt>
+  <art:exempt node="class-artifact-layer">UML model element.</art:exempt>
+  <art:exempt node="class-model-layer">UML model element.</art:exempt>
+  <art:exempt node="class-spec-file">UML model element.</art:exempt>
+  <art:exempt node="class-combined-document">UML model element.</art:exempt>
+  <art:exempt node="interface-validator">UML model element.</art:exempt>
+
+</spec:clayers>

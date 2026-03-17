@@ -105,8 +105,18 @@ fn check_id_uniqueness(
         let doc = xot.parse(&content)?;
         let root = xot.document_element(doc)?;
         let id_attr = xot.add_name("id");
+        let xml_ns = xot.add_namespace(namespace::XML);
+        let xml_id_attr = xot.add_name_ns("id", xml_ns);
 
-        collect_ids(&xot, root, id_attr, file_path, &mut seen, &mut errors);
+        collect_ids(
+            &xot,
+            root,
+            id_attr,
+            xml_id_attr,
+            file_path,
+            &mut seen,
+            &mut errors,
+        );
     }
 
     Ok(errors)
@@ -116,32 +126,48 @@ fn collect_ids(
     xot: &Xot,
     node: xot::Node,
     id_attr: xot::NameId,
+    xml_id_attr: xot::NameId,
     file_path: &Path,
     seen: &mut HashMap<String, String>,
     errors: &mut Vec<ValidationError>,
 ) {
-    if xot.is_element(node)
-        && let Some(id) = xot.element(node).and_then(|e| e.get_attribute(id_attr))
-    {
-        let id = id.to_string();
-        let file_str = file_path.display().to_string();
-        if let Some(prev_file) = seen.get(&id) {
-            errors.push(ValidationError {
-                message: format!(
-                    "duplicate id \"{id}\" (first in {prev_file}, also in {file_str})"
-                ),
-            });
-        } else {
-            seen.insert(id, file_str);
+    if xot.is_element(node) {
+        // Collect bare @id
+        if let Some(id) = xot.element(node).and_then(|e| e.get_attribute(id_attr)) {
+            let id = id.to_string();
+            let file_str = file_path.display().to_string();
+            if let Some(prev_file) = seen.get(&id) {
+                errors.push(ValidationError {
+                    message: format!(
+                        "duplicate id \"{id}\" (first in {prev_file}, also in {file_str})"
+                    ),
+                });
+            } else {
+                seen.insert(id, file_str);
+            }
+        }
+        // Collect xml:id (W3C standard, used by XMI/UML elements)
+        if let Some(xml_id) = xot.element(node).and_then(|e| e.get_attribute(xml_id_attr)) {
+            let xml_id = xml_id.to_string();
+            let file_str = file_path.display().to_string();
+            if let Some(prev_file) = seen.get(&xml_id) {
+                errors.push(ValidationError {
+                    message: format!(
+                        "duplicate id \"{xml_id}\" (first in {prev_file}, also in {file_str})"
+                    ),
+                });
+            } else {
+                seen.insert(xml_id, file_str);
+            }
         }
     }
     for child in xot.children(node) {
-        collect_ids(xot, child, id_attr, file_path, seen, errors);
+        collect_ids(xot, child, id_attr, xml_id_attr, file_path, seen, errors);
     }
 }
 
 fn check_references(file_paths: &[impl AsRef<Path>]) -> Result<Vec<ValidationError>, crate::Error> {
-    // Collect all known IDs
+    // Collect all known IDs (both bare @id and xml:id)
     let mut all_ids = std::collections::HashSet::new();
     let mut errors = Vec::new();
 
@@ -151,7 +177,9 @@ fn check_references(file_paths: &[impl AsRef<Path>]) -> Result<Vec<ValidationErr
         let doc = xot.parse(&content)?;
         let root = xot.document_element(doc)?;
         let id_attr = xot.add_name("id");
-        collect_all_ids(&xot, root, id_attr, &mut all_ids);
+        let xml_ns = xot.add_namespace(namespace::XML);
+        let xml_id_attr = xot.add_name_ns("id", xml_ns);
+        collect_all_ids(&xot, root, id_attr, xml_id_attr, &mut all_ids);
     }
 
     // Check that relation from/to reference existing IDs
@@ -186,15 +214,19 @@ fn collect_all_ids(
     xot: &Xot,
     node: xot::Node,
     id_attr: xot::NameId,
+    xml_id_attr: xot::NameId,
     ids: &mut std::collections::HashSet<String>,
 ) {
-    if xot.is_element(node)
-        && let Some(id) = xot.element(node).and_then(|e| e.get_attribute(id_attr))
-    {
-        ids.insert(id.to_string());
+    if xot.is_element(node) {
+        if let Some(id) = xot.element(node).and_then(|e| e.get_attribute(id_attr)) {
+            ids.insert(id.to_string());
+        }
+        if let Some(xml_id) = xot.element(node).and_then(|e| e.get_attribute(xml_id_attr)) {
+            ids.insert(xml_id.to_string());
+        }
     }
     for child in xot.children(node) {
-        collect_all_ids(xot, child, id_attr, ids);
+        collect_all_ids(xot, child, id_attr, xml_id_attr, ids);
     }
 }
 

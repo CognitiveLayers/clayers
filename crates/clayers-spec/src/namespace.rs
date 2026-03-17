@@ -14,6 +14,12 @@ pub const ARTIFACT: &str = "urn:clayers:artifact";
 pub const LLM: &str = "urn:clayers:llm";
 pub const COMBINED: &str = "urn:clayers:combined";
 
+// External standard namespaces (non-layer, used for XMI/UML model integration)
+pub const XMI: &str = "http://www.omg.org/spec/XMI/20131001";
+pub const UML: &str = "http://www.omg.org/spec/UML/20131001";
+pub const XML: &str = "http://www.w3.org/XML/1998/namespace";
+pub const XSI: &str = "http://www.w3.org/2001/XMLSchema-instance";
+
 /// All 12 layer URN constants (excluding combined).
 pub const ALL_LAYERS: &[&str] = &[
     SPEC,
@@ -30,7 +36,7 @@ pub const ALL_LAYERS: &[&str] = &[
     LLM,
 ];
 
-/// Prefix-to-URI mapping for all namespaces (13 total: 12 layers + combined).
+/// Prefix-to-URI mapping for all namespaces (17 total: 12 layers + combined + 4 external).
 pub const PREFIX_MAP: &[(&str, &str)] = &[
     ("spec", SPEC),
     ("idx", INDEX),
@@ -45,6 +51,10 @@ pub const PREFIX_MAP: &[(&str, &str)] = &[
     ("art", ARTIFACT),
     ("llm", LLM),
     ("cmb", COMBINED),
+    ("xmi", XMI),
+    ("uml", UML),
+    ("xml", XML),
+    ("xsi", XSI),
 ];
 
 /// Get the prefix for a given namespace URI.
@@ -84,7 +94,7 @@ mod tests {
             assert!(map_uris.contains(urn), "prefix map missing {urn}");
         }
         assert!(map_uris.contains(COMBINED));
-        assert_eq!(PREFIX_MAP.len(), 13);
+        assert_eq!(PREFIX_MAP.len(), 17);
     }
 
     #[test]
