@@ -79,6 +79,21 @@ impl FromStr for ContentHash {
     }
 }
 
+#[cfg(feature = "serde")]
+impl serde::Serialize for ContentHash {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(&self.to_string())
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> serde::Deserialize<'de> for ContentHash {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let s = <String as serde::Deserialize>::deserialize(deserializer)?;
+        s.parse().map_err(serde::de::Error::custom)
+    }
+}
+
 // Public API surface (used by ast-grep for structural verification).
 #[cfg(any())]
 mod _api {
@@ -142,5 +157,17 @@ mod tests {
     fn fromstr_rejects_wrong_length() {
         let result = "sha256:abcd".parse::<ContentHash>();
         assert!(result.is_err());
+    }
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn serde_json_roundtrip() {
+        let hash = ContentHash::from_canonical(b"serde test");
+        let json = serde_json::to_string(&hash).expect("serialize");
+        let parsed: ContentHash = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(hash, parsed);
+        // Should be a quoted prefixed hex string
+        assert!(json.starts_with('"'));
+        assert!(json.contains("sha256:"));
     }
 }

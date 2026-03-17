@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/clayers", "crates/clayers-xml", "crates/clayers-spec"]
+members = ["crates/clayers", "crates/clayers-xml", "crates/clayers-spec", "crates/clayers-repo"]
 
 [workspace.lints.rust]
 warnings = "deny"

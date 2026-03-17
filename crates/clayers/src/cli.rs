@@ -13,6 +13,10 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    // -----------------------------------------------------------------------
+    // Spec commands (existing)
+    // -----------------------------------------------------------------------
+
     /// Validate a spec structurally.
     Validate {
         /// Path to the spec directory.
@@ -51,18 +55,30 @@ enum Command {
         #[arg(long)]
         layer: Vec<String>,
     },
-    /// Execute an `XPath` query against the assembled spec.
+    /// Execute an `XPath` query against the assembled spec or repository.
     Query {
-        /// Path to the spec directory.
-        path: PathBuf,
         /// `XPath` expression.
         xpath: String,
+        /// Path to the spec directory, repo directory, or bare .db file (optional in repo mode).
+        path: Option<PathBuf>,
         /// Output only the count of matching nodes.
         #[arg(long)]
         count: bool,
         /// Output text content (no XML tags).
         #[arg(long)]
         text: bool,
+        /// Query all branches.
+        #[arg(long)]
+        all: bool,
+        /// Query a specific revision/revspec.
+        #[arg(long)]
+        rev: Option<String>,
+        /// Query a specific branch.
+        #[arg(long)]
+        branch: Option<String>,
+        /// Path to a bare .db file.
+        #[arg(long)]
+        db: Option<PathBuf>,
     },
     /// Bootstrap clayers in a project (plant schemas, amend agent file).
     Adopt {
@@ -73,6 +89,116 @@ enum Command {
         #[arg(long)]
         update: bool,
     },
+
+    // -----------------------------------------------------------------------
+    // Repository commands (new)
+    // -----------------------------------------------------------------------
+
+    /// Initialize a clayers repository.
+    Init {
+        /// Path to initialize (defaults to current directory).
+        path: Option<PathBuf>,
+        /// Initialize a bare repository (a single .db file, no working copy).
+        #[arg(long)]
+        bare: Option<PathBuf>,
+    },
+    /// Stage files for the next commit.
+    Add {
+        /// Files to stage (use `.` for all XML files in CWD).
+        files: Vec<PathBuf>,
+    },
+    /// Remove files from staging area or stage a deletion.
+    Rm {
+        /// Files to remove.
+        files: Vec<PathBuf>,
+        /// Only remove from staging area, don't delete from disk.
+        #[arg(long)]
+        cached: bool,
+    },
+    /// Show working tree status.
+    Status,
+    /// Record staged changes as a new commit.
+    Commit {
+        /// Commit message.
+        #[arg(short, long)]
+        message: String,
+        /// Author name (overrides `CLAYERS_AUTHOR_NAME` env and git config).
+        #[arg(long)]
+        author: Option<String>,
+        /// Author email (overrides `CLAYERS_AUTHOR_EMAIL` env and git config).
+        #[arg(long)]
+        email: Option<String>,
+    },
+    /// Show commit history.
+    Log {
+        /// Limit number of commits shown.
+        #[arg(short, long)]
+        n: Option<usize>,
+    },
+    /// Clone a repository.
+    Clone {
+        /// Source bare .db file or repository directory.
+        source: PathBuf,
+        /// Target directory (defaults to derived from source name).
+        target: Option<PathBuf>,
+    },
+    /// Push local refs to a remote.
+    Push {
+        /// Remote name (defaults to 'origin').
+        remote: Option<String>,
+    },
+    /// Pull refs from a remote.
+    Pull {
+        /// Remote name (defaults to 'origin').
+        remote: Option<String>,
+    },
+    /// Manage branches.
+    Branch {
+        /// Create a branch with this name (omit to list branches).
+        name: Option<String>,
+        /// Delete a branch.
+        #[arg(long)]
+        delete: Option<String>,
+    },
+    /// Switch to a branch.
+    Checkout {
+        /// Branch to checkout.
+        branch: String,
+        /// Create and checkout a new branch.
+        #[arg(short)]
+        b: bool,
+        /// Create an orphan branch (empty tree, no parent commit).
+        #[arg(long)]
+        orphan: bool,
+    },
+    /// Manage remote repositories.
+    Remote {
+        #[command(subcommand)]
+        action: RemoteAction,
+    },
+    /// Restore files to their committed state.
+    Revert {
+        /// Files to revert.
+        files: Vec<PathBuf>,
+    },
+}
+
+#[derive(Subcommand)]
+enum RemoteAction {
+    /// Add a new remote.
+    Add {
+        /// Remote name.
+        name: String,
+        /// Remote URL (path to .db file).
+        url: String,
+    },
+    /// Remove a remote.
+    Remove {
+        /// Remote name.
+        name: String,
+    },
+    /// List all remotes.
+    List,
 }
 
 pub fn cli_main() {
@@ -104,14 +230,83 @@ fn run(cli: &Cli) -> Result<()> {
         Command::Connectivity { path } => cmd_connectivity(path),
         Command::Schema { path, layer } => cmd_schema(path.as_deref(), layer),
         Command::Query {
-            path,
             xpath,
+            path,
             count,
             text,
-        } => cmd_query(path, xpath, *count, *text),
+            all,
+            rev,
+            branch,
+            db,
+        } => cmd_query(
+            path.as_deref(),
+            xpath,
+            *count,
+            *text,
+            *all,
+            rev.as_deref(),
+            branch.as_deref(),
+            db.as_deref(),
+        ),
         Command::Adopt { path, update } => cmd_adopt(path, *update),
+
+        // Repository commands.
+        Command::Init { path, bare } => {
+            if let Some(bare_path) = bare {
+                crate::repo::init::cmd_init_bare(bare_path)
+            } else {
+                let p = path.as_deref().unwrap_or(std::path::Path::new("."));
+                crate::repo::init::cmd_init(p)
+            }
+        }
+        Command::Add { files } => crate::repo::staging::cmd_add(files),
+        Command::Rm { files, cached } => crate::repo::staging::cmd_rm(files, *cached),
+        Command::Status => crate::repo::staging::cmd_status(),
+        Command::Commit {
+            message,
+            author,
+            email,
+        } => crate::repo::commit::cmd_commit(message, author.as_deref(), email.as_deref()),
+        Command::Log { n } => crate::repo::history::cmd_log(*n),
+        Command::Clone { source, target } => {
+            let default_target;
+            let target = if let Some(t) = target { t } else {
+                // Derive from source file stem.
+                let stem = source
+                    .file_stem().map_or_else(|| "cloned-repo".into(), |s| s.to_string_lossy().into_owned());
+                default_target = PathBuf::from(stem);
+                &default_target
+            };
+            crate::repo::init::cmd_clone(source, target)
+        }
+        Command::Push { remote } => crate::repo::remote::cmd_push(remote.as_deref()),
+        Command::Pull { remote } => crate::repo::remote::cmd_pull(remote.as_deref()),
+        Command::Branch { name, delete } => {
+            crate::repo::branch::cmd_branch(name.as_deref(), delete.as_deref())
+        }
+        Command::Checkout { branch, b, orphan } => {
+            crate::repo::branch::cmd_checkout(branch, *b, *orphan)
+        }
+        Command::Remote { action } => {
+            let remote_action = match action {
+                RemoteAction::Add { name, url } => crate::repo::remote::RemoteAction::Add {
+                    name: name.clone(),
+                    url: url.clone(),
+                },
+                RemoteAction::Remove { name } => {
+                    crate::repo::remote::RemoteAction::Remove { name: name.clone() }
+                }
+                RemoteAction::List => crate::repo::remote::RemoteAction::List,
+            };
+            crate::repo::remote::cmd_remote(remote_action)
+        }
+        Command::Revert { files } => crate::repo::revert::cmd_revert(files),
     }
 }
+
+// -----------------------------------------------------------------------
+// Spec command implementations (unchanged from Phase 1)
+// -----------------------------------------------------------------------
 
 fn cmd_validate(path: &Path) -> Result<()> {
     let result = clayers_spec::validate::validate_spec(path).context("validation failed")?;
@@ -416,17 +611,83 @@ fn cmd_adopt(path: &Path, update: bool) -> Result<()> {
     crate::adopt::adopt(path, update)
 }
 
-fn cmd_query(path: &Path, xpath: &str, count: bool, text: bool) -> Result<()> {
+#[allow(clippy::too_many_arguments)]
+fn cmd_query(
+    path: Option<&Path>,
+    xpath: &str,
+    count: bool,
+    text: bool,
+    _all: bool,
+    rev: Option<&str>,
+    branch_arg: Option<&str>,
+    db_arg: Option<&Path>,
+) -> Result<()> {
+    // Determine mode: spec vs repo.
+    let use_spec = path.is_some_and(|p| p.is_dir() && !p.join(".clayers.db").exists());
+
+    if use_spec {
+        // Fall back to spec query (existing behavior).
+        let path = path.unwrap();
+        let mode = if count {
+            clayers_spec::query::QueryMode::Count
+        } else if text {
+            clayers_spec::query::QueryMode::Text
+        } else {
+            clayers_spec::query::QueryMode::Xml
+        };
+        let result =
+            clayers_spec::query::execute_query(path, xpath, mode).context("query failed")?;
+        print_spec_query_result(result);
+        return Ok(());
+    }
+
+    // Repo query mode.
     let mode = if count {
-        clayers_spec::query::QueryMode::Count
+        clayers_repo::QueryMode::Count
     } else if text {
-        clayers_spec::query::QueryMode::Text
+        clayers_repo::QueryMode::Text
     } else {
-        clayers_spec::query::QueryMode::Xml
+        clayers_repo::QueryMode::Xml
     };
 
-    let result = clayers_spec::query::execute_query(path, xpath, mode).context("query failed")?;
+    // Resolve db_path.
+    let db_path = if let Some(db) = db_arg {
+        db.to_path_buf()
+    } else if let Some(p) = path {
+        if p.extension().is_some_and(|e| e == "db") {
+            p.to_path_buf()
+        } else {
+            p.join(".clayers.db")
+        }
+    } else {
+        let cwd = std::env::current_dir().context("failed to get CWD")?;
+        let (_, db) = crate::repo::discover_repo(&cwd)?;
+        db
+    };
 
+    // Determine revspec: --rev, --branch, or current branch.
+    let conn = crate::repo::open_cli_db(&db_path)?;
+    let current_branch =
+        crate::repo::schema::get_meta(&conn, "current_branch")?.unwrap_or_else(|| "main".into());
+    let revspec = if let Some(r) = rev {
+        r.to_string()
+    } else if let Some(b) = branch_arg {
+        format!("refs/heads/{b}")
+    } else {
+        format!("refs/heads/{current_branch}")
+    };
+
+    crate::repo::block_on(async move {
+        let store = clayers_repo::SqliteStore::open(&db_path)?;
+        let repo = clayers_repo::Repo::init(store);
+        let namespaces = vec![];
+        let result = repo.query(&revspec, xpath, mode, &namespaces).await?;
+        print_repo_query_result(result);
+        Ok(())
+    })
+}
+
+fn print_spec_query_result(result: clayers_spec::query::QueryResult) {
     match result {
         clayers_spec::query::QueryResult::Count(n) => {
             println!("{n}");
@@ -442,6 +703,22 @@ fn cmd_query(path: &Path, xpath: &str, count: bool, text: bool) -> Result<()> {
             }
         }
     }
+}
 
-    Ok(())
+fn print_repo_query_result(result: clayers_repo::QueryResult) {
+    match result {
+        clayers_repo::QueryResult::Count(n) => {
+            println!("{n}");
+        }
+        clayers_repo::QueryResult::Text(texts) => {
+            for t in &texts {
+                println!("{t}");
+            }
+        }
+        clayers_repo::QueryResult::Xml(xmls) => {
+            for x in &xmls {
+                println!("{x}");
+            }
+        }
+    }
 }
