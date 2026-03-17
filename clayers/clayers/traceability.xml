@@ -954,7 +954,7 @@
   <art:mapping id="map-coverage-analysis-types">
     <art:spec-ref node="coverage-analysis-tooling" revision="draft-1" node-hash="sha256:dee55d2d3a3dd8ae7b45326635b0ae886fe0ff1ae00d04a78361e318227a351b"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/coverage.rs">
-      <art:range hash="sha256:38e898585b2b3d3f0565af05530c3ed867f5b8894c5d5f16847e3cf6b0f69c8e" start-line="1" end-line="100"/>
+      <art:range hash="sha256:2b5aa2933b834571b6414a7123fbf6ee29e0b2d8cae697eaecaea9c14c3ac29e" start-line="1" end-line="100"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>CoverageStrength enum, classify_strength, SpecCoverage enum, CoverageReport, FileCoverage, CoveredRange, UncoveredRange, ArtifactCoverage structs.</art:note>
@@ -963,7 +963,7 @@
   <art:mapping id="map-coverage-analysis-main">
     <art:spec-ref node="coverage-analysis-tooling" revision="draft-1" node-hash="sha256:dee55d2d3a3dd8ae7b45326635b0ae886fe0ff1ae00d04a78361e318227a351b"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/coverage.rs">
-      <art:range hash="sha256:995e09f0a33c1a136255aece9f06be6a17b31bf3b7c23f6eafc720c330192e6a" start-line="102" end-line="155"/>
+      <art:range hash="sha256:e036776b60822a7878c7406a03a7b8019ba1194b9f67afb6258cb84073247229" start-line="102" end-line="155"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>analyze_coverage: public entry point that discovers mappings, builds coverage maps, and produces the full CoverageReport.</art:note>
@@ -976,7 +976,7 @@
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/coverage.rs">
-        <art:range hash="sha256:de8b3850e47900b99398661af8ffe4b53cfade161a6833b01ca57138cb2a41e7"
+        <art:range hash="sha256:4203fb8cc7fd07ad61954bc60b0fd7e9e2c002894c1a5c61971ad4b06dca3888"
                    start-line="48" end-line="133"/>
       </art:artifact>
     <art:coverage>full</art:coverage>
@@ -1132,7 +1132,7 @@
   <art:mapping id="map-code-coverage-maps">
     <art:spec-ref node="coverage-analysis-tooling" revision="draft-1" node-hash="sha256:dee55d2d3a3dd8ae7b45326635b0ae886fe0ff1ae00d04a78361e318227a351b"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/coverage.rs">
-      <art:range hash="sha256:961a3e5d55c841009b4f5eb0b394247932aae05abc28827f14e823e0ac2747f6" start-line="156" end-line="254"/>
+      <art:range hash="sha256:a50a66e7e8eb5ec27ac18c103f50aa486286b38f2eca9bb416955be3de697f8f" start-line="156" end-line="254"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>collect_node_ids, count_non_whitespace_lines, FileRangeEntry struct, build_coverage_maps: constructs per-file line-to-mapping coverage maps.</art:note>
@@ -1141,7 +1141,7 @@
   <art:mapping id="map-coverage-single-file">
     <art:spec-ref node="coverage-analysis-tooling" revision="draft-1" node-hash="sha256:dee55d2d3a3dd8ae7b45326635b0ae886fe0ff1ae00d04a78361e318227a351b"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/coverage.rs">
-      <art:range hash="sha256:cfffcff33b905e0398f5d4573f7ad83755cd69fee1d96257442285e33e5aad50" start-line="257" end-line="310"/>
+      <art:range hash="sha256:553cf605e837d0e8c2a092ff1fc7a793d29b7a85619fbc8f7124f74fc094d473" start-line="257" end-line="310"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>compute_single_file_coverage (257-310): per-file coverage computation from line-to-mapping maps.</art:note>
@@ -1150,7 +1150,7 @@
   <art:mapping id="map-coverage-file-iteration">
     <art:spec-ref node="coverage-analysis-tooling" revision="draft-1" node-hash="sha256:dee55d2d3a3dd8ae7b45326635b0ae886fe0ff1ae00d04a78361e318227a351b"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/coverage.rs">
-      <art:range hash="sha256:bbdd784fc0552359f41f3baf64b0ee7a45a802bda6878736dd5b7db5a1a87c43" start-line="313" end-line="405"/>
+      <art:range hash="sha256:10b880364bc86eeaef7a222a14be8ae68ff6f10327f25f2a5a0b37c248ba0aa6" start-line="313" end-line="405"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>compute_file_coverages (313-366) and find_uncovered_ranges (369-405): file iteration and uncovered range detection.</art:note>
@@ -1164,7 +1164,7 @@
     <art:artifact repo="clayers"
               repo-revision="753ad37"
               path="crates/clayers-spec/src/coverage.rs">
-        <art:range hash="sha256:808dc0207125d91e3a9336e7825428a993360201074bde62e4a4f57fe1033787" start-line="62" end-line="95"/>
+        <art:range hash="sha256:ec9974aec98bbf846ec472b281e0cd31f0833008b277d43c4f7765c291d47241" start-line="62" end-line="95"/>
       </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>FileCoverage, CoveredRange, UncoveredRange, ArtifactCoverage struct definitions for code→spec coverage reporting.</art:note>
@@ -1206,7 +1206,7 @@
     <art:artifact repo="clayers"
               repo-revision="753ad37"
               path="crates/clayers/src/cli.rs">
-        <art:range hash="sha256:7f30bead2cc95f260681be3923d163dc7316a7baa0710d46ffde53430923c8b0" start-line="161" end-line="252"/>
+        <art:range hash="sha256:1a7ad0d462ac2a8e6ad472baeff10d606832e46e17dcd17f73eea6c1959ecebb" start-line="161" end-line="252"/>
       </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>cmd_artifact() coverage display and default artifact listing mode. Shows per-mapping strength, unmapped nodes, and per-file code coverage.</art:note>
@@ -1600,7 +1600,7 @@
   <art:mapping id="map-coverage-tests-unit">
     <art:spec-ref node="coverage-analysis-tooling" revision="draft-1" node-hash="sha256:dee55d2d3a3dd8ae7b45326635b0ae886fe0ff1ae00d04a78361e318227a351b"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/coverage.rs">
-      <art:range hash="sha256:ad68ab17c59c21f1b3b1649cc664795dfbd244c393bf512f2f0fcb04cb01d6de" start-line="407" end-line="501"/>
+      <art:range hash="sha256:3c1ee59e6226b3a112df9baa2a6d610d27262e604ec6e3b08310c493d31146be" start-line="407" end-line="501"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>Unit tests: strength classification, whitespace filtering, uncovered range detection, single file coverage computation.</art:note>
@@ -1609,7 +1609,7 @@
   <art:mapping id="map-coverage-tests-maps">
     <art:spec-ref node="coverage-analysis-tooling" revision="draft-1" node-hash="sha256:dee55d2d3a3dd8ae7b45326635b0ae886fe0ff1ae00d04a78361e318227a351b"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/coverage.rs">
-      <art:range hash="sha256:985442a441845d576d46d4b3f0a8d77bf5507da98bb68e79ef9efed946482576" start-line="503" end-line="555"/>
+      <art:range hash="sha256:235fb4d1872004b0dcb7b925fbc595f1798357b8d38b170fe6e808b949dab962" start-line="503" end-line="555"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>build_coverage_maps tests: path filtering, whole-file vs ranged mappings.</art:note>
@@ -1618,7 +1618,7 @@
   <art:mapping id="map-coverage-tests-shipped">
     <art:spec-ref node="coverage-analysis-tooling" revision="draft-1" node-hash="sha256:dee55d2d3a3dd8ae7b45326635b0ae886fe0ff1ae00d04a78361e318227a351b"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/coverage.rs">
-      <art:range hash="sha256:19a2de0ecd8f67ec9e5c43155b9555cb4fbc53b4a5ba23d4aa34cee081b0276d" start-line="557" end-line="613"/>
+      <art:range hash="sha256:06bc85f266ec17848e16d298a8519d7c598d324f83a5938b6be1a08b5984d98b" start-line="557" end-line="613"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>Shipped spec integration tests for coverage analysis.</art:note>

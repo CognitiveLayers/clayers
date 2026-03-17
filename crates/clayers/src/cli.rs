@@ -182,8 +182,8 @@ fn cmd_artifact(
             .context("coverage analysis failed")?;
 
         println!(
-            "coverage: {} ({} nodes, {} mapped)",
-            report.spec_name, report.total_nodes, report.mapped_nodes
+            "coverage: {} ({} nodes, {} mapped, {} exempt)",
+            report.spec_name, report.total_nodes, report.mapped_nodes, report.exempt_nodes
         );
 
         for ac in &report.artifact_coverages {

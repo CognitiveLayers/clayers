@@ -52,6 +52,7 @@ pub struct CoverageReport {
     pub spec_name: String,
     pub total_nodes: usize,
     pub mapped_nodes: usize,
+    pub exempt_nodes: usize,
     pub unmapped_nodes: Vec<String>,
     pub artifact_coverages: Vec<ArtifactCoverage>,
     /// Per-file code coverage (code→spec direction).
@@ -110,13 +111,14 @@ pub fn analyze_coverage(
 
     let mut all_node_ids = std::collections::HashSet::new();
     let mut mapped_node_ids = std::collections::HashSet::new();
+    let mut exempt_node_ids = std::collections::HashSet::new();
     let mut artifact_coverages = Vec::new();
     let mut artifact_coverages_raw = Vec::new();
 
     for index_path in &index_files {
         let file_paths = crate::discovery::discover_spec_files(index_path)?;
 
-        // Collect all node IDs
+        // Collect all node IDs and exempt declarations
         for file_path in &file_paths {
             let content = std::fs::read_to_string(file_path)?;
             let mut xot = xot::Xot::new();
@@ -125,7 +127,12 @@ pub fn analyze_coverage(
             let id_attr = xot.add_name("id");
             let xml_ns = xot.add_namespace(crate::namespace::XML);
             let xml_id_attr = xot.add_name_ns("id", xml_ns);
-            collect_node_ids(&xot, root, id_attr, xml_id_attr, &mut all_node_ids);
+            let art_ns = xot.add_namespace(crate::namespace::ARTIFACT);
+            collect_node_ids(&xot, root, id_attr, xml_id_attr, art_ns, &mut all_node_ids);
+
+            let exempt_tag = xot.add_name_ns("exempt", art_ns);
+            let node_attr = xot.add_name("node");
+            collect_exempt_nodes(&xot, root, exempt_tag, node_attr, &mut exempt_node_ids);
         }
 
         // Collect artifact mappings
@@ -155,7 +162,10 @@ pub fn analyze_coverage(
         artifact_coverages_raw.extend(mappings);
     }
 
-    let unmapped: Vec<String> = all_node_ids.difference(&mapped_node_ids).cloned().collect();
+    // Exempt nodes count as covered (not unmapped)
+    let covered: std::collections::HashSet<_> =
+        mapped_node_ids.union(&exempt_node_ids).cloned().collect();
+    let unmapped: Vec<String> = all_node_ids.difference(&covered).cloned().collect();
 
     // Code→spec direction: per-file line coverage
     let repo_root = artifact::find_repo_root(spec_dir);
@@ -166,10 +176,14 @@ pub fn analyze_coverage(
         code_path_filter,
     );
 
+    // Count exempt nodes that are not also mapped (avoid double-counting)
+    let exempt_only: usize = exempt_node_ids.difference(&mapped_node_ids).count();
+
     Ok(CoverageReport {
         spec_name,
         total_nodes: all_node_ids.len(),
         mapped_nodes: mapped_node_ids.len(),
+        exempt_nodes: exempt_only,
         unmapped_nodes: unmapped,
         artifact_coverages,
         file_coverages,
@@ -181,18 +195,46 @@ fn collect_node_ids(
     node: xot::Node,
     id_attr: xot::NameId,
     xml_id_attr: xot::NameId,
+    art_ns: xot::NamespaceId,
     ids: &mut std::collections::HashSet<String>,
 ) {
     if xot.is_element(node) {
-        if let Some(id) = xot.element(node).and_then(|e| e.get_attribute(id_attr)) {
-            ids.insert(id.to_string());
-        }
-        if let Some(xml_id) = xot.element(node).and_then(|e| e.get_attribute(xml_id_attr)) {
-            ids.insert(xml_id.to_string());
+        // Skip artifact-namespace elements (mapping, exempt, spec-ref, etc.)
+        // — they are traceability infrastructure, not content nodes.
+        let is_artifact = xot
+            .element(node)
+            .is_some_and(|e| xot.namespace_for_name(e.name()) == art_ns);
+        if !is_artifact {
+            if let Some(id) = xot.element(node).and_then(|e| e.get_attribute(id_attr)) {
+                ids.insert(id.to_string());
+            }
+            if let Some(xml_id) = xot.element(node).and_then(|e| e.get_attribute(xml_id_attr)) {
+                ids.insert(xml_id.to_string());
+            }
         }
     }
     for child in xot.children(node) {
-        collect_node_ids(xot, child, id_attr, xml_id_attr, ids);
+        collect_node_ids(xot, child, id_attr, xml_id_attr, art_ns, ids);
+    }
+}
+
+fn collect_exempt_nodes(
+    xot: &xot::Xot,
+    node: xot::Node,
+    exempt_tag: xot::NameId,
+    node_attr: xot::NameId,
+    exempt_ids: &mut std::collections::HashSet<String>,
+) {
+    if xot.is_element(node)
+        && xot
+            .element(node)
+            .is_some_and(|e| e.name() == exempt_tag)
+        && let Some(ref_node) = xot.element(node).and_then(|e| e.get_attribute(node_attr))
+    {
+        exempt_ids.insert(ref_node.to_string());
+    }
+    for child in xot.children(node) {
+        collect_exempt_nodes(xot, child, exempt_tag, node_attr, exempt_ids);
     }
 }
 
