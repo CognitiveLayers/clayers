@@ -1,238 +1,239 @@
-# Cognitive Layersifications
+# Clayers: Cognitive Layers for Structured Specifications
+
+Version control and tooling for layered XML specifications with
+machine-verifiable traceability between specs and code.
 
 ## The Problem
 
-Software code is a degraded version of intent. Specifications are either
-implicit (in developers' heads), scattered across disconnected documentation,
-or maintained in heavyweight tools that drift from reality. The result:
-code becomes the de facto spec, but code only captures *how*, not *why*.
+Software specifications are either implicit (in developers' heads), scattered
+across disconnected documentation, or maintained in heavyweight tools that
+drift from reality. Code becomes the de facto spec, but code only captures
+*how*, not *why*.
 
-We keep specifications implicit or outdated, then wonder why systems diverge
-from their original intent.
+Tracking XML specifications in git compounds the problem: git treats XML as
+opaque text, producing unreadable diffs, meaningless merge conflicts, and
+no structural awareness.
 
-## Core Thesis
+## What Clayers Does
 
-Instead of prompting LLMs (or developers) to iterate directly on code, iterate
-on the *specification*. The spec is the living source of truth for software
-construction. Code is a produced artifact that implements the spec, and tools
-can verify the mapping between them.
+Clayers provides two things:
 
-The specification matures over time: it starts as prose and gains precision
-through additional semantic layers. Each layer adds meaning without replacing
-the previous one.
+1. **A layered XML format** for writing specifications where each concern
+   (prose, terminology, relations, artifact mappings, etc.) lives in its own
+   namespace and can evolve independently.
 
-## Approach: Layered XML Documents
+2. **A content-addressed version control system** purpose-built for XML. It
+   decomposes documents into a Merkle DAG of XML Infoset nodes, enabling
+   structural diffs, element-level deduplication, and drift detection between
+   specs and code.
 
-The format is a set of XML documents, each representing a distinct layer of
-meaning. Every layer has its own XML Schema 1.1 namespace and schema. Layers
-are separate files for:
+## Quick Start
 
-- **File organization**: each layer can be versioned, reviewed, and edited
-  independently
-- **Context size control**: an LLM updating artifact mappings doesn't need
-  to load the prose layer
-- **Independent evolution**: prose can go through ten revisions while the
-  artifact mapping stays pinned
+```bash
+# Install
+cargo install --path crates/clayers
 
-All layers share a common ID space (enforced by the index) and reference each
-other by node ID. Every non-index layer file declares which index it belongs
-to via a back-reference attribute, making each file self-describing.
+# Bootstrap clayers in your project
+clayers adopt .
+
+# Validate a specification
+clayers validate clayers/my-project/
+
+# Check for drift between spec and code
+clayers artifact --drift clayers/my-project/
+```
+
+### Repository Workflow
+
+```bash
+# Initialize an XML repository
+clayers init
+
+# Stage and commit XML files
+clayers add *.xml
+clayers commit -m "initial specification"
+
+# Branch, modify, commit
+clayers checkout -b feature-auth
+# ... edit XML files ...
+clayers add auth.xml
+clayers commit -m "add authentication spec"
+
+# Push to a bare repository
+clayers init --bare /path/to/shared.db
+clayers remote add origin /path/to/shared.db
+clayers push origin
+
+# Clone and query
+clayers clone /path/to/shared.db my-copy
+cd my-copy
+clayers query '//trm:term/trm:name' --text
+```
+
+## Spec Commands
+
+| Command | Description |
+|---------|-------------|
+| `validate <path>` | Validate spec structure and cross-layer references |
+| `artifact <path>` | List artifact mappings |
+| `artifact --drift <path>` | Detect spec/code drift via content hashes |
+| `artifact --coverage <path>` | Analyze spec-to-code coverage |
+| `artifact --fix-node-hash <path>` | Recompute spec-side hashes after editing |
+| `artifact --fix-artifact-hash <path>` | Recompute code-side hashes after editing |
+| `connectivity <path>` | Graph metrics: density, hubs, bridges, cycles |
+| `schema [path]` | Export XSD schemas as RELAX NG Compact |
+| `query <xpath> [path]` | XPath query against assembled spec |
+| `adopt [path]` | Bootstrap clayers in a project |
+
+## Repository Commands
+
+| Command | Description |
+|---------|-------------|
+| `init [path]` | Create a new repository (`.clayers.db`) |
+| `init --bare <file.db>` | Create a bare repository (no working copy) |
+| `clone <source> [target]` | Clone a bare repository |
+| `add <files...>` | Stage files for commit (`.` for all XML) |
+| `rm <files...>` | Stage deletion (or `--cached` to unstage) |
+| `status` | Show staged, modified, and untracked files |
+| `commit -m <msg>` | Record staged changes as a commit |
+| `log [-n N]` | Show commit history |
+| `branch [name]` | List or create branches |
+| `branch --delete <name>` | Delete a branch |
+| `checkout <branch>` | Switch branches (updates files on disk) |
+| `checkout -b <branch>` | Create and switch to a new branch |
+| `checkout --orphan <branch>` | Create a branch with no history |
+| `remote add <name> <url>` | Add a remote |
+| `remote remove <name>` | Remove a remote |
+| `remote list` | List remotes |
+| `push [remote]` | Push to a remote |
+| `pull [remote]` | Pull from a remote |
+| `revert <files...>` | Restore files to committed state |
+| `query <xpath>` | XPath query against committed repository |
+
+### Author Resolution
+
+Commit author is resolved in order: `--author`/`--email` flags,
+`CLAYERS_AUTHOR_NAME`/`CLAYERS_AUTHOR_EMAIL` environment variables,
+`git config user.name`/`user.email`.
+
+### Query Modes
+
+`query` works in two modes:
+
+- **Repo mode** (default): queries all documents in the current branch's tree.
+  Supports `--count`, `--text`, `--rev`, `--branch`, `--all`, `--db`.
+- **Spec mode**: when given a directory path, falls back to spec-level query
+  against the assembled combined document.
 
 ## Layers
 
-| Layer | Purpose | Rate of change |
-|-------|---------|----------------|
-| **Index** | File manifest, defines spec boundary and ID uniqueness domain | When spec structure changes |
-| **Revision** | Named snapshots for temporal anchoring of artifact mappings | Per-release/milestone |
-| **Prose** | DITA-style technical writing elements (the content itself) | When humans refine wording |
-| **Terminology** | Controlled vocabulary with canonical definitions | When domain understanding evolves |
-| **Organization** | Topic typing: concept, task, reference (inspired by DITA) | When spec structure changes |
-| **Relation** | Typed semantic links within and across specs | When architecture evolves |
-| **Artifact Mapping** | Code traceability with drift detection | When code or spec changes |
-| **LLM** | Machine-readable descriptions for language model consumption | When schemas or guidance evolve |
+| Layer | Namespace | Purpose |
+|-------|-----------|---------|
+| **Index** | `urn:clayers:index` | File manifest, ID uniqueness domain |
+| **Revision** | `urn:clayers:revision` | Named snapshots for temporal anchoring |
+| **Prose** | `urn:clayers:prose` | DITA-style technical writing (sections, paragraphs, steps) |
+| **Terminology** | `urn:clayers:terminology` | Controlled vocabulary with canonical definitions |
+| **Organization** | `urn:clayers:organization` | Topic typing: concept, task, reference |
+| **Relation** | `urn:clayers:relation` | Typed semantic links (depends-on, refines, implements, ...) |
+| **Decision** | `urn:clayers:decision` | Decision records |
+| **Source** | `urn:clayers:source` | External references and citations |
+| **Plan** | `urn:clayers:plan` | Implementation plans with acceptance criteria |
+| **Artifact** | `urn:clayers:artifact` | Code traceability with drift detection |
+| **LLM** | `urn:clayers:llm` | Machine-readable descriptions for LLM consumption |
 
-### Layer Interactions
+Layers are orthogonal: editing prose doesn't require touching artifact
+mappings. All layers share a common ID space (enforced by the index) and
+reference each other by node ID.
 
-The prose layer borrows DITA's *internal writing elements*: paragraphs,
-ordered steps, definition lists, code examples, notes, cross-references. It
-defines how to write clear technical content.
+## Architecture
 
-The organization layer borrows DITA's *topic specialization*: it classifies
-what kind of thing each node is (concept, task, reference). This is separate
-from prose because *what you're writing about* is orthogonal to *how you write
-it*.
+The Rust workspace contains four crates:
 
-The terminology layer provides a controlled vocabulary. Other layers reference
-term IDs for precision: when prose says "settlement", it links to the
-canonical definition.
+```
+crates/
+  clayers-xml/     XML utilities: C14N, content hashing, OASIS catalog, RNC export
+  clayers-repo/    Content-addressed Merkle DAG for XML with async SQLite storage
+  clayers-spec/    Spec-aware tooling: validation, drift, coverage, connectivity
+  clayers/         CLI binary combining spec and repository commands
+```
 
-The relation layer expresses typed, directional links: `precedes`,
-`depends-on`, `refines`, `conflicts-with`, `implements`, `constrains`,
-`reverses`. Relations can cross spec boundaries using a three-coordinate
-address (spec + revision + node ID).
+### Object Model
 
-### The LLM Layer
+The repository stores XML as a content-addressed Merkle DAG:
 
-The LLM layer embeds descriptions optimized for language model consumption.
-It operates in two modes:
+```
+Branch ("main")
+  -> Commit (author, timestamp, message)
+    -> Tree { "overview.xml": hash, "auth.xml": hash, ... }
+      -> Document (root element hash)
+        -> Element (local name, namespace, prefix, attributes, children)
+          -> Text / Comment / PI (leaf nodes)
+```
 
-- **Out-of-band** (`llm.xml`): a layer file containing `<node ref="...">` elements
-  that describe spec nodes (keyref-validated) and `<schema namespace="...">` elements
-  that describe schemas or specific schema elements by namespace URI. This follows
-  the standard layer-file pattern with independent evolution.
+Each object's identity is `SHA-256(ExclusiveC14N(xml_representation))`.
+Namespace prefixes are preserved through the import/export cycle for
+faithful round-tripping.
 
-- **In-band** (`<llm:describe>` inside `<xs:appinfo>`): descriptions placed directly
-  inside XSD schema files, co-located with the elements they describe. Any XSD can
-  import the LLM namespace and add descriptions to its annotations.
+### Storage
 
-The layer is self-describing: llm.xsd contains in-band descriptions of its own
-elements, and the clayers's llm.xml includes out-of-band descriptions of all
-schemas including itself.
+Repositories use a single `.clayers.db` SQLite file containing:
+- **Object store**: content-addressed blobs (clayers-repo)
+- **Ref store**: branch and tag pointers (clayers-repo)
+- **CLI tables**: `cli_meta`, `working_copy`, `staging`, `remotes`
 
-### The Artifact Mapping Layer
-
-This is the most critical layer. It maps produced artifacts (files, file
-segments) to spec nodes at specific revisions. Each mapping pins:
-
-- **Spec side**: node ID + revision name + hash of the C14N form of the node
-- **Artifact side**: repo + repo revision + file path + zero or more child
-  `<range>` elements, each carrying a content hash and optional addressing
-  (line range, byte offsets, or line+column). Multiple ranges per artifact
-  allow mapping to several non-contiguous regions of the same file.
-
-The hashes enable **drift detection**. When a spec node changes, its hash
-changes, and tooling can flag artifact mappings that reference the old hash.
-When code changes, its content hash changes, and tooling can flag spec nodes
-whose implementation has diverged.
-
-Coverage is explicit: `full`, `partial`, or `none`. This makes
-underimplementation directly queryable. Overimplementation (code with no
-spec mapping) is detected by tooling that diffs the artifact set against
-the spec node set.
-
-Artifact addressing uses file paths at a named repository revision with
-content hashes. No AST addressing in the schema itself. This is VCS-agnostic:
-the format doesn't assume git, even if git is the first backend.
-
-Source fragment canonicalization is intentionally deferred. For now, just
-hashing the selected range at the current revision. False positives (cosmetic
-code changes flagged as drift) are a review burden, not a correctness problem.
-
-## Cross-Document References
-
-XSD `xs:IDREF` is strictly single-document scoped in both XSD 1.0 and 1.1.
-Since each layer is a separate document, cross-layer references use
-`xs:string` with tooling-level validation.
-
-The validator collects all IDs across all layer files (discovered via the
-index manifest) and verifies every reference attribute resolves. This is
-equivalent to IDREF enforcement but operates across documents.
-
-Schematron could provide declarative cross-document rules (via XSLT's
-`document()` function), but current Python Schematron libraries
-(`pyschematron`) don't support `document()`. Schematron is parked for
-future use with an XSLT-based processor.
-
-## Workflow Vision
-
-The primary workflow is co-evolution:
-
-1. **LLM proposes spec changes**, human approves
-2. **Code follows** from approved spec
-3. **Tooling detects drift** between spec and code
-4. **Cycle repeats**
-
-Other workflows are possible:
-
-- **Forward engineering**: human writes spec, LLM generates code
-- **Bootstrapping**: LLM reads existing code and synthesizes a draft spec.
-  The draft may be 60% accurate, but correcting is dramatically easier than
-  creating from scratch. Each correction makes the spec more authoritative.
-
-The bootstrapping story is the adoption killer feature. Nobody will rewrite
-their existing system's spec from scratch. But if an LLM can produce a draft
-that humans correct, adoption becomes incremental.
-
-## Validation Tooling
-
-The CLI (`clayers-cli`) is a PEP 723 script using `xmlschema`, `rich`,
-and `click`. Single-pass validation:
-
-The validator assembles a combined document per spec (wrapping all layer
-root elements in a `<cmb:spec>` element) and validates against a
-dynamically generated combined schema. Layer schemas declare their content
-elements via `spec:content-element` appinfo annotations and their keyrefs
-via `spec:keyref` annotations. The validator scans all `.xsd` files,
-collects these annotations, and generates the combined schema at validation
-time. This handles both structural validation and cross-layer referential
-integrity (via `xs:unique`/`xs:keyref`) in one pass.
-
-Spec discovery is driven by the `idx:index` attribute on each layer file,
-not by filename conventions. The validator resolves the index from any file
-it's given. Namespace prefixes are discovered from all `.xsd` files at
-startup, not hardcoded.
+## Development
 
 ```bash
-# Validate a spec directory
-uv run --script docs/ideas/clayers/clayers-cli validate examples/payment-processing/
+# Build
+cargo build --workspace
 
-# Validate a single file (resolves spec from idx:index attribute)
-uv run --script docs/ideas/clayers/clayers-cli validate examples/payment-processing/overview.xml
+# Run tests
+cargo test --workspace
 
-# Fix node-hash attributes in artifact mappings (C14N + SHA-256)
-uv run --script docs/ideas/clayers/clayers-cli artifact --fix-node-hash clayers/clayers/
+# Install from source
+cargo install --path crates/clayers
+```
 
-# Fix artifact content hashes in range elements
-uv run --script docs/ideas/clayers/clayers-cli artifact --fix-artifact-hash clayers/clayers/
+## Drift Detection Workflow
 
-# Check for spec-side and artifact-side drift (read-only, exit 0=clean, 1=drift)
-uv run --script docs/ideas/clayers/clayers-cli artifact --drift clayers/clayers/
+```bash
+# After editing spec prose
+clayers validate clayers/my-project/
+clayers artifact --fix-node-hash clayers/my-project/
+clayers artifact --drift clayers/my-project/
+
+# After editing code
+clayers artifact --drift clayers/my-project/
+# ... update line ranges in artifact mappings if needed ...
+clayers artifact --fix-artifact-hash clayers/my-project/
+clayers artifact --drift clayers/my-project/
+
+# Check coverage
+clayers artifact --coverage clayers/my-project/
 ```
 
 ## File Structure
 
 ```
 clayers/
-  clayers-cli                             # PEP 723 CLI (validate, ...)
-  README.md                                  # This file
-  schemas/                                   # Format definition
-    spec.xsd                                 # Universal root element + annotation markers
-    index.xsd                                # File manifest
-    revision.xsd                             # Named snapshots
-    terminology.xsd                          # Controlled vocabulary
-    prose.xsd                                # DITA-style writing elements
-    organization.xsd                         # Topic typing
-    relation.xsd                             # Semantic links
-    artifact.xsd                             # Code traceability
-    llm.xsd                                  # LLM descriptions (in-band + out-of-band)
-  clayers/                                    # Specification instances
-    clayers/                                 # Self-referential spec
-      index.xml                              # Manifest
-      revision.xml                           # "draft-1" snapshot
-      overview.xml                           # Format intro, layers, core vocabulary
-      validation.xml                         # Combined documents, cross-layer integrity
-      traceability.xml                       # Artifact mapping, drift, hash tooling
-      schema.xml                             # XSD design, extensibility, index, revisions
-      descriptions.xml                       # LLM layer: in-band/out-of-band descriptions
-  examples/                                  # Example specifications
-    payment-processing/                      # Fintech domain example
-      index.xml                              # Manifest
-      revision.xml                           # "draft-1" snapshot
-      overview.xml                           # Payment processing intro + core terms
-      authorization.xml                      # Auth flow, merchants, acquirers, issuers
-      settlement.xml                         # Capture, clearing, settlement
-      disputes.xml                           # Chargebacks and reversals
+  schemas/                    XSD 1.1 schemas (one per layer)
+    catalog.xml               OASIS XML Catalog (namespace-to-file mapping)
+    spec.xsd                  Root element, annotation markers
+    index.xsd                 File manifest
+    prose.xsd                 Writing elements
+    terminology.xsd           Controlled vocabulary
+    organization.xsd          Topic typing
+    relation.xsd              Semantic links
+    decision.xsd              Decision records
+    source.xsd                External references
+    plan.xsd                  Implementation plans
+    artifact.xsd              Code traceability
+    llm.xsd                   LLM descriptions
+    revision.xsd              Named snapshots
+    repository.xsd            Repository objects (commits, trees, tags)
+  clayers/                    Specification instances
+    clayers/                  Self-referential spec (describes the format itself)
+  examples/                   Example specifications
+    payment-processing/       Fintech domain example
+  crates/                     Rust workspace
 ```
-
-## What's Next
-
-This is a prototype. Areas to explore:
-
-- Additional layers for more semantic precision (constraints, invariants,
-  state machines, data models)
-- Tooling for spec synthesis from existing codebases
-- LLM integration for spec/code co-evolution workflows
-- Schematron rules for declarative cross-layer constraints (when a capable
-  processor is available)
-- Spec diffing and merge tooling
-- Visualization of spec coverage and drift
