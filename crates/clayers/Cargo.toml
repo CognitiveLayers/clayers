@@ -14,7 +14,7 @@ clayers-spec = { path = "../clayers-spec" }
 clayers-repo = { path = "../clayers-repo", features = ["sqlite"] }
 clayers-xml = { path = "../clayers-xml" }
 tokio = { version = "1", features = ["rt", "rt-multi-thread"] }
-rusqlite = { version = "0.35", features = ["bundled"] }
+rusqlite = { version = "0.39", features = ["bundled"] }
 
 [dev-dependencies]
 assert_cmd = "2"
