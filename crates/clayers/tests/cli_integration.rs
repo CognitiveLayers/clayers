@@ -1461,6 +1461,56 @@ fn clone_creates_working_copy() {
 }
 
 #[test]
+fn clone_status_is_clean() {
+    let tmp = TempDir::new().unwrap();
+    let src = tmp.path().join("src");
+    let bare = tmp.path().join("bare.db");
+    let cloned = tmp.path().join("cloned");
+
+    std::fs::create_dir_all(&src).unwrap();
+    clayers().args(["init"]).current_dir(&src).assert().success();
+    std::fs::write(src.join("doc.xml"), "<root>hello</root>").unwrap();
+    clayers()
+        .args(["add", "doc.xml"])
+        .current_dir(&src)
+        .assert()
+        .success();
+    clayers()
+        .args(["commit", "-m", "init"])
+        .envs(author_env())
+        .current_dir(&src)
+        .assert()
+        .success();
+
+    clayers()
+        .args(["init", "--bare", bare.to_str().unwrap()])
+        .assert()
+        .success();
+    clayers()
+        .args(["remote", "add", "origin", bare.to_str().unwrap()])
+        .current_dir(&src)
+        .assert()
+        .success();
+    clayers()
+        .args(["push", "origin"])
+        .current_dir(&src)
+        .assert()
+        .success();
+
+    clayers()
+        .args(["clone", bare.to_str().unwrap(), cloned.to_str().unwrap()])
+        .assert()
+        .success();
+
+    // After clone, status must show clean working tree.
+    let out = stdout_of(clayers().args(["status"]).current_dir(&cloned));
+    assert!(
+        out.contains("nothing to commit"),
+        "cloned repo should have clean status, got:\n{out}"
+    );
+}
+
+#[test]
 fn clone_preserves_history() {
     let tmp = TempDir::new().unwrap();
     let src = tmp.path().join("src");

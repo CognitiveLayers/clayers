@@ -139,6 +139,7 @@ pub fn cmd_clone(source: &Path, target: &PathBuf) -> Result<()> {
     if let Some(branch) = default_branch {
         super::schema::set_meta(&conn, "current_branch", &branch)?;
         export_working_copy(&dst_db, target, &branch)?;
+        super::branch::refresh_working_copy_table(&conn, &dst_db, &branch)?;
     }
 
     println!("Cloned into {}", target.display());

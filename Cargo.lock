@@ -293,8 +293,11 @@ dependencies = [
  "clayers-xml",
  "predicates",
  "rusqlite",
+ "serde",
+ "serde_json",
  "tempfile",
  "tokio",
+ "xot",
 ]
 
 [[package]]
