@@ -119,6 +119,7 @@ impl<S: ObjectStore + RefStore> StoreTester<S> {
             local_name: "test".into(),
             namespace_uri: None,
             namespace_prefix: None,
+            extra_namespaces: vec![],
             attributes: vec![],
             children: vec![],
             inclusive_hash: inclusive,
@@ -210,6 +211,7 @@ impl<S: ObjectStore + RefStore> StoreTester<S> {
                     local_name: "root".into(),
                     namespace_uri: Some("urn:test".into()),
                     namespace_prefix: None,
+                    extra_namespaces: vec![],
                     attributes: vec![Attribute {
                         local_name: "id".into(),
                         namespace_uri: None,
@@ -222,7 +224,7 @@ impl<S: ObjectStore + RefStore> StoreTester<S> {
             ),
             (
                 ContentHash::from_canonical(b"rt_doc"),
-                Object::Document(DocumentObject { root: h }),
+                Object::Document(DocumentObject { root: h, prologue: vec![] }),
             ),
             (
                 ContentHash::from_canonical(b"rt_commit"),
@@ -272,13 +274,14 @@ impl<S: ObjectStore + RefStore> StoreTester<S> {
             local_name: "root".into(),
             namespace_uri: None,
             namespace_prefix: None,
+            extra_namespaces: vec![],
             attributes: vec![],
             children: vec![text_hash],
             inclusive_hash: elem_hash,
         };
 
         let doc_hash = ContentHash::from_canonical(b"st_doc");
-        let doc = DocumentObject { root: elem_hash };
+        let doc = DocumentObject { root: elem_hash, prologue: vec![] };
 
         let mut tx = self.store.transaction().await.unwrap();
         tx.put(text_hash, Object::Text(text)).await.unwrap();
@@ -311,13 +314,14 @@ impl<S: ObjectStore + RefStore> StoreTester<S> {
             local_name: "root".into(),
             namespace_uri: None,
             namespace_prefix: None,
+            extra_namespaces: vec![],
             attributes: vec![],
             children: vec![text_hash],
             inclusive_hash: elem_hash,
         };
 
         let doc_hash = ContentHash::from_canonical(b"stc_doc");
-        let doc = DocumentObject { root: elem_hash };
+        let doc = DocumentObject { root: elem_hash, prologue: vec![] };
 
         let tree_hash = ContentHash::from_canonical(b"stc_tree");
         let tree = TreeObject::new(vec![
@@ -369,6 +373,7 @@ impl<S: ObjectStore + RefStore> StoreTester<S> {
             local_name: "a".into(),
             namespace_uri: None,
             namespace_prefix: None,
+            extra_namespaces: vec![],
             attributes: vec![],
             children: vec![shared_text_hash],
             inclusive_hash: left_hash,
@@ -379,6 +384,7 @@ impl<S: ObjectStore + RefStore> StoreTester<S> {
             local_name: "b".into(),
             namespace_uri: None,
             namespace_prefix: None,
+            extra_namespaces: vec![],
             attributes: vec![],
             children: vec![shared_text_hash],
             inclusive_hash: right_hash,
@@ -389,13 +395,14 @@ impl<S: ObjectStore + RefStore> StoreTester<S> {
             local_name: "root".into(),
             namespace_uri: None,
             namespace_prefix: None,
+            extra_namespaces: vec![],
             attributes: vec![],
             children: vec![left_hash, right_hash],
             inclusive_hash: root_hash,
         };
 
         let doc_hash = ContentHash::from_canonical(b"diamond_doc");
-        let doc = DocumentObject { root: root_hash };
+        let doc = DocumentObject { root: root_hash, prologue: vec![] };
 
         let mut tx = self.store.transaction().await.unwrap();
         tx.put(shared_text_hash, Object::Text(shared_text)).await.unwrap();
@@ -433,11 +440,12 @@ impl<S: ObjectStore + RefStore> StoreTester<S> {
             local_name: "r".into(),
             namespace_uri: None,
             namespace_prefix: None,
+            extra_namespaces: vec![],
             attributes: vec![],
             children: vec![text_hash],
             inclusive_hash: elem_hash,
         })).await.unwrap();
-        tx.put(doc_hash, Object::Document(DocumentObject { root: elem_hash })).await.unwrap();
+        tx.put(doc_hash, Object::Document(DocumentObject { root: elem_hash, prologue: vec![] })).await.unwrap();
         tx.put(tree_hash, Object::Tree(TreeObject::new(vec![
             TreeEntry { path: "doc.xml".into(), document: doc_hash },
         ]))).await.unwrap();
@@ -488,11 +496,12 @@ impl<S: ObjectStore + RefStore> StoreTester<S> {
             local_name: "root".into(),
             namespace_uri: None,
             namespace_prefix: None,
+            extra_namespaces: vec![],
             attributes: vec![],
             children: vec![text_hash, comment_hash, pi_hash],
             inclusive_hash: elem_hash,
         })).await.unwrap();
-        tx.put(doc_hash, Object::Document(DocumentObject { root: elem_hash })).await.unwrap();
+        tx.put(doc_hash, Object::Document(DocumentObject { root: elem_hash, prologue: vec![] })).await.unwrap();
         tx.commit().await.unwrap();
 
         let pairs: Vec<(ContentHash, Object)> = self
@@ -520,11 +529,12 @@ impl<S: ObjectStore + RefStore> StoreTester<S> {
             local_name: "root".into(),
             namespace_uri: None,
             namespace_prefix: None,
+            extra_namespaces: vec![],
             attributes: vec![],
             children: vec![missing_child],
             inclusive_hash: elem_hash,
         })).await.unwrap();
-        tx.put(doc_hash, Object::Document(DocumentObject { root: elem_hash })).await.unwrap();
+        tx.put(doc_hash, Object::Document(DocumentObject { root: elem_hash, prologue: vec![] })).await.unwrap();
         tx.commit().await.unwrap();
 
         let results: Vec<crate::error::Result<(ContentHash, Object)>> = self
@@ -547,6 +557,7 @@ impl<S: ObjectStore + RefStore> StoreTester<S> {
             local_name: "empty".into(),
             namespace_uri: None,
             namespace_prefix: None,
+            extra_namespaces: vec![],
             attributes: vec![Attribute {
                 local_name: "id".into(),
                 namespace_uri: None,
@@ -556,7 +567,7 @@ impl<S: ObjectStore + RefStore> StoreTester<S> {
             children: vec![],
             inclusive_hash: elem_hash,
         })).await.unwrap();
-        tx.put(doc_hash, Object::Document(DocumentObject { root: elem_hash })).await.unwrap();
+        tx.put(doc_hash, Object::Document(DocumentObject { root: elem_hash, prologue: vec![] })).await.unwrap();
         tx.commit().await.unwrap();
 
         let pairs: Vec<(ContentHash, Object)> = self
@@ -601,22 +612,24 @@ impl<S: ObjectStore + RefStore> StoreTester<S> {
             local_name: "r".into(),
             namespace_uri: None,
             namespace_prefix: None,
+            extra_namespaces: vec![],
             attributes: vec![],
             children: vec![text1],
             inclusive_hash: elem1,
         })).await.unwrap();
-        tx.put(doc1, Object::Document(DocumentObject { root: elem1 })).await.unwrap();
+        tx.put(doc1, Object::Document(DocumentObject { root: elem1, prologue: vec![] })).await.unwrap();
 
         tx.put(text2, Object::Text(TextObject { content: "two".into() })).await.unwrap();
         tx.put(elem2, Object::Element(ElementObject {
             local_name: "r".into(),
             namespace_uri: None,
             namespace_prefix: None,
+            extra_namespaces: vec![],
             attributes: vec![],
             children: vec![text2],
             inclusive_hash: elem2,
         })).await.unwrap();
-        tx.put(doc2, Object::Document(DocumentObject { root: elem2 })).await.unwrap();
+        tx.put(doc2, Object::Document(DocumentObject { root: elem2, prologue: vec![] })).await.unwrap();
 
         tx.put(tree_hash, Object::Tree(TreeObject::new(vec![
             TreeEntry { path: "a.xml".into(), document: doc1 },
@@ -653,13 +666,14 @@ impl<S: ObjectStore + RefStore> StoreTester<S> {
             local_name: "r".into(),
             namespace_uri: None,
             namespace_prefix: None,
+            extra_namespaces: vec![],
             attributes: vec![],
             children: vec![shared_text],
             inclusive_hash: shared_elem,
         })).await.unwrap();
         // Both docs point to same root element.
-        tx.put(doc1, Object::Document(DocumentObject { root: shared_elem })).await.unwrap();
-        tx.put(doc2, Object::Document(DocumentObject { root: shared_elem })).await.unwrap();
+        tx.put(doc1, Object::Document(DocumentObject { root: shared_elem, prologue: vec![] })).await.unwrap();
+        tx.put(doc2, Object::Document(DocumentObject { root: shared_elem, prologue: vec![] })).await.unwrap();
         tx.put(tree_hash, Object::Tree(TreeObject::new(vec![
             TreeEntry { path: "a.xml".into(), document: doc1 },
             TreeEntry { path: "b.xml".into(), document: doc2 },

@@ -279,6 +279,7 @@ mod tests {
             local_name: "root".into(),
             namespace_uri: None,
             namespace_prefix: None,
+            extra_namespaces: vec![],
             attributes: vec![],
             children: vec![text_hash],
             inclusive_hash: elem_hash,
@@ -286,7 +287,7 @@ mod tests {
 
         let doc_id: Vec<u8> = id.iter().chain(b"doc").copied().collect();
         let doc_hash = ContentHash::from_canonical(&doc_id);
-        let doc = DocumentObject { root: elem_hash };
+        let doc = DocumentObject { root: elem_hash, prologue: vec![] };
 
         let tree_id: Vec<u8> = id.iter().chain(b"tree").copied().collect();
         let tree_hash = ContentHash::from_canonical(&tree_id);
@@ -525,13 +526,14 @@ mod tests {
             local_name: "root".into(),
             namespace_uri: None,
             namespace_prefix: None,
+            extra_namespaces: vec![],
             attributes: vec![],
             children: vec![comment_hash, pi_hash],
             inclusive_hash: elem_hash,
         };
 
         let doc_hash = ContentHash::from_canonical(b"doc-mixed");
-        let doc = DocumentObject { root: elem_hash };
+        let doc = DocumentObject { root: elem_hash, prologue: vec![] };
 
         let tree_hash = ContentHash::from_canonical(b"tree-mixed");
         let tree = TreeObject::new(vec![

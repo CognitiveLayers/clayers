@@ -46,6 +46,10 @@ pub struct ElementObject {
     /// The namespace prefix used in the original XML (e.g. "app" for `<app:item>`).
     #[cfg_attr(feature = "serde", serde(default))]
     pub namespace_prefix: Option<String>,
+    /// Extra namespace declarations on this element for descendant convenience
+    /// (prefix, URI pairs not used by this element itself).
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub extra_namespaces: Vec<(String, String)>,
     /// Attributes in canonical order.
     pub attributes: Vec<Attribute>,
     /// Ordered child object hashes for graph traversal.
@@ -86,6 +90,10 @@ pub struct PIObject {
 pub struct DocumentObject {
     /// Hash of the root element object.
     pub root: ContentHash,
+    /// Hashes of document-level children before the root element
+    /// (comments, processing instructions). Preserves prologues.
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub prologue: Vec<ContentHash>,
 }
 
 /// An entry in a tree object, mapping a file path to a document hash.
@@ -202,12 +210,17 @@ impl DocumentObject {
     /// Serialize to XML in `urn:clayers:repository` namespace.
     #[must_use]
     pub fn to_xml(&self) -> String {
-        format!(
+        use std::fmt::Write;
+        let mut xml = format!(
             "<repo:document xmlns:repo=\"{REPO_NS}\" version=\"1.0\" encoding=\"UTF-8\">\
-             <repo:root>{}</repo:root>\
-             </repo:document>",
+             <repo:root>{}</repo:root>",
             self.root
-        )
+        );
+        for h in &self.prologue {
+            let _ = write!(xml, "<repo:prologue>{h}</repo:prologue>");
+        }
+        xml.push_str("</repo:document>");
+        xml
     }
 }
 
@@ -291,7 +304,7 @@ mod tests {
     #[test]
     fn document_to_xml_contains_root_hash() {
         let hash = ContentHash::from_canonical(b"test");
-        let doc = DocumentObject { root: hash };
+        let doc = DocumentObject { root: hash, prologue: vec![] };
         let xml = doc.to_xml();
         assert!(xml.contains(&hash.to_string()));
         assert!(xml.contains(REPO_NS));

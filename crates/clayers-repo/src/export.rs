@@ -40,28 +40,62 @@ where
 pub async fn export_xml(store: &dyn ObjectStore, hash: ContentHash) -> Result<String> {
     let objects = try_collect_stream(store.subtree(&hash)).await?;
 
-    let root_hash = match objects.get(&hash).ok_or(Error::NotFound(hash))? {
-        Object::Document(doc) => doc.root,
-        _ => return Err(Error::InvalidObject("expected Document object".into())),
+    let Object::Document(doc) = objects.get(&hash).ok_or(Error::NotFound(hash))? else {
+        return Err(Error::InvalidObject("expected Document object".into()));
     };
 
-    // Build XML synchronously from the collected objects.
-    // Each element carries its own namespace declarations, so the output
-    // is already well-formed without whole-document C14N. Skipping C14N
-    // here is critical: the import hashes each element's subtree individually
-    // (including its namespace context), so whole-document C14N would strip
-    // inherited namespace declarations from child elements, breaking the
-    // export -> reimport hash idempotency.
-    build_xml_from_objects(&objects, root_hash)
+    let mut xml = String::from("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+
+    // Emit prologue (comments, PIs before root element).
+    {
+        use std::fmt::Write;
+        for prologue_hash in &doc.prologue {
+            if let Some(obj) = objects.get(prologue_hash) {
+                match obj {
+                    Object::Comment(c) => {
+                        let _ = writeln!(xml, "<!--{}-->", c.content);
+                    }
+                    Object::PI(pi) => match &pi.data {
+                        Some(d) if !d.is_empty() => {
+                            let _ = writeln!(xml, "<?{} {}?>", pi.target, d);
+                        }
+                        _ => {
+                            let _ = writeln!(xml, "<?{}?>", pi.target);
+                        }
+                    },
+                    _ => {}
+                }
+            }
+        }
+    }
+
+    // Build XML from the root element's object tree.
+    xml.push_str(&build_xml_from_objects(&objects, doc.root)?);
+    xml.push('\n');
+
+    Ok(xml)
 }
 
 /// Synchronously build an XML string from a pre-collected object map.
-const XML_NS: &str = "http://www.w3.org/XML/1998/namespace";
-
-#[allow(clippy::too_many_lines)]
 fn build_xml_from_objects(
     objects: &HashMap<ContentHash, Object>,
     hash: ContentHash,
+) -> Result<String> {
+    let scope = HashMap::new(); // empty: no inherited namespaces at root
+    build_xml_recursive(objects, hash, &scope)
+}
+
+/// The `xml` namespace is always predeclared and must use the `xml` prefix.
+const XML_NS: &str = "http://www.w3.org/XML/1998/namespace";
+
+/// Build XML recursively, tracking namespace scope to avoid redundant declarations.
+///
+/// `parent_scope` maps prefix -> URI for namespaces already declared by ancestors.
+#[allow(clippy::too_many_lines)]
+fn build_xml_recursive(
+    objects: &HashMap<ContentHash, Object>,
+    hash: ContentHash,
+    parent_scope: &HashMap<String, String>,
 ) -> Result<String> {
     let obj = objects.get(&hash).ok_or(Error::NotFound(hash))?;
 
@@ -75,33 +109,43 @@ fn build_xml_from_objects(
         Object::Element(el) => {
             use std::fmt::Write;
             let mut xml = String::new();
+            let mut this_scope = parent_scope.clone();
 
-            // Opening tag with namespace, using stored prefix if available.
-            xml.push('<');
             let elem_prefix = el.namespace_prefix.as_deref().unwrap_or("");
+
+            // Opening tag.
+            xml.push('<');
             if !elem_prefix.is_empty() {
                 let _ = write!(xml, "{elem_prefix}:");
             }
             xml.push_str(&el.local_name);
+
+            // Element namespace declaration (only if not already in scope).
             if let Some(ref ns) = el.namespace_uri {
-                if elem_prefix.is_empty() {
-                    let _ = write!(xml, " xmlns=\"{ns}\"");
+                let already_declared = if elem_prefix.is_empty() {
+                    parent_scope.get("") == Some(ns)
                 } else {
-                    let _ = write!(xml, " xmlns:{elem_prefix}=\"{ns}\"");
+                    parent_scope.get(elem_prefix) == Some(ns)
+                };
+                if !already_declared {
+                    if elem_prefix.is_empty() {
+                        let _ = write!(xml, " xmlns=\"{ns}\"");
+                        this_scope.insert(String::new(), ns.clone());
+                    } else {
+                        let _ = write!(xml, " xmlns:{elem_prefix}=\"{ns}\"");
+                        this_scope.insert(elem_prefix.to_string(), ns.clone());
+                    }
                 }
             }
 
-            // Collect unique namespace URIs from attributes and assign prefixes.
-            // If an attribute's namespace matches the element's, reuse the element's prefix.
-            // The "xml" namespace is always predeclared and must use the "xml" prefix.
+            // Collect attribute namespace prefixes.
             let mut attr_ns_prefixes: HashMap<String, String> = HashMap::new();
-            let mut used_prefixes: std::collections::HashSet<String> = std::collections::HashSet::new();
-            // Pre-register the xml prefix as always in use.
+            let mut used_prefixes: std::collections::HashSet<String> =
+                this_scope.keys().cloned().collect();
             used_prefixes.insert("xml".to_string());
             attr_ns_prefixes.insert(XML_NS.to_string(), "xml".to_string());
             if !elem_prefix.is_empty() {
                 used_prefixes.insert(elem_prefix.to_string());
-                // Pre-register element namespace so attributes in the same NS reuse its prefix.
                 if let Some(ref ns) = el.namespace_uri {
                     attr_ns_prefixes.insert(ns.clone(), elem_prefix.to_string());
                 }
@@ -110,17 +154,13 @@ fn build_xml_from_objects(
             for attr in &el.attributes {
                 if let Some(ref ns) = attr.namespace_uri {
                     attr_ns_prefixes.entry(ns.clone()).or_insert_with(|| {
-                        let candidate = attr.namespace_prefix.clone()
-                            .unwrap_or_else(|| {
-                                loop {
-                                    let p = format!("ns{prefix_counter}");
-                                    prefix_counter += 1;
-                                    if !used_prefixes.contains(&p) {
-                                        return p;
-                                    }
-                                }
-                            });
-                        // Ensure uniqueness.
+                        let candidate = attr.namespace_prefix.clone().unwrap_or_else(|| loop {
+                            let p = format!("ns{prefix_counter}");
+                            prefix_counter += 1;
+                            if !used_prefixes.contains(&p) {
+                                return p;
+                            }
+                        });
                         if used_prefixes.contains(&candidate) {
                             loop {
                                 let p = format!("ns{prefix_counter}");
@@ -130,26 +170,33 @@ fn build_xml_from_objects(
                                     return p;
                                 }
                             }
+                        } else {
+                            used_prefixes.insert(candidate.clone());
+                            candidate
                         }
-                        used_prefixes.insert(candidate.clone());
-                        candidate
                     });
                 }
             }
 
-            // Emit namespace declarations for attribute namespaces
-            // (skip if already declared by the element).
+            // Emit attribute namespace declarations (skip if in scope or xml ns).
             for (ns_uri, prefix) in &attr_ns_prefixes {
-                // Skip the xml namespace (always predeclared, must not be redeclared).
                 if ns_uri == XML_NS {
                     continue;
                 }
-                if el.namespace_uri.as_deref() == Some(ns_uri.as_str())
-                    && !elem_prefix.is_empty()
-                {
-                    continue; // Already declared by the element.
+                if this_scope.get(prefix.as_str()) == Some(ns_uri) {
+                    continue; // Already in scope from element or ancestor.
                 }
                 let _ = write!(xml, " xmlns:{prefix}=\"{ns_uri}\"");
+                this_scope.insert(prefix.clone(), ns_uri.clone());
+            }
+
+            // Emit extra namespace declarations (for descendant convenience).
+            for (prefix, uri) in &el.extra_namespaces {
+                if this_scope.get(prefix.as_str()) == Some(uri) {
+                    continue;
+                }
+                let _ = write!(xml, " xmlns:{prefix}=\"{uri}\"");
+                this_scope.insert(prefix.clone(), uri.clone());
             }
 
             // Attributes.
@@ -172,22 +219,28 @@ fn build_xml_from_objects(
                     );
                 }
             }
-            xml.push('>');
 
-            // Children (synchronous recursion).
-            for child_hash in &el.children {
-                let child_xml = build_xml_from_objects(objects, *child_hash)?;
-                xml.push_str(&child_xml);
-            }
+            if el.children.is_empty() {
+                // Self-closing tag for empty elements.
+                xml.push_str("/>");
+            } else {
+                xml.push('>');
 
-            // Closing tag.
-            xml.push_str("</");
-            if !elem_prefix.is_empty() {
-                xml.push_str(elem_prefix);
-                xml.push(':');
+                // Children (pass this element's scope down).
+                for child_hash in &el.children {
+                    let child_xml = build_xml_recursive(objects, *child_hash, &this_scope)?;
+                    xml.push_str(&child_xml);
+                }
+
+                // Closing tag.
+                xml.push_str("</");
+                if !elem_prefix.is_empty() {
+                    xml.push_str(elem_prefix);
+                    xml.push(':');
+                }
+                xml.push_str(&el.local_name);
+                xml.push('>');
             }
-            xml.push_str(&el.local_name);
-            xml.push('>');
 
             Ok(xml)
         }
@@ -396,6 +449,137 @@ mod tests {
         assert_hash_idempotent(
             r#"<root xmlns="urn:elem" xmlns:x="urn:attr" x:id="1">text</root>"#,
         ).await;
+    }
+
+    #[tokio::test]
+    async fn preserve_document_comment_prologue() {
+        // Comments before the root element must survive the round-trip.
+        let store = MemoryStore::new();
+        let xml = "<!-- This is a file description -->\n<root>content</root>";
+        let hash = import_xml(&store, xml).await.unwrap();
+        let exported = export_xml(&store, hash).await.unwrap();
+        assert!(
+            exported.contains("<!-- This is a file description -->"),
+            "prologue comment lost: {exported}"
+        );
+        assert!(
+            exported.find("<!--").unwrap() < exported.find("<root").unwrap(),
+            "comment should appear before root: {exported}"
+        );
+    }
+
+    #[tokio::test]
+    async fn preserve_document_pi_prologue() {
+        // Processing instructions before the root element must survive.
+        let store = MemoryStore::new();
+        let xml = "<?xml-stylesheet type=\"text/xsl\" href=\"s.xsl\"?>\n<root>content</root>";
+        let hash = import_xml(&store, xml).await.unwrap();
+        let exported = export_xml(&store, hash).await.unwrap();
+        assert!(
+            exported.contains("xml-stylesheet"),
+            "prologue PI lost: {exported}"
+        );
+    }
+
+    #[tokio::test]
+    async fn no_redundant_xmlns_on_children() {
+        // Children sharing the parent's namespace prefix must NOT re-declare it.
+        let store = MemoryStore::new();
+        let xml = r#"<pr:section xmlns:pr="urn:clayers:prose" id="s1"><pr:title>Hello</pr:title><pr:p>World</pr:p></pr:section>"#;
+        let hash = import_xml(&store, xml).await.unwrap();
+        let exported = export_xml(&store, hash).await.unwrap();
+        // Count how many times xmlns:pr appears - should be exactly 1 (on the root).
+        let count = exported.matches("xmlns:pr").count();
+        assert_eq!(
+            count, 1,
+            "xmlns:pr should appear once (on root), not on children. Got {count} in: {exported}"
+        );
+    }
+
+    #[tokio::test]
+    async fn no_redundant_xmlns_multi_namespace() {
+        // Root declares multiple prefixes. Children using those prefixes
+        // must not re-declare them.
+        let store = MemoryStore::new();
+        let xml = r#"<spec:clayers xmlns:spec="urn:spec" xmlns:pr="urn:prose" spec:index="i.xml"><pr:section id="s"><pr:title>T</pr:title></pr:section></spec:clayers>"#;
+        let hash = import_xml(&store, xml).await.unwrap();
+        let exported = export_xml(&store, hash).await.unwrap();
+        assert_eq!(
+            exported.matches("xmlns:spec").count(), 1,
+            "xmlns:spec should appear once: {exported}"
+        );
+        assert_eq!(
+            exported.matches("xmlns:pr").count(), 1,
+            "xmlns:pr should appear once: {exported}"
+        );
+    }
+
+    #[tokio::test]
+    async fn preserve_xml_declaration() {
+        let store = MemoryStore::new();
+        let xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<root>text</root>";
+        let hash = import_xml(&store, xml).await.unwrap();
+        let exported = export_xml(&store, hash).await.unwrap();
+        assert!(
+            exported.starts_with("<?xml"),
+            "XML declaration missing: {exported}"
+        );
+    }
+
+    #[tokio::test]
+    async fn preserve_extra_ns_declarations_on_root() {
+        // Root declares xmlns:pr and xmlns:trm for child convenience.
+        // These must survive the round-trip even though root doesn't use them.
+        let store = MemoryStore::new();
+        let xml = r#"<spec:root xmlns:spec="urn:spec" xmlns:pr="urn:prose" xmlns:trm="urn:term" spec:id="1"><pr:section><trm:ref>x</trm:ref></pr:section></spec:root>"#;
+        let hash = import_xml(&store, xml).await.unwrap();
+        let exported = export_xml(&store, hash).await.unwrap();
+        // pr and trm should be declared on root, not on each child.
+        let root_start = exported.find("<spec:root").unwrap();
+        let root_tag_end = exported[root_start..].find('>').unwrap() + root_start;
+        let root_tag = &exported[root_start..root_tag_end];
+        assert!(
+            root_tag.contains("xmlns:pr=\"urn:prose\""),
+            "extra ns 'pr' not on root: {exported}"
+        );
+        assert!(
+            root_tag.contains("xmlns:trm=\"urn:term\""),
+            "extra ns 'trm' not on root: {exported}"
+        );
+        // And NOT re-declared on children.
+        let after_root = &exported[root_tag_end..];
+        assert_eq!(
+            after_root.matches("xmlns:pr").count(), 0,
+            "xmlns:pr should not appear on children: {exported}"
+        );
+    }
+
+    #[tokio::test]
+    async fn self_closing_empty_elements() {
+        let store = MemoryStore::new();
+        let xml = r"<root><empty/></root>";
+        let hash = import_xml(&store, xml).await.unwrap();
+        let exported = export_xml(&store, hash).await.unwrap();
+        assert!(
+            exported.contains("/>"),
+            "empty element should use self-closing tag: {exported}"
+        );
+        assert!(
+            !exported.contains("></empty>"),
+            "should not have explicit close for empty element: {exported}"
+        );
+    }
+
+    #[tokio::test]
+    async fn trailing_newline() {
+        let store = MemoryStore::new();
+        let xml = "<root>text</root>";
+        let hash = import_xml(&store, xml).await.unwrap();
+        let exported = export_xml(&store, hash).await.unwrap();
+        assert!(
+            exported.ends_with('\n'),
+            "should end with newline: {exported:?}"
+        );
     }
 
     #[tokio::test]

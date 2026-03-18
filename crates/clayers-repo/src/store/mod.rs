@@ -79,7 +79,10 @@ pub(crate) fn subtree_walk<'a>(
                         stack.push(entry.document);
                     }
                 }
-                Object::Document(d) => { stack.push(d.root); }
+                Object::Document(d) => {
+                    stack.push(d.root);
+                    stack.extend(&d.prologue);
+                }
                 Object::Element(e) => { stack.extend(&e.children); }
                 Object::Text(_) | Object::Comment(_) | Object::PI(_) => {}
             }

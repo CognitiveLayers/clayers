@@ -36,12 +36,28 @@ pub async fn import_xml(store: &dyn ObjectStore, xml: &str) -> Result<ContentHas
         .document_element(doc)
         .map_err(|e| Error::XmlParse(e.to_string()))?;
 
-    // Collect all objects via post-order traversal (sync, no async needed).
+    // Collect prologue: comments and PIs before the root element.
     let mut objects = Vec::new();
+    let mut prologue_hashes = Vec::new();
+    let doc_children: Vec<_> = xot.children(doc).collect();
+    for child in doc_children {
+        if child == root {
+            break;
+        }
+        if xot.comment_str(child).is_some() || xot.processing_instruction(child).is_some() {
+            let h = collect_node(&mut xot, child, &mut objects)?;
+            prologue_hashes.push(h);
+        }
+    }
+
+    // Collect all objects via post-order traversal (sync, no async needed).
     let root_hash = collect_node(&mut xot, root, &mut objects)?;
 
-    // Create the document object.
-    let doc_obj = DocumentObject { root: root_hash };
+    // Create the document object with prologue.
+    let doc_obj = DocumentObject {
+        root: root_hash,
+        prologue: prologue_hashes,
+    };
     let doc_xml = doc_obj.to_xml();
     let doc_hash = hash::hash_exclusive(&doc_xml)?;
     objects.push(CollectedObject {
@@ -173,12 +189,30 @@ fn collect_node(
             });
         }
 
+        // Collect extra namespace declarations (declared on this element
+        // but not used by its name or attributes - convenience for descendants).
+        let mut used_uris: std::collections::HashSet<&str> = std::collections::HashSet::new();
+        if let Some(ref uri) = namespace_uri {
+            used_uris.insert(uri);
+        }
+        for attr in &attributes {
+            if let Some(ref uri) = attr.namespace_uri {
+                used_uris.insert(uri);
+            }
+        }
+        let extra_namespaces: Vec<(String, String)> = prefix_map
+            .iter()
+            .filter(|(pfx, uri)| !pfx.is_empty() && !used_uris.contains(uri.as_str()))
+            .map(|(pfx, uri)| (pfx.clone(), uri.clone()))
+            .collect();
+
         objects.push(CollectedObject {
             hash: identity_hash,
             object: Object::Element(ElementObject {
                 local_name,
                 namespace_uri,
                 namespace_prefix,
+                extra_namespaces,
                 attributes,
                 children: child_hashes,
                 inclusive_hash,

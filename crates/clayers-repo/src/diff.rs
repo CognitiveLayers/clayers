@@ -274,6 +274,7 @@ mod tests {
                 local_name: "div".into(),
                 namespace_uri: None,
                 namespace_prefix: None,
+                extra_namespaces: vec![],
                 attributes: vec![crate::object::Attribute {
                     local_name: "class".into(),
                     namespace_uri: None,
@@ -292,6 +293,7 @@ mod tests {
                 local_name: "div".into(),
                 namespace_uri: None,
                 namespace_prefix: None,
+                extra_namespaces: vec![],
                 attributes: vec![crate::object::Attribute {
                     local_name: "class".into(),
                     namespace_uri: None,
