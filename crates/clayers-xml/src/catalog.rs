@@ -23,7 +23,7 @@ pub struct CatalogEntry {
 pub fn parse_catalog(catalog_path: &Path) -> Result<Vec<CatalogEntry>, crate::Error> {
     let content = std::fs::read_to_string(catalog_path)?;
     let mut xot = Xot::new();
-    let doc = xot.parse(&content)?;
+    let doc = xot.parse(&content).map_err(xot::Error::from)?;
     let root = xot.document_element(doc)?;
 
     let catalog_ns = xot.add_namespace("urn:oasis:names:tc:entity:xmlns:xml:catalog");
@@ -42,10 +42,10 @@ pub fn parse_catalog(catalog_path: &Path) -> Result<Vec<CatalogEntry>, crate::Er
         if el.name() != uri_el {
             continue;
         }
-        let Some(name) = el.get_attribute(name_attr) else {
+        let Some(name) = xot.get_attribute(child, name_attr) else {
             continue;
         };
-        let Some(uri) = el.get_attribute(uri_attr) else {
+        let Some(uri) = xot.get_attribute(child, uri_attr) else {
             continue;
         };
         entries.push(CatalogEntry {

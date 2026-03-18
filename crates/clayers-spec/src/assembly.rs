@@ -15,7 +15,7 @@ use crate::namespace;
 /// Returns an error if any file cannot be read or parsed as XML.
 pub fn assemble_combined(
     file_paths: &[impl AsRef<Path>],
-) -> Result<(Xot<'_>, xot::Node), crate::Error> {
+) -> Result<(Xot, xot::Node), crate::Error> {
     let mut xot = Xot::new();
 
     // Register all namespace prefixes
@@ -49,7 +49,7 @@ pub fn assemble_combined(
         xmlns_decls.join(" "),
     );
 
-    let doc = xot.parse(&combined_xml)?;
+    let doc = xot.parse(&combined_xml).map_err(xot::Error::from)?;
     let root = xot.document_element(doc)?;
 
     Ok((xot, root))
@@ -106,8 +106,8 @@ fn extract_inner_xml(xml: &str) -> Option<&str> {
 ///
 /// Returns an error if any file cannot be read or parsed.
 pub fn assemble_combined_string(file_paths: &[impl AsRef<Path>]) -> Result<String, crate::Error> {
-    let (mut xot, root) = assemble_combined(file_paths)?;
-    Ok(xot.serialize_node_to_string(root))
+    let (xot, root) = assemble_combined(file_paths)?;
+    Ok(xot.to_string(root).unwrap_or_default())
 }
 
 // Public API surface (used by ast-grep for structural verification).
@@ -149,8 +149,8 @@ mod tests {
     #[test]
     fn combined_doc_has_elements_from_multiple_layers() {
         let files = spec_files();
-        let (mut xot, root) = assemble_combined(&files).expect("assembly failed");
-        let xml = xot.serialize_node_to_string(root);
+        let (xot, root) = assemble_combined(&files).expect("assembly failed");
+        let xml = xot.to_string(root).unwrap_or_default();
 
         // Should contain elements from at least prose, terminology, and relation layers
         assert!(xml.contains("urn:clayers:prose"), "missing prose namespace");
@@ -167,8 +167,8 @@ mod tests {
     #[test]
     fn combined_doc_preserves_ids() {
         let files = spec_files();
-        let (mut xot, root) = assemble_combined(&files).expect("assembly failed");
-        let xml = xot.serialize_node_to_string(root);
+        let (xot, root) = assemble_combined(&files).expect("assembly failed");
+        let xml = xot.to_string(root).unwrap_or_default();
 
         // Known IDs from the self-referential spec
         assert!(xml.contains("\"term-layer\""), "missing term-layer id");
@@ -183,8 +183,8 @@ mod tests {
         let spec = spec_dir();
         let overview = spec.join("overview.xml");
         let binding = [&overview];
-        let (mut xot, root) = assemble_combined(&binding).expect("assembly failed");
-        let xml = xot.serialize_node_to_string(root);
+        let (xot, root) = assemble_combined(&binding).expect("assembly failed");
+        let xml = xot.to_string(root).unwrap_or_default();
         assert!(xml.contains("cmb:spec"), "missing combined root");
     }
 }

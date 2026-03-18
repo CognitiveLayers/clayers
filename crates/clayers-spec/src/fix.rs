@@ -154,7 +154,7 @@ pub fn fix_node_hashes(spec_dir: &Path) -> Result<FixReport, crate::Error> {
             continue;
         };
 
-        let xml_str = xot.serialize_node_to_string(node);
+        let xml_str = xot.to_string(node).unwrap_or_default();
         let Ok(new_hash) =
             c14n::canonicalize_and_hash(&xml_str, c14n::CanonicalizationMode::Inclusive)
         else {
@@ -220,17 +220,13 @@ fn find_node_by_id(
 ) -> Option<xot::Node> {
     if xot.is_element(node) {
         // Check bare @id
-        if xot
-            .element(node)
-            .and_then(|e| e.get_attribute(id_attr))
+        if xot.get_attribute(node, id_attr)
             .is_some_and(|id| id == target_id)
         {
             return Some(node);
         }
         // Check xml:id
-        if xot
-            .element(node)
-            .and_then(|e| e.get_attribute(xml_id_attr))
+        if xot.get_attribute(node, xml_id_attr)
             .is_some_and(|id| id == target_id)
         {
             return Some(node);

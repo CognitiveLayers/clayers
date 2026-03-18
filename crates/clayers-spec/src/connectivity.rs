@@ -158,7 +158,7 @@ fn collect_nodes_and_relations(
     for file_path in file_paths {
         let content = std::fs::read_to_string(file_path.as_ref())?;
         let mut xot = xot::Xot::new();
-        let doc = xot.parse(&content)?;
+        let doc = xot.parse(&content).map_err(xot::Error::from)?;
         let root = xot.document_element(doc)?;
 
         let id_attr = xot.add_name("id");
@@ -216,14 +216,14 @@ fn collect_from_tree(
         // Skip art:mapping and rev:revision from graph nodes
         if name != Some(mapping_tag) && name != Some(revision_tag) {
             // Check bare @id
-            if let Some(id) = xot.element(node).and_then(|e| e.get_attribute(id_attr)) {
+            if let Some(id) = xot.get_attribute(node, id_attr) {
                 let tag = name
                     .map(|n| xot.name_ns_str(n).0.to_string())
                     .unwrap_or_default();
                 nodes.insert(id.to_string(), tag.clone());
             }
             // Check xml:id (W3C standard, used by XMI/UML elements)
-            if let Some(xml_id) = xot.element(node).and_then(|e| e.get_attribute(xml_id_attr)) {
+            if let Some(xml_id) = xot.get_attribute(node, xml_id_attr) {
                 let tag = name
                     .map(|n| xot.name_ns_str(n).0.to_string())
                     .unwrap_or_default();
@@ -232,22 +232,21 @@ fn collect_from_tree(
         }
 
         if name == Some(relation_tag) {
-            let elem = xot.element(node);
             let rel = Relation {
-                rel_type: elem
-                    .and_then(|e| e.get_attribute(type_attr))
+                rel_type: xot
+                    .get_attribute(node, type_attr)
                     .unwrap_or("")
                     .to_string(),
-                from: elem
-                    .and_then(|e| e.get_attribute(from_attr))
+                from: xot
+                    .get_attribute(node, from_attr)
                     .unwrap_or("")
                     .to_string(),
-                to: elem
-                    .and_then(|e| e.get_attribute(to_attr))
+                to: xot
+                    .get_attribute(node, to_attr)
                     .unwrap_or("")
                     .to_string(),
-                to_spec: elem
-                    .and_then(|e| e.get_attribute(to_spec_attr))
+                to_spec: xot
+                    .get_attribute(node, to_spec_attr)
                     .map(String::from),
             };
             relations.push(rel);

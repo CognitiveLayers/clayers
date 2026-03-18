@@ -172,7 +172,7 @@ fn collect_spec_node_ids(
     for file_path in file_paths {
         let content = std::fs::read_to_string(file_path.as_ref())?;
         let mut xot = xot::Xot::new();
-        let doc = xot.parse(&content)?;
+        let doc = xot.parse(&content).map_err(xot::Error::from)?;
         let root = xot.document_element(doc)?;
         let id_attr = xot.add_name("id");
         collect_nodes_recursive(&xot, root, id_attr, &mut nodes);
@@ -189,7 +189,7 @@ fn collect_nodes_recursive(
     // Note: storing xot::Node across different Xot instances doesn't work.
     // This is a placeholder - proper implementation would use a single Xot.
     // We still traverse to maintain the recursive structure.
-    let _ = xot.element(node).and_then(|e| e.get_attribute(id_attr));
+    let _ = xot.get_attribute(node, id_attr);
     let _ = &nodes;
     for child in xot.children(node) {
         collect_nodes_recursive(xot, child, id_attr, nodes);

@@ -102,7 +102,7 @@ fn check_id_uniqueness(
         let file_path = file_path.as_ref();
         let content = std::fs::read_to_string(file_path)?;
         let mut xot = Xot::new();
-        let doc = xot.parse(&content)?;
+        let doc = xot.parse(&content).map_err(xot::Error::from)?;
         let root = xot.document_element(doc)?;
         let id_attr = xot.add_name("id");
         let xml_ns = xot.add_namespace(namespace::XML);
@@ -133,7 +133,7 @@ fn collect_ids(
 ) {
     if xot.is_element(node) {
         // Collect bare @id
-        if let Some(id) = xot.element(node).and_then(|e| e.get_attribute(id_attr)) {
+        if let Some(id) = xot.get_attribute(node, id_attr) {
             let id = id.to_string();
             let file_str = file_path.display().to_string();
             if let Some(prev_file) = seen.get(&id) {
@@ -147,7 +147,7 @@ fn collect_ids(
             }
         }
         // Collect xml:id (W3C standard, used by XMI/UML elements)
-        if let Some(xml_id) = xot.element(node).and_then(|e| e.get_attribute(xml_id_attr)) {
+        if let Some(xml_id) = xot.get_attribute(node, xml_id_attr) {
             let xml_id = xml_id.to_string();
             let file_str = file_path.display().to_string();
             if let Some(prev_file) = seen.get(&xml_id) {
@@ -174,7 +174,7 @@ fn check_references(file_paths: &[impl AsRef<Path>]) -> Result<Vec<ValidationErr
     for file_path in file_paths {
         let content = std::fs::read_to_string(file_path.as_ref())?;
         let mut xot = Xot::new();
-        let doc = xot.parse(&content)?;
+        let doc = xot.parse(&content).map_err(xot::Error::from)?;
         let root = xot.document_element(doc)?;
         let id_attr = xot.add_name("id");
         let xml_ns = xot.add_namespace(namespace::XML);
@@ -186,7 +186,7 @@ fn check_references(file_paths: &[impl AsRef<Path>]) -> Result<Vec<ValidationErr
     for file_path in file_paths {
         let content = std::fs::read_to_string(file_path.as_ref())?;
         let mut xot = Xot::new();
-        let doc = xot.parse(&content)?;
+        let doc = xot.parse(&content).map_err(xot::Error::from)?;
         let root = xot.document_element(doc)?;
 
         let relation_ns = xot.add_namespace(namespace::RELATION);
@@ -218,10 +218,10 @@ fn collect_all_ids(
     ids: &mut std::collections::HashSet<String>,
 ) {
     if xot.is_element(node) {
-        if let Some(id) = xot.element(node).and_then(|e| e.get_attribute(id_attr)) {
+        if let Some(id) = xot.get_attribute(node, id_attr) {
             ids.insert(id.to_string());
         }
-        if let Some(xml_id) = xot.element(node).and_then(|e| e.get_attribute(xml_id_attr)) {
+        if let Some(xml_id) = xot.get_attribute(node, xml_id_attr) {
             ids.insert(xml_id.to_string());
         }
     }
@@ -243,12 +243,10 @@ fn check_relation_refs(
 ) {
     if xot.is_element(node) && xot.element(node).is_some_and(|e| e.name() == relation_tag) {
         // Skip cross-spec relations
-        if xot
-            .element(node)
-            .and_then(|e| e.get_attribute(to_spec_attr))
+        if xot.get_attribute(node, to_spec_attr)
             .is_none()
         {
-            if let Some(from) = xot.element(node).and_then(|e| e.get_attribute(from_attr))
+            if let Some(from) = xot.get_attribute(node, from_attr)
                 && !all_ids.contains(from)
                 && !from.starts_with("type-")
             {
@@ -256,7 +254,7 @@ fn check_relation_refs(
                     message: format!("relation from=\"{from}\" references nonexistent id"),
                 });
             }
-            if let Some(to) = xot.element(node).and_then(|e| e.get_attribute(to_attr))
+            if let Some(to) = xot.get_attribute(node, to_attr)
                 && !all_ids.contains(to)
                 && !to.starts_with("type-")
             {

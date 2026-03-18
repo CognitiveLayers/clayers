@@ -48,7 +48,7 @@ pub fn execute_query(
 
     // Parse into xot and evaluate XPath
     let mut xot = xot::Xot::new();
-    let doc = xot.parse(&combined_xml)?;
+    let doc = xot.parse(&combined_xml).map_err(xot::Error::from)?;
     let root = xot.document_element(doc)?;
 
     // For XPath evaluation, we use a simple tree-walking approach
@@ -82,21 +82,21 @@ pub enum QueryMode {
 ///
 /// Supports: `//prefix:element`, `//prefix:element[@attr="value"]`,
 /// `//prefix:element[@attr="value"]/prefix:child`
-fn evaluate_xpath_count<'a>(
-    xot: &mut xot::Xot<'a>,
+fn evaluate_xpath_count(
+    xot: &mut xot::Xot,
     root: xot::Node,
     xpath: &str,
-    attr_names: &'a [String],
+    attr_names: &[String],
 ) -> Result<usize, crate::Error> {
     let nodes = find_matching_nodes(xot, root, xpath, attr_names)?;
     Ok(nodes.len())
 }
 
-fn evaluate_xpath_text<'a>(
-    xot: &mut xot::Xot<'a>,
+fn evaluate_xpath_text(
+    xot: &mut xot::Xot,
     root: xot::Node,
     xpath: &str,
-    attr_names: &'a [String],
+    attr_names: &[String],
 ) -> Result<Vec<String>, crate::Error> {
     let nodes = find_matching_nodes(xot, root, xpath, attr_names)?;
     Ok(nodes
@@ -105,16 +105,16 @@ fn evaluate_xpath_text<'a>(
         .collect())
 }
 
-fn evaluate_xpath_xml<'a>(
-    xot: &mut xot::Xot<'a>,
+fn evaluate_xpath_xml(
+    xot: &mut xot::Xot,
     root: xot::Node,
     xpath: &str,
-    attr_names: &'a [String],
+    attr_names: &[String],
 ) -> Result<Vec<String>, crate::Error> {
     let nodes = find_matching_nodes(xot, root, xpath, attr_names)?;
     let mut results = Vec::new();
     for node in nodes {
-        results.push(xot.serialize_node_to_string(node));
+        results.push(xot.to_string(node).unwrap_or_default());
     }
     Ok(results)
 }
@@ -138,10 +138,10 @@ fn collect_text_recursive(xot: &xot::Xot, node: xot::Node, out: &mut String) {
 ///
 /// The `attr_names` vector must outlive the `Xot` instance since `add_name`
 /// borrows the string for the Xot's lifetime.
-fn resolve_steps<'a>(
-    xot: &mut xot::Xot<'a>,
+fn resolve_steps(
+    xot: &mut xot::Xot,
     steps: Vec<ParsedStep>,
-    attr_names: &'a [String],
+    attr_names: &[String],
 ) -> Vec<ResolvedStep> {
     let mut name_idx = 0;
     steps
@@ -173,11 +173,11 @@ fn resolve_steps<'a>(
 /// - `//prefix:element[@attr="value"]` - with attribute predicate
 /// - `//prefix:element[@attr="value"]/prefix:child` - with child step
 /// - `//prefix:element/prefix:child` - parent/child
-fn find_matching_nodes<'a>(
-    xot: &mut xot::Xot<'a>,
+fn find_matching_nodes(
+    xot: &mut xot::Xot,
     root: xot::Node,
     xpath: &str,
-    attr_names: &'a [String],
+    attr_names: &[String],
 ) -> Result<Vec<xot::Node>, crate::Error> {
     let xpath = xpath.trim();
     let steps = parse_xpath_steps(xpath)?;
@@ -368,7 +368,7 @@ fn matches_step(xot: &xot::Xot, node: xot::Node, resolved: &ResolvedStep) -> boo
     // Check predicate
     if let Some(ref attr_value) = resolved.pred_value {
         if let Some(attr_id) = resolved.pred_name_id {
-            match element.get_attribute(attr_id) {
+            match xot.get_attribute(node, attr_id) {
                 Some(val) if val == attr_value => {}
                 _ => return false,
             }

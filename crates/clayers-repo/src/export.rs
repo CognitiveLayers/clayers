@@ -56,6 +56,8 @@ pub async fn export_xml(store: &dyn ObjectStore, hash: ContentHash) -> Result<St
 }
 
 /// Synchronously build an XML string from a pre-collected object map.
+const XML_NS: &str = "http://www.w3.org/XML/1998/namespace";
+
 #[allow(clippy::too_many_lines)]
 fn build_xml_from_objects(
     objects: &HashMap<ContentHash, Object>,
@@ -91,8 +93,12 @@ fn build_xml_from_objects(
 
             // Collect unique namespace URIs from attributes and assign prefixes.
             // If an attribute's namespace matches the element's, reuse the element's prefix.
+            // The "xml" namespace is always predeclared and must use the "xml" prefix.
             let mut attr_ns_prefixes: HashMap<String, String> = HashMap::new();
             let mut used_prefixes: std::collections::HashSet<String> = std::collections::HashSet::new();
+            // Pre-register the xml prefix as always in use.
+            used_prefixes.insert("xml".to_string());
+            attr_ns_prefixes.insert(XML_NS.to_string(), "xml".to_string());
             if !elem_prefix.is_empty() {
                 used_prefixes.insert(elem_prefix.to_string());
                 // Pre-register element namespace so attributes in the same NS reuse its prefix.
@@ -134,6 +140,10 @@ fn build_xml_from_objects(
             // Emit namespace declarations for attribute namespaces
             // (skip if already declared by the element).
             for (ns_uri, prefix) in &attr_ns_prefixes {
+                // Skip the xml namespace (always predeclared, must not be redeclared).
+                if ns_uri == XML_NS {
+                    continue;
+                }
                 if el.namespace_uri.as_deref() == Some(ns_uri.as_str())
                     && !elem_prefix.is_empty()
                 {

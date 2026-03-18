@@ -122,7 +122,7 @@ pub fn analyze_coverage(
         for file_path in &file_paths {
             let content = std::fs::read_to_string(file_path)?;
             let mut xot = xot::Xot::new();
-            let doc = xot.parse(&content)?;
+            let doc = xot.parse(&content).map_err(xot::Error::from)?;
             let root = xot.document_element(doc)?;
             let id_attr = xot.add_name("id");
             let xml_ns = xot.add_namespace(crate::namespace::XML);
@@ -205,10 +205,10 @@ fn collect_node_ids(
             .element(node)
             .is_some_and(|e| xot.namespace_for_name(e.name()) == art_ns);
         if !is_artifact {
-            if let Some(id) = xot.element(node).and_then(|e| e.get_attribute(id_attr)) {
+            if let Some(id) = xot.get_attribute(node, id_attr) {
                 ids.insert(id.to_string());
             }
-            if let Some(xml_id) = xot.element(node).and_then(|e| e.get_attribute(xml_id_attr)) {
+            if let Some(xml_id) = xot.get_attribute(node, xml_id_attr) {
                 ids.insert(xml_id.to_string());
             }
         }
@@ -229,7 +229,7 @@ fn collect_exempt_nodes(
         && xot
             .element(node)
             .is_some_and(|e| e.name() == exempt_tag)
-        && let Some(ref_node) = xot.element(node).and_then(|e| e.get_attribute(node_attr))
+        && let Some(ref_node) = xot.get_attribute(node, node_attr)
     {
         exempt_ids.insert(ref_node.to_string());
     }

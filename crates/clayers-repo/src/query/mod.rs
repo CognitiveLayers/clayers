@@ -126,7 +126,10 @@ pub async fn default_query_document(
         }
         QueryMode::Xml => {
             let nodes = find_matching_nodes(&mut xot, xot_root, xpath, namespaces, &attr_names)?;
-            let xmls = nodes.into_iter().map(|n| xot.serialize_node_to_string(n)).collect();
+            let xmls = nodes
+                .into_iter()
+                .map(|n| xot.to_string(n).unwrap_or_default())
+                .collect();
             Ok(QueryResult::Xml(xmls))
         }
     }
@@ -143,19 +146,19 @@ pub async fn default_query_document(
 fn build_xot_from_objects(
     objects: &HashMap<ContentHash, Object>,
     root_hash: ContentHash,
-) -> Result<(xot::Xot<'_>, xot::Node)> {
+) -> Result<(xot::Xot, xot::Node)> {
     let mut xot = xot::Xot::new();
     let root_node = build_xot_node(&mut xot, objects, root_hash)?;
     let _doc_node = xot
-        .new_root(root_node)
-        .map_err(|e| Error::InvalidObject(e.to_string()))?;
+        .new_document_with_element(root_node)
+        .map_err(|e: xot::Error| Error::InvalidObject(e.to_string()))?;
     Ok((xot, root_node))
 }
 
 /// Recursively build a single xot node from the object map.
-fn build_xot_node<'a>(
-    xot: &mut xot::Xot<'a>,
-    objects: &'a HashMap<ContentHash, Object>,
+fn build_xot_node(
+    xot: &mut xot::Xot,
+    objects: &HashMap<ContentHash, Object>,
     hash: ContentHash,
 ) -> Result<xot::Node> {
     let obj = objects.get(&hash).ok_or(Error::NotFound(hash))?;
@@ -164,7 +167,8 @@ fn build_xot_node<'a>(
         Object::Text(t) => Ok(xot.new_text(&t.content)),
         Object::Comment(c) => Ok(xot.new_comment(&c.content)),
         Object::PI(pi) => {
-            Ok(xot.new_processing_instruction(&pi.target, pi.data.as_deref()))
+            let target_name = xot.add_name(&pi.target);
+            Ok(xot.new_processing_instruction(target_name, pi.data.as_deref()))
         }
         Object::Element(el) => {
             // Create element with namespace.
@@ -180,9 +184,7 @@ fn build_xot_node<'a>(
             // Add namespace declaration so serialization works.
             if !ns_uri.is_empty() {
                 let prefix = xot.add_prefix("");
-                if let Some(el_mut) = xot.element_mut(elem_node) {
-                    el_mut.set_prefix(prefix, ns);
-                }
+                xot.namespaces_mut(elem_node).insert(prefix, ns);
             }
 
             // Set attributes.
@@ -193,9 +195,7 @@ fn build_xot_node<'a>(
                     xot.add_namespace("")
                 };
                 let attr_name = xot.add_name_ns(&attr.local_name, attr_ns);
-                if let Some(el_mut) = xot.element_mut(elem_node) {
-                    el_mut.set_attribute(attr_name, &attr.value);
-                }
+                xot.set_attribute(elem_node, attr_name, &attr.value);
             }
 
             // Recursively build children.
@@ -580,10 +580,10 @@ fn parse_predicate(pred: &str) -> Result<(String, String)> {
 }
 
 /// Resolve parsed `XPath` steps by interning attribute names into the Xot arena.
-fn resolve_steps<'a>(
-    xot: &mut xot::Xot<'a>,
+fn resolve_steps(
+    xot: &mut xot::Xot,
     steps: Vec<ParsedStep>,
-    attr_names: &'a [String],
+    attr_names: &[String],
 ) -> Vec<ResolvedStep> {
     let mut name_idx = 0;
     steps
@@ -609,12 +609,12 @@ fn resolve_steps<'a>(
 }
 
 /// Find matching nodes in the xot tree using caller-provided namespace map.
-fn find_matching_nodes<'a>(
-    xot: &mut xot::Xot<'a>,
+fn find_matching_nodes(
+    xot: &mut xot::Xot,
     root: xot::Node,
     xpath: &str,
     namespaces: &NamespaceMap,
-    attr_names: &'a [String],
+    attr_names: &[String],
 ) -> Result<Vec<xot::Node>> {
     let xpath = xpath.trim();
     let steps = parse_xpath_steps(xpath)?;
@@ -701,7 +701,7 @@ fn matches_step(
     // Check predicate.
     if let Some(ref attr_value) = resolved.pred_value {
         if let Some(attr_id) = resolved.pred_name_id {
-            match element.get_attribute(attr_id) {
+            match xot.get_attribute(node, attr_id) {
                 Some(val) if val == attr_value => {}
                 _ => return false,
             }

@@ -31,7 +31,7 @@ struct CollectedObject {
 /// the storage transaction fails.
 pub async fn import_xml(store: &dyn ObjectStore, xml: &str) -> Result<ContentHash> {
     let mut xot = Xot::new();
-    let doc = xot.parse(xml)?;
+    let doc = xot.parse(xml).map_err(xot::Error::from)?;
     let root = xot
         .document_element(doc)
         .map_err(|e| Error::XmlParse(e.to_string()))?;
@@ -62,7 +62,7 @@ pub async fn import_xml(store: &dyn ObjectStore, xml: &str) -> Result<ContentHas
 /// Recursively collect objects from a xot node tree (post-order).
 #[allow(clippy::too_many_lines)]
 fn collect_node(
-    xot: &mut Xot<'_>,
+    xot: &mut Xot,
     node: xot::Node,
     objects: &mut Vec<CollectedObject>,
 ) -> Result<ContentHash> {
@@ -90,7 +90,7 @@ fn collect_node(
 
     // Processing instruction
     if let Some(pi) = xot.processing_instruction(node) {
-        let target = pi.target().to_string();
+        let target = xot.local_name_str(pi.target()).to_string();
         let data = pi.data().map(String::from);
         let h = hash::hash_pi(&target, data.as_deref());
         objects.push(CollectedObject {
@@ -110,7 +110,13 @@ fn collect_node(
         }
 
         // Serialize this element's subtree to XML for hashing and prefix extraction.
-        let xml_str = xot.serialize_node_to_string(node);
+        // Use clone_with_prefixes so inherited namespace declarations are included.
+        let clone = xot.clone_with_prefixes(node);
+        let xml_str = xot
+            .to_string(clone)
+            .map_err(|e| Error::XmlParse(e.to_string()))?;
+        xot.remove(clone)
+            .map_err(|e| Error::XmlParse(e.to_string()))?;
         let (identity_hash, inclusive_hash) = hash::hash_element_xml(&xml_str)?;
 
         // Extract structural fields and namespace prefixes.
@@ -141,12 +147,9 @@ fn collect_node(
         });
 
         // Extract attributes with their prefixes.
-        let element = xot
-            .element(node)
-            .ok_or_else(|| Error::InvalidObject("expected element data".into()))?;
         let mut attributes = Vec::new();
-        for (attr_name_id, attr_value) in element.attributes() {
-            let (attr_local, attr_ns) = xot.name_ns_str(*attr_name_id);
+        for (attr_name_id, attr_value) in xot.attributes(node).iter() {
+            let (attr_local, attr_ns) = xot.name_ns_str(attr_name_id);
             let attr_ns_uri = if attr_ns.is_empty() {
                 None
             } else {

@@ -37,14 +37,8 @@ fn rnc_quantifier(
     min_occurs: NameId,
     max_occurs: NameId,
 ) -> RncQuantifier {
-    let min_occ = xot
-        .element(elem)
-        .and_then(|e| e.get_attribute(min_occurs))
-        .unwrap_or("1");
-    let max_occ = xot
-        .element(elem)
-        .and_then(|e| e.get_attribute(max_occurs))
-        .unwrap_or("1");
+    let min_occ = xot.get_attribute(elem, min_occurs).unwrap_or("1");
+    let max_occ = xot.get_attribute(elem, max_occurs).unwrap_or("1");
     if max_occ == "unbounded" {
         if min_occ == "0" {
             RncQuantifier::ZeroOrMore
@@ -69,8 +63,8 @@ fn is_el(xot: &Xot, node: Node, name_id: NameId) -> bool {
     xot.is_element(node) && xot.element(node).is_some_and(|e| e.name() == name_id)
 }
 
-fn attr<'x>(xot: &'x Xot, node: Node, a: NameId) -> Option<&'x str> {
-    xot.element(node).and_then(|e| e.get_attribute(a))
+fn attr(xot: &Xot, node: Node, a: NameId) -> Option<&str> {
+    xot.get_attribute(node, a)
 }
 
 fn child_elements(xot: &Xot, parent: Node) -> Vec<Node> {
@@ -600,7 +594,7 @@ fn parse_all(
     let mut parsed = Vec::new();
     for xsd_path in xsd_paths {
         let content = std::fs::read_to_string(xsd_path)?;
-        let doc = xot.parse(&content)?;
+        let doc = xot.parse(&content).map_err(xot::Error::from)?;
         let root = xot.document_element(doc)?;
         let tns = attr(xot, root, names.target_namespace_attr)
             .unwrap_or("")
@@ -642,7 +636,7 @@ fn build_registries(
                 continue;
             };
             let child_name = el.name();
-            let name_val = el.get_attribute(names.name_attr).map(String::from);
+            let name_val = xot.get_attribute(child, names.name_attr).map(String::from);
 
             if child_name == names.complex_type {
                 if let Some(n) = name_val {
@@ -878,7 +872,7 @@ fn count_type_refs_recursive(
         if el.name() == names.element {
             let is_global = xot.parent(child).is_some_and(|p| p == root);
             if !is_global
-                && let Some(type_ref) = el.get_attribute(names.type_attr)
+                && let Some(type_ref) = xot.get_attribute(child, names.type_attr)
             {
                 let (tp, tl) = split_prefixed(type_ref, pfx);
                 *usage.entry((tp.to_string(), tl.to_string())).or_insert(0) += 1;
@@ -902,7 +896,7 @@ fn count_extension_bases(
         if xot
             .element(child)
             .is_some_and(|e| e.name() == names.extension)
-            && let Some(base) = xot.element(child).and_then(|e| e.get_attribute(names.base_attr))
+            && let Some(base) = xot.get_attribute(child, names.base_attr)
         {
             let (bp, bl) = split_prefixed(base, pfx);
             *usage.entry((bp.to_string(), bl.to_string())).or_insert(0) += 1;
@@ -919,8 +913,7 @@ fn has_self_reference(xot: &Xot, node: Node, type_name: &str, names: &XsdNames) 
         if xot
             .element(child)
             .is_some_and(|e| e.name() == names.element)
-            && let Some(type_ref) =
-                xot.element(child).and_then(|e| e.get_attribute(names.type_attr))
+            && let Some(type_ref) = xot.get_attribute(child, names.type_attr)
         {
             let local = split_prefixed(type_ref, "").1;
             if local == type_name {
@@ -977,8 +970,7 @@ fn collect_type_refs(
         if xot
             .element(child)
             .is_some_and(|e| e.name() == names.element)
-            && let Some(type_ref) =
-                xot.element(child).and_then(|e| e.get_attribute(names.type_attr))
+            && let Some(type_ref) = xot.get_attribute(child, names.type_attr)
         {
             let (tp, tl) = split_prefixed(type_ref, default_pfx);
             out.insert((tp.to_string(), tl.to_string()));
@@ -986,7 +978,7 @@ fn collect_type_refs(
         if xot
             .element(child)
             .is_some_and(|e| e.name() == names.extension)
-            && let Some(base) = xot.element(child).and_then(|e| e.get_attribute(names.base_attr))
+            && let Some(base) = xot.get_attribute(child, names.base_attr)
         {
             let (bp, bl) = split_prefixed(base, default_pfx);
             out.insert((bp.to_string(), bl.to_string()));

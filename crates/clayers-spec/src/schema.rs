@@ -39,7 +39,7 @@ pub fn discover_acyclic_types(
     // Simple text-based extraction: find enumeration values with acyclic="true"
     // This mirrors the Python logic without needing full XSD parsing
     let mut xot = xot::Xot::new();
-    let doc = xot.parse(&content)?;
+    let doc = xot.parse(&content).map_err(xot::Error::from)?;
     let root = xot.document_element(doc)?;
 
     let xs_ns = xot.add_namespace("http://www.w3.org/2001/XMLSchema");
@@ -74,7 +74,7 @@ fn collect_acyclic_types(
 ) {
     if xot.is_element(node)
         && xot.element(node).is_some_and(|e| e.name() == enum_name)
-        && let Some(value) = xot.element(node).and_then(|e| e.get_attribute(value_attr))
+        && let Some(value) = xot.get_attribute(node, value_attr)
     {
         let value = value.to_string();
         if has_acyclic_true(xot, node, acyclic_name, acyclic_value_attr) {
@@ -103,7 +103,7 @@ fn has_acyclic_true(
     for child in xot.children(node) {
         if xot.is_element(child)
             && xot.element(child).is_some_and(|e| e.name() == acyclic_name)
-            && let Some(v) = xot.element(child).and_then(|e| e.get_attribute(value_attr))
+            && let Some(v) = xot.get_attribute(child, value_attr)
             && v == "true"
         {
             return true;
@@ -152,9 +152,7 @@ fn discover_from_xsd(content: &str, elements: &mut Vec<ContentElement>) {
     let name_attr = xot.add_name("name");
     let target_ns_attr = xot.add_name("targetNamespace");
 
-    let target_ns = xot
-        .element(root)
-        .and_then(|e| e.get_attribute(target_ns_attr))
+    let target_ns = xot.get_attribute(root, target_ns_attr)
         .unwrap_or("")
         .to_string();
 
@@ -188,7 +186,7 @@ fn collect_content_elements(
 ) {
     if xot.is_element(node)
         && xot.element(node).is_some_and(|e| e.name() == element_tag)
-        && let Some(name) = xot.element(node).and_then(|e| e.get_attribute(name_attr))
+        && let Some(name) = xot.get_attribute(node, name_attr)
     {
         let name = name.to_string();
         if has_content_element_annotation(xot, node, content_element_tag) && !prefix.is_empty() {

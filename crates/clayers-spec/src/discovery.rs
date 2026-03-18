@@ -48,7 +48,7 @@ pub fn discover_spec_files(index_path: &Path) -> Result<Vec<PathBuf>, crate::Err
 
     let content = std::fs::read_to_string(index_path)?;
     let mut xot = xot::Xot::new();
-    let doc = xot.parse(&content)?;
+    let doc = xot.parse(&content).map_err(xot::Error::from)?;
     let root = xot.document_element(doc)?;
 
     let idx_ns = xot.add_namespace(namespace::INDEX);
@@ -78,7 +78,7 @@ fn collect_file_refs(
 ) {
     if xot.is_element(node)
         && xot.element(node).is_some_and(|e| e.name() == file_name)
-        && let Some(href) = xot.element(node).and_then(|e| e.get_attribute(href_name))
+        && let Some(href) = xot.get_attribute(node, href_name)
     {
         let resolved = spec_dir.join(href);
         if let Ok(canonical) = resolved.canonicalize() {
@@ -163,9 +163,7 @@ fn resolve_index(xml_path: &Path) -> Option<PathBuf> {
     let spec_ns = xot.add_namespace(namespace::SPEC);
     let index_attr = xot.add_name_ns("index", spec_ns);
 
-    let index_ref = xot
-        .element(root)
-        .and_then(|e| e.get_attribute(index_attr))?;
+    let index_ref = xot.get_attribute(root, index_attr)?;
     let parent = xml_path.parent()?;
     Some(parent.join(index_ref))
 }

@@ -43,7 +43,7 @@ pub fn collect_artifact_mappings(
     for file_path in file_paths {
         let content = std::fs::read_to_string(file_path.as_ref())?;
         let mut xot = xot::Xot::new();
-        let doc = xot.parse(&content)?;
+        let doc = xot.parse(&content).map_err(xot::Error::from)?;
         let root = xot.document_element(doc)?;
 
         let art_ns = xot.add_namespace(namespace::ARTIFACT);
@@ -118,9 +118,7 @@ fn collect_mappings(
 }
 
 fn parse_single_mapping(xot: &xot::Xot, node: xot::Node, names: &MappingNames) -> ArtifactMapping {
-    let id = xot
-        .element(node)
-        .and_then(|e| e.get_attribute(names.id_attr))
+    let id = xot.get_attribute(node, names.id_attr)
         .unwrap_or("")
         .to_string();
     let mut spec_ref_node = String::new();
@@ -137,26 +135,19 @@ fn parse_single_mapping(xot: &xot::Xot, node: xot::Node, names: &MappingNames) -
         }
         let child_name = xot.element(child).map(xot::Element::name);
         if child_name == Some(names.spec_ref_tag) {
-            let child_elem = xot.element(child);
-            spec_ref_node = child_elem
-                .and_then(|e| e.get_attribute(names.node_attr))
+            spec_ref_node = xot.get_attribute(child, names.node_attr)
                 .unwrap_or("")
                 .to_string();
-            spec_ref_revision = child_elem
-                .and_then(|e| e.get_attribute(names.revision_attr))
+            spec_ref_revision = xot.get_attribute(child, names.revision_attr)
                 .unwrap_or("")
                 .to_string();
-            node_hash = child_elem
-                .and_then(|e| e.get_attribute(names.node_hash_attr))
+            node_hash = xot.get_attribute(child, names.node_hash_attr)
                 .map(String::from);
         } else if child_name == Some(names.artifact_tag) {
-            let child_elem = xot.element(child);
-            artifact_path = child_elem
-                .and_then(|e| e.get_attribute(names.path_attr))
+            artifact_path = xot.get_attribute(child, names.path_attr)
                 .unwrap_or("")
                 .to_string();
-            artifact_repo = child_elem
-                .and_then(|e| e.get_attribute(names.repo_attr))
+            artifact_repo = xot.get_attribute(child, names.repo_attr)
                 .unwrap_or("")
                 .to_string();
 
@@ -166,22 +157,16 @@ fn parse_single_mapping(xot: &xot::Xot, node: xot::Node, names: &MappingNames) -
                         .element(range_child)
                         .is_some_and(|e| e.name() == names.range_tag)
                 {
-                    let range_elem = xot.element(range_child);
                     ranges.push(ArtifactRange {
-                        hash: range_elem
-                            .and_then(|e| e.get_attribute(names.hash_attr))
+                        hash: xot.get_attribute(range_child, names.hash_attr)
                             .map(String::from),
-                        start_line: range_elem
-                            .and_then(|e| e.get_attribute(names.start_line_attr))
+                        start_line: xot.get_attribute(range_child, names.start_line_attr)
                             .and_then(|s| s.parse().ok()),
-                        end_line: range_elem
-                            .and_then(|e| e.get_attribute(names.end_line_attr))
+                        end_line: xot.get_attribute(range_child, names.end_line_attr)
                             .and_then(|s| s.parse().ok()),
-                        start_byte: range_elem
-                            .and_then(|e| e.get_attribute(names.start_byte_attr))
+                        start_byte: xot.get_attribute(range_child, names.start_byte_attr)
                             .and_then(|s| s.parse().ok()),
-                        end_byte: range_elem
-                            .and_then(|e| e.get_attribute(names.end_byte_attr))
+                        end_byte: xot.get_attribute(range_child, names.end_byte_attr)
                             .and_then(|s| s.parse().ok()),
                     });
                 }

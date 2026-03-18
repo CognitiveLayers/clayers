@@ -120,13 +120,11 @@ fn fuse_descriptions(schema_dir: &Path, schema: &mut RncSchema) -> Result<(), cr
     for xsd_path in &xsd_paths {
         let content = std::fs::read_to_string(xsd_path)?;
         let mut xot = Xot::new();
-        let doc = xot.parse(&content)?;
+        let doc = xot.parse(&content).map_err(xot::Error::from)?;
         let root = xot.document_element(doc)?;
 
         let tns_attr = xot.add_name("targetNamespace");
-        let tns = xot
-            .element(root)
-            .and_then(|e| e.get_attribute(tns_attr))
+        let tns = xot.get_attribute(root, tns_attr)
             .unwrap_or("")
             .to_string();
         // Skip XSD files whose namespace was not discovered (not in the schema).
@@ -153,8 +151,8 @@ fn fuse_descriptions(schema_dir: &Path, schema: &mut RncSchema) -> Result<(), cr
             .filter_map(|c| {
                 let el = xot.element(c)?;
                 let cn = el.name();
-                let nm = el.get_attribute(name_attr).map(String::from);
-                let tr = el.get_attribute(type_attr).map(String::from);
+                let nm = xot.get_attribute(c, name_attr).map(String::from);
+                let tr = xot.get_attribute(c, type_attr).map(String::from);
                 Some((c, cn, nm, tr))
             })
             .collect();
