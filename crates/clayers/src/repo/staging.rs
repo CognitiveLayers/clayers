@@ -284,7 +284,7 @@ fn get_all_working_copy(
     Ok(map)
 }
 
-fn collect_xml_files(root: &Path) -> Result<Vec<PathBuf>> {
+pub fn collect_xml_files(root: &Path) -> Result<Vec<PathBuf>> {
     let mut files = Vec::new();
     collect_xml_recursive(root, root, &mut files)?;
     Ok(files)

@@ -224,6 +224,60 @@ impl<S: ObjectStore + RefStore + QueryStore> Repo<S> {
         diff::diff(&self.store, a, b).await
     }
 
+    // --- File-level diff ---
+
+    /// Compare two tree objects and return file-level changes.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if tree objects cannot be loaded.
+    pub async fn diff_trees(
+        &self,
+        tree_hash_a: ContentHash,
+        tree_hash_b: ContentHash,
+    ) -> Result<Vec<diff::FileChange>> {
+        let obj_a = self
+            .store
+            .get(&tree_hash_a)
+            .await?
+            .ok_or(crate::error::Error::NotFound(tree_hash_a))?;
+        let obj_b = self
+            .store
+            .get(&tree_hash_b)
+            .await?
+            .ok_or(crate::error::Error::NotFound(tree_hash_b))?;
+
+        let Object::Tree(ta) = obj_a else {
+            return Err(crate::error::Error::InvalidObject(
+                "expected Tree object".into(),
+            ));
+        };
+        let Object::Tree(tb) = obj_b else {
+            return Err(crate::error::Error::InvalidObject(
+                "expected Tree object".into(),
+            ));
+        };
+
+        Ok(diff::diff_trees(&ta, &tb))
+    }
+
+    /// Export two documents and diff them as XML strings.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if documents cannot be exported or diff fails.
+    pub async fn diff_file(
+        &self,
+        doc_a: ContentHash,
+        doc_b: ContentHash,
+    ) -> Result<clayers_xml::XmlDiff> {
+        let xml_a = self.export_xml(doc_a).await?;
+        let xml_b = self.export_xml(doc_b).await?;
+        clayers_xml::diff_xml(&xml_a, &xml_b).map_err(|e| {
+            crate::error::Error::InvalidObject(format!("XML diff failed: {e}"))
+        })
+    }
+
     // --- Conflict detection ---
 
     /// Check whether a document contains unresolved conflicts.

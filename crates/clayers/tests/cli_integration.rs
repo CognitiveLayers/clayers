@@ -1926,3 +1926,257 @@ fn xml_with_comments_and_pis() {
         .success()
         .stdout(predicates::str::contains("text"));
 }
+
+// ---------------------------------------------------------------------------
+// diff command
+// ---------------------------------------------------------------------------
+
+#[test]
+fn diff_no_changes_empty_output() {
+    let tmp = setup_committed_repo(&[("doc.xml", "<root>hello</root>")]);
+    let out = stdout_of(clayers().args(["diff"]).current_dir(tmp.path()));
+    assert!(out.trim().is_empty(), "clean repo diff should be empty: {out}");
+}
+
+#[test]
+fn diff_working_copy_shows_modified() {
+    let tmp = setup_committed_repo(&[("doc.xml", "<root><item>old</item></root>")]);
+    std::fs::write(tmp.path().join("doc.xml"), "<root><item>new</item></root>").unwrap();
+    clayers()
+        .args(["diff"])
+        .current_dir(tmp.path())
+        .assert()
+        .success()
+        .stdout(predicates::str::contains("modified: doc.xml"))
+        .stdout(predicates::str::contains("text:"));
+}
+
+#[test]
+fn diff_between_branches() {
+    let tmp = setup_committed_repo(&[("doc.xml", "<root><item>v1</item></root>")]);
+
+    clayers()
+        .args(["checkout", "-b", "v2"])
+        .current_dir(tmp.path())
+        .assert()
+        .success();
+    std::fs::write(
+        tmp.path().join("doc.xml"),
+        "<root><item>v2</item><extra>new</extra></root>",
+    )
+    .unwrap();
+    clayers()
+        .args(["add", "doc.xml"])
+        .current_dir(tmp.path())
+        .assert()
+        .success();
+    clayers()
+        .args(["commit", "-m", "v2"])
+        .envs(author_env())
+        .current_dir(tmp.path())
+        .assert()
+        .success();
+
+    clayers()
+        .args(["diff", "main", "v2"])
+        .current_dir(tmp.path())
+        .assert()
+        .success()
+        .stdout(predicates::str::contains("modified: doc.xml"));
+}
+
+#[test]
+fn diff_file_added_removed_between_branches() {
+    let tmp = setup_committed_repo(&[
+        ("a.xml", "<a>one</a>"),
+        ("b.xml", "<b>two</b>"),
+    ]);
+
+    clayers()
+        .args(["checkout", "-b", "change"])
+        .current_dir(tmp.path())
+        .assert()
+        .success();
+    clayers()
+        .args(["rm", "b.xml"])
+        .current_dir(tmp.path())
+        .assert()
+        .success();
+    std::fs::write(tmp.path().join("c.xml"), "<c>three</c>").unwrap();
+    clayers()
+        .args(["add", "c.xml"])
+        .current_dir(tmp.path())
+        .assert()
+        .success();
+    clayers()
+        .args(["commit", "-m", "change"])
+        .envs(author_env())
+        .current_dir(tmp.path())
+        .assert()
+        .success();
+
+    let out = stdout_of(clayers().args(["diff", "main", "change"]).current_dir(tmp.path()));
+    assert!(out.contains("added") || out.contains("c.xml"), "should show c.xml added: {out}");
+    assert!(
+        out.contains("deleted") || out.contains("b.xml"),
+        "should show b.xml removed: {out}"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// diff --json
+// ---------------------------------------------------------------------------
+
+#[test]
+fn diff_json_no_changes_empty_files() {
+    let tmp = setup_committed_repo(&[("doc.xml", "<root>hello</root>")]);
+    let out = stdout_of(clayers().args(["diff", "--json"]).current_dir(tmp.path()));
+    let v: serde_json::Value = serde_json::from_str(&out).expect("valid JSON");
+    assert!(v["files"].as_array().unwrap().is_empty());
+}
+
+#[test]
+fn diff_json_working_copy_modified() {
+    let tmp = setup_committed_repo(&[("doc.xml", "<root><item>old</item></root>")]);
+    std::fs::write(tmp.path().join("doc.xml"), "<root><item>new</item></root>").unwrap();
+    let out = stdout_of(clayers().args(["diff", "--json"]).current_dir(tmp.path()));
+    let v: serde_json::Value = serde_json::from_str(&out).expect("valid JSON");
+
+    let files = v["files"].as_array().unwrap();
+    assert_eq!(files.len(), 1);
+    assert_eq!(files[0]["status"], "modified");
+    assert_eq!(files[0]["path"], "doc.xml");
+
+    let changes = files[0]["changes"]["changes"].as_array().unwrap();
+    assert!(!changes.is_empty(), "should have element-level changes");
+    assert_eq!(changes[0]["type"], "text_changed");
+    assert_eq!(changes[0]["old"], "old");
+    assert_eq!(changes[0]["new"], "new");
+    assert_eq!(changes[0]["path"], "/root/item");
+}
+
+#[test]
+fn diff_json_between_branches() {
+    let tmp = setup_committed_repo(&[("doc.xml", "<root><item>v1</item></root>")]);
+
+    clayers()
+        .args(["checkout", "-b", "v2"])
+        .current_dir(tmp.path())
+        .assert()
+        .success();
+    std::fs::write(
+        tmp.path().join("doc.xml"),
+        "<root><item>v2</item><extra>new</extra></root>",
+    )
+    .unwrap();
+    clayers()
+        .args(["add", "doc.xml"])
+        .current_dir(tmp.path())
+        .assert()
+        .success();
+    clayers()
+        .args(["commit", "-m", "v2"])
+        .envs(author_env())
+        .current_dir(tmp.path())
+        .assert()
+        .success();
+
+    let out = stdout_of(
+        clayers()
+            .args(["diff", "main", "v2", "--json"])
+            .current_dir(tmp.path()),
+    );
+    let v: serde_json::Value = serde_json::from_str(&out).expect("valid JSON");
+
+    let files = v["files"].as_array().unwrap();
+    assert_eq!(files.len(), 1);
+    assert_eq!(files[0]["status"], "modified");
+
+    let changes = files[0]["changes"]["changes"].as_array().unwrap();
+    assert!(
+        changes.iter().any(|c| c["type"] == "text_changed"),
+        "should have text change"
+    );
+    assert!(
+        changes.iter().any(|c| c["type"] == "element_added"),
+        "should have element added"
+    );
+}
+
+#[test]
+fn diff_json_added_deleted_files() {
+    let tmp = setup_committed_repo(&[
+        ("a.xml", "<a>one</a>"),
+        ("b.xml", "<b>two</b>"),
+    ]);
+
+    clayers()
+        .args(["checkout", "-b", "change"])
+        .current_dir(tmp.path())
+        .assert()
+        .success();
+    clayers()
+        .args(["rm", "b.xml"])
+        .current_dir(tmp.path())
+        .assert()
+        .success();
+    std::fs::write(tmp.path().join("c.xml"), "<c>three</c>").unwrap();
+    clayers()
+        .args(["add", "c.xml"])
+        .current_dir(tmp.path())
+        .assert()
+        .success();
+    clayers()
+        .args(["commit", "-m", "change"])
+        .envs(author_env())
+        .current_dir(tmp.path())
+        .assert()
+        .success();
+
+    let out = stdout_of(
+        clayers()
+            .args(["diff", "main", "change", "--json"])
+            .current_dir(tmp.path()),
+    );
+    let v: serde_json::Value = serde_json::from_str(&out).expect("valid JSON");
+
+    let files = v["files"].as_array().unwrap();
+    assert!(
+        files.iter().any(|f| f["status"] == "added" && f["path"] == "c.xml"),
+        "c.xml should be added: {files:?}"
+    );
+    assert!(
+        files.iter().any(|f| f["status"] == "deleted" && f["path"] == "b.xml"),
+        "b.xml should be deleted: {files:?}"
+    );
+    // Added/deleted files should not have changes field.
+    for f in files {
+        if f["status"] == "added" || f["status"] == "deleted" {
+            assert!(f.get("changes").is_none() || f["changes"].is_null(),
+                "added/deleted files should not have changes: {f}");
+        }
+    }
+}
+
+#[test]
+fn diff_json_attribute_change() {
+    let tmp = setup_committed_repo(&[(
+        "doc.xml",
+        r#"<root><item id="1" class="old">x</item></root>"#,
+    )]);
+    std::fs::write(
+        tmp.path().join("doc.xml"),
+        r#"<root><item id="1" class="new">x</item></root>"#,
+    )
+    .unwrap();
+    let out = stdout_of(clayers().args(["diff", "--json"]).current_dir(tmp.path()));
+    let v: serde_json::Value = serde_json::from_str(&out).expect("valid JSON");
+
+    let changes = v["files"][0]["changes"]["changes"].as_array().unwrap();
+    let attr_change = changes.iter().find(|c| c["type"] == "attribute_changed");
+    assert!(attr_change.is_some(), "should have attribute change");
+    let ac = attr_change.unwrap();
+    assert_eq!(ac["name"], "class");
+    assert_eq!(ac["old"], "old");
+    assert_eq!(ac["new"], "new");
+}

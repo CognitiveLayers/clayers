@@ -181,6 +181,16 @@ enum Command {
         /// Files to revert.
         files: Vec<PathBuf>,
     },
+    /// Show changes between commits, branches, or working copy.
+    Diff {
+        /// First revspec (branch, tag, or commit hash).
+        rev_a: Option<String>,
+        /// Second revspec (branch, tag, or commit hash).
+        rev_b: Option<String>,
+        /// Output as JSON.
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 #[derive(Subcommand)]
@@ -301,6 +311,9 @@ fn run(cli: &Cli) -> Result<()> {
             crate::repo::remote::cmd_remote(remote_action)
         }
         Command::Revert { files } => crate::repo::revert::cmd_revert(files),
+        Command::Diff { rev_a, rev_b, json } => {
+            crate::repo::diff::cmd_diff(rev_a.as_deref(), rev_b.as_deref(), *json)
+        }
     }
 }
 

@@ -3,10 +3,12 @@
 //! Compares two content-addressed trees by exploiting the Merkle property:
 //! if hashes are equal, the subtrees are identical (short-circuit).
 
+use std::collections::HashSet;
+
 use clayers_xml::ContentHash;
 
 use crate::error::{Error, Result};
-use crate::object::Object;
+use crate::object::{Object, TreeObject};
 use crate::store::ObjectStore;
 
 /// A structural diff between two trees.
@@ -220,6 +222,81 @@ async fn diff_children(
     }
 
     Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// File-level (tree-to-tree) diff
+// ---------------------------------------------------------------------------
+
+/// A file-level change between two tree objects.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[cfg_attr(feature = "serde", serde(tag = "type", rename_all = "snake_case"))]
+pub enum FileChange {
+    /// A file was added.
+    Added {
+        /// File path in the tree.
+        path: String,
+        /// Document hash.
+        document: ContentHash,
+    },
+    /// A file was removed.
+    Removed {
+        /// File path in the tree.
+        path: String,
+        /// Document hash.
+        document: ContentHash,
+    },
+    /// A file was modified (document hash changed).
+    Modified {
+        /// File path in the tree.
+        path: String,
+        /// Old document hash.
+        old_doc: ContentHash,
+        /// New document hash.
+        new_doc: ContentHash,
+    },
+}
+
+/// Compare two tree objects and return file-level changes.
+///
+/// Identifies which files were added, removed, or modified between `tree_a`
+/// and `tree_b` by comparing tree entries by path and document hash.
+#[must_use]
+pub fn diff_trees(tree_a: &TreeObject, tree_b: &TreeObject) -> Vec<FileChange> {
+    let mut changes = Vec::new();
+
+    let paths_a: HashSet<&str> = tree_a.entries.iter().map(|e| e.path.as_str()).collect();
+
+    // Removed or modified.
+    for entry in &tree_a.entries {
+        if let Some(entry_b) = tree_b.entries.iter().find(|e| e.path == entry.path) {
+            if entry.document != entry_b.document {
+                changes.push(FileChange::Modified {
+                    path: entry.path.clone(),
+                    old_doc: entry.document,
+                    new_doc: entry_b.document,
+                });
+            }
+        } else {
+            changes.push(FileChange::Removed {
+                path: entry.path.clone(),
+                document: entry.document,
+            });
+        }
+    }
+
+    // Added.
+    for entry in &tree_b.entries {
+        if !paths_a.contains(entry.path.as_str()) {
+            changes.push(FileChange::Added {
+                path: entry.path.clone(),
+                document: entry.document,
+            });
+        }
+    }
+
+    changes
 }
 
 #[cfg(test)]

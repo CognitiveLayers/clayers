@@ -256,7 +256,11 @@ pub async fn resolve_to_tree(
 }
 
 /// Resolve a revspec string to a commit/tag/direct hash.
-async fn resolve_revspec(
+///
+/// # Errors
+///
+/// Returns an error if the revspec cannot be resolved.
+pub async fn resolve_revspec(
     ref_store: &dyn RefStore,
     revspec: &str,
 ) -> Result<ContentHash> {

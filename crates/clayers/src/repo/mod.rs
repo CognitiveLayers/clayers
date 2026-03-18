@@ -7,6 +7,7 @@
 
 pub mod branch;
 pub mod commit;
+pub mod diff;
 pub mod history;
 pub mod init;
 pub mod remote;

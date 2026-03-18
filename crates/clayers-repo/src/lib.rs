@@ -33,13 +33,14 @@ pub mod repo;
 pub mod store;
 pub mod sync;
 
+pub use diff::FileChange;
 pub use error::{Error, Result};
 pub use object::{
     Attribute, Author, CommitObject, CommentObject, DocumentObject, ElementObject, Object,
     PIObject, TagObject, TextObject, TreeEntry, TreeObject, REPO_NS,
 };
 pub use repo::Repo;
-pub use query::{QueryStore, QueryMode, QueryResult, NamespaceMap};
+pub use query::{QueryStore, QueryMode, QueryResult, NamespaceMap, resolve_revspec};
 pub use store::{ObjectStore, RefStore, Transaction};
 pub use store::memory::MemoryStore;
 pub use sync::{FastForwardOnly, Overwrite, RefConflict, Reject};
