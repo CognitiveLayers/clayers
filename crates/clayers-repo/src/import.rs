@@ -125,17 +125,32 @@ fn collect_node(
             child_hashes.push(child_hash);
         }
 
-        // Serialize this element's subtree to XML for hashing and prefix extraction.
+        // Serialize this element's subtree to XML for hashing.
         // Use clone_with_prefixes so inherited namespace declarations are included.
         let clone = xot.clone_with_prefixes(node);
         let xml_str = xot
             .to_string(clone)
             .map_err(|e| Error::XmlParse(e.to_string()))?;
+
+        // Extract prefix map from the clone's namespace declarations (xot API).
+        // The clone has inherited prefixes from ancestors, so this gives us
+        // a complete picture of all prefixes in scope for this element.
+        let prefix_map: Vec<(String, String)> = xot
+            .namespaces(clone)
+            .iter()
+            .map(|(prefix_id, ns_id)| {
+                (
+                    xot.prefix_str(prefix_id).to_string(),
+                    xot.namespace_str(*ns_id).to_string(),
+                )
+            })
+            .collect();
+
         xot.remove(clone)
             .map_err(|e| Error::XmlParse(e.to_string()))?;
         let (identity_hash, inclusive_hash) = hash::hash_element_xml(&xml_str)?;
 
-        // Extract structural fields and namespace prefixes.
+        // Extract structural fields.
         let element = xot
             .element(node)
             .ok_or_else(|| Error::InvalidObject("expected element data".into()))?;
@@ -147,9 +162,6 @@ fn collect_node(
         } else {
             Some(ns_str.to_string())
         };
-
-        // Build a prefix-to-namespace lookup from the serialized form.
-        let prefix_map = extract_prefix_map(&xml_str);
 
         // Find element prefix: look up which prefix maps to the element's namespace.
         let namespace_prefix = namespace_uri.as_ref().and_then(|uri| {
@@ -231,36 +243,6 @@ fn collect_node(
     last_hash.ok_or(Error::EmptyDocument)
 }
 
-/// Extract all `xmlns:prefix="uri"` declarations from a serialized XML element.
-/// Returns a list of `(prefix, uri)` pairs.
-fn extract_prefix_map(xml: &str) -> Vec<(String, String)> {
-    let mut result = Vec::new();
-    let mut pos = 0;
-    while let Some(idx) = xml[pos..].find("xmlns:") {
-        let abs = pos + idx;
-        let after_xmlns = abs + 6; // skip "xmlns:"
-        // Find the prefix (ends at '=').
-        if let Some(eq) = xml[after_xmlns..].find('=') {
-            let prefix = &xml[after_xmlns..after_xmlns + eq];
-            // Find the quoted URI value.
-            let val_start = after_xmlns + eq + 1;
-            if val_start < xml.len() {
-                let quote = xml.as_bytes()[val_start];
-                if quote == b'"' || quote == b'\'' {
-                    let q = quote as char;
-                    if let Some(end) = xml[val_start + 1..].find(q) {
-                        let uri = &xml[val_start + 1..val_start + 1 + end];
-                        result.push((prefix.to_string(), uri.to_string()));
-                    }
-                }
-            }
-            pos = val_start;
-        } else {
-            break;
-        }
-    }
-    result
-}
 
 #[cfg(test)]
 mod tests {

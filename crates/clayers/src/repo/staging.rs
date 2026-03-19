@@ -310,7 +310,7 @@ fn collect_xml_recursive(
 
         if path.is_dir() {
             collect_xml_recursive(root, &path, files)?;
-        } else if path.extension().is_some_and(|e| e == "xml") {
+        } else if path.is_file() {
             files.push(path);
         }
     }
