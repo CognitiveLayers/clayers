@@ -6,6 +6,7 @@
 
 use chrono::{DateTime, Utc};
 use clayers_xml::ContentHash;
+use xot::Xot;
 
 /// The `urn:clayers:repository` namespace URI.
 pub const REPO_NS: &str = "urn:clayers:repository";
@@ -136,19 +137,28 @@ impl TreeObject {
 
     /// Serialize to XML in `urn:clayers:repository` namespace.
     #[must_use]
+    #[allow(clippy::missing_panics_doc)]
     pub fn to_xml(&self) -> String {
-        use std::fmt::Write;
-        let mut xml = format!("<repo:tree xmlns:repo=\"{REPO_NS}\">");
+        let mut xot = Xot::new();
+        let ns = xot.add_namespace(REPO_NS);
+        let prefix = xot.add_prefix("repo");
+        let tree_name = xot.add_name_ns("tree", ns);
+        let entry_name = xot.add_name_ns("entry", ns);
+        let path_attr = xot.add_name("path");
+
+        let tree_el = xot.new_element(tree_name);
+        xot.namespaces_mut(tree_el).insert(prefix, ns);
+
         for entry in &self.entries {
-            let _ = write!(
-                xml,
-                "<repo:entry path=\"{}\">{}</repo:entry>",
-                xml_escape(&entry.path),
-                entry.document
-            );
+            let entry_el = xot.new_element(entry_name);
+            xot.attributes_mut(entry_el)
+                .insert(path_attr, entry.path.clone());
+            let text = xot.new_text(&entry.document.to_string());
+            xot.append(entry_el, text).expect("append text");
+            xot.append(tree_el, entry_el).expect("append entry");
         }
-        xml.push_str("</repo:tree>");
-        xml
+
+        xot.to_string(tree_el).expect("serialize tree")
     }
 }
 
@@ -209,92 +219,152 @@ pub enum Object {
 impl DocumentObject {
     /// Serialize to XML in `urn:clayers:repository` namespace.
     #[must_use]
+    #[allow(clippy::missing_panics_doc)]
     pub fn to_xml(&self) -> String {
-        use std::fmt::Write;
-        let mut xml = format!(
-            "<repo:document xmlns:repo=\"{REPO_NS}\" version=\"1.0\" encoding=\"UTF-8\">\
-             <repo:root>{}</repo:root>",
-            self.root
-        );
+        let mut xot = Xot::new();
+        let ns = xot.add_namespace(REPO_NS);
+        let prefix = xot.add_prefix("repo");
+        let doc_name = xot.add_name_ns("document", ns);
+        let root_name = xot.add_name_ns("root", ns);
+        let prologue_name = xot.add_name_ns("prologue", ns);
+        let version_attr = xot.add_name("version");
+        let encoding_attr = xot.add_name("encoding");
+
+        let doc_el = xot.new_element(doc_name);
+        xot.namespaces_mut(doc_el).insert(prefix, ns);
+        xot.attributes_mut(doc_el)
+            .insert(encoding_attr, "UTF-8".into());
+        xot.attributes_mut(doc_el)
+            .insert(version_attr, "1.0".into());
+
+        let root_el = xot.new_element(root_name);
+        let root_text = xot.new_text(&self.root.to_string());
+        xot.append(root_el, root_text).expect("append text");
+        xot.append(doc_el, root_el).expect("append root");
+
         for h in &self.prologue {
-            let _ = write!(xml, "<repo:prologue>{h}</repo:prologue>");
+            let prologue_el = xot.new_element(prologue_name);
+            let text = xot.new_text(&h.to_string());
+            xot.append(prologue_el, text).expect("append text");
+            xot.append(doc_el, prologue_el).expect("append prologue");
         }
-        xml.push_str("</repo:document>");
-        xml
+
+        xot.to_string(doc_el).expect("serialize document")
     }
 }
 
 impl CommitObject {
     /// Serialize to XML in `urn:clayers:repository` namespace.
     #[must_use]
+    #[allow(clippy::missing_panics_doc)]
     pub fn to_xml(&self) -> String {
-        use std::fmt::Write;
-        let mut xml = format!("<repo:commit xmlns:repo=\"{REPO_NS}\">");
-        let _ = write!(xml, "<repo:tree>{}</repo:tree>", self.tree);
-        for parent in &self.parents {
-            let _ = write!(xml, "<repo:parent>{parent}</repo:parent>");
+        let mut xot = Xot::new();
+        let ns = xot.add_namespace(REPO_NS);
+        let prefix = xot.add_prefix("repo");
+        let commit_name = xot.add_name_ns("commit", ns);
+        let tree_name = xot.add_name_ns("tree", ns);
+        let parent_name = xot.add_name_ns("parent", ns);
+        let author_name = xot.add_name_ns("author", ns);
+        let timestamp_name = xot.add_name_ns("timestamp", ns);
+        let message_name = xot.add_name_ns("message", ns);
+        let name_attr = xot.add_name("name");
+        let email_attr = xot.add_name("email");
+
+        let commit_el = xot.new_element(commit_name);
+        xot.namespaces_mut(commit_el).insert(prefix, ns);
+
+        // <repo:tree>
+        let tree_el = xot.new_element(tree_name);
+        let text = xot.new_text(&self.tree.to_string());
+        xot.append(tree_el, text).expect("append text");
+        xot.append(commit_el, tree_el).expect("append tree");
+
+        // <repo:parent>
+        for p in &self.parents {
+            let parent_el = xot.new_element(parent_name);
+            let text = xot.new_text(&p.to_string());
+            xot.append(parent_el, text).expect("append text");
+            xot.append(commit_el, parent_el).expect("append parent");
         }
-        let _ = write!(
-            xml,
-            "<repo:author name=\"{}\" email=\"{}\"/>",
-            xml_escape(&self.author.name),
-            xml_escape(&self.author.email)
-        );
-        let _ = write!(
-            xml,
-            "<repo:timestamp>{}</repo:timestamp>",
-            self.timestamp.format("%Y-%m-%dT%H:%M:%SZ")
-        );
-        let _ = write!(
-            xml,
-            "<repo:message>{}</repo:message>",
-            xml_escape(&self.message)
-        );
-        xml.push_str("</repo:commit>");
-        xml
+
+        // <repo:author name="..." email="..."/>
+        let author_el = xot.new_element(author_name);
+        xot.attributes_mut(author_el)
+            .insert(email_attr, self.author.email.clone());
+        xot.attributes_mut(author_el)
+            .insert(name_attr, self.author.name.clone());
+        xot.append(commit_el, author_el).expect("append author");
+
+        // <repo:timestamp>
+        let ts_el = xot.new_element(timestamp_name);
+        let ts_text = xot.new_text(&self.timestamp.format("%Y-%m-%dT%H:%M:%SZ").to_string());
+        xot.append(ts_el, ts_text).expect("append text");
+        xot.append(commit_el, ts_el).expect("append timestamp");
+
+        // <repo:message>
+        let msg_el = xot.new_element(message_name);
+        let msg_text = xot.new_text(&self.message);
+        xot.append(msg_el, msg_text).expect("append text");
+        xot.append(commit_el, msg_el).expect("append message");
+
+        xot.to_string(commit_el).expect("serialize commit")
     }
 }
 
 impl TagObject {
     /// Serialize to XML in `urn:clayers:repository` namespace.
     #[must_use]
+    #[allow(clippy::missing_panics_doc)]
     pub fn to_xml(&self) -> String {
-        use std::fmt::Write;
-        let mut xml = format!("<repo:tag xmlns:repo=\"{REPO_NS}\">");
-        let _ = write!(xml, "<repo:target>{}</repo:target>", self.target);
-        let _ = write!(
-            xml,
-            "<repo:name>{}</repo:name>",
-            xml_escape(&self.name)
-        );
-        let _ = write!(
-            xml,
-            "<repo:tagger name=\"{}\" email=\"{}\"/>",
-            xml_escape(&self.tagger.name),
-            xml_escape(&self.tagger.email)
-        );
-        let _ = write!(
-            xml,
-            "<repo:timestamp>{}</repo:timestamp>",
-            self.timestamp.format("%Y-%m-%dT%H:%M:%SZ")
-        );
-        let _ = write!(
-            xml,
-            "<repo:message>{}</repo:message>",
-            xml_escape(&self.message)
-        );
-        xml.push_str("</repo:tag>");
-        xml
-    }
-}
+        let mut xot = Xot::new();
+        let ns = xot.add_namespace(REPO_NS);
+        let prefix = xot.add_prefix("repo");
+        let tag_name = xot.add_name_ns("tag", ns);
+        let target_name = xot.add_name_ns("target", ns);
+        let name_name = xot.add_name_ns("name", ns);
+        let tagger_name = xot.add_name_ns("tagger", ns);
+        let timestamp_name = xot.add_name_ns("timestamp", ns);
+        let message_name = xot.add_name_ns("message", ns);
+        let name_attr = xot.add_name("name");
+        let email_attr = xot.add_name("email");
 
-/// Escape special XML characters in text content and attribute values.
-fn xml_escape(s: &str) -> String {
-    s.replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
-        .replace('"', "&quot;")
-        .replace('\'', "&apos;")
+        let tag_el = xot.new_element(tag_name);
+        xot.namespaces_mut(tag_el).insert(prefix, ns);
+
+        // <repo:target>
+        let target_el = xot.new_element(target_name);
+        let text = xot.new_text(&self.target.to_string());
+        xot.append(target_el, text).expect("append text");
+        xot.append(tag_el, target_el).expect("append target");
+
+        // <repo:name>
+        let name_el = xot.new_element(name_name);
+        let name_text = xot.new_text(&self.name);
+        xot.append(name_el, name_text).expect("append text");
+        xot.append(tag_el, name_el).expect("append name");
+
+        // <repo:tagger name="..." email="..."/>
+        let tagger_el = xot.new_element(tagger_name);
+        xot.attributes_mut(tagger_el)
+            .insert(email_attr, self.tagger.email.clone());
+        xot.attributes_mut(tagger_el)
+            .insert(name_attr, self.tagger.name.clone());
+        xot.append(tag_el, tagger_el).expect("append tagger");
+
+        // <repo:timestamp>
+        let ts_el = xot.new_element(timestamp_name);
+        let ts_text = xot.new_text(&self.timestamp.format("%Y-%m-%dT%H:%M:%SZ").to_string());
+        xot.append(ts_el, ts_text).expect("append text");
+        xot.append(tag_el, ts_el).expect("append timestamp");
+
+        // <repo:message>
+        let msg_el = xot.new_element(message_name);
+        let msg_text = xot.new_text(&self.message);
+        xot.append(msg_el, msg_text).expect("append text");
+        xot.append(tag_el, msg_el).expect("append message");
+
+        xot.to_string(tag_el).expect("serialize tag")
+    }
 }
 
 #[cfg(test)]
@@ -405,11 +475,6 @@ mod tests {
             TreeEntry { path: "b.xml".into(), document: h },
         ]);
         assert_eq!(tree.paths(), vec!["a.xml", "b.xml", "c.xml"]);
-    }
-
-    #[test]
-    fn xml_escape_handles_special_chars() {
-        assert_eq!(xml_escape("<>&\"'"), "&lt;&gt;&amp;&quot;&apos;");
     }
 
     #[test]

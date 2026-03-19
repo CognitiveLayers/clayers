@@ -18,86 +18,31 @@ pub fn assemble_combined(
 ) -> Result<(Xot, xot::Node), crate::Error> {
     let mut xot = Xot::new();
 
-    // Register all namespace prefixes
+    // Create <cmb:spec> root element with all namespace declarations
+    let cmb_ns = xot.add_namespace(namespace::COMBINED);
+    let spec_name = xot.add_name_ns("spec", cmb_ns);
+    let root = xot.new_element(spec_name);
+
     for (prefix, uri) in namespace::PREFIX_MAP {
         let ns_id = xot.add_namespace(uri);
         let prefix_id = xot.add_prefix(prefix);
-        // We'll set these on the root element after creating it
-        let _ = (ns_id, prefix_id);
+        xot.namespaces_mut(root).insert(prefix_id, ns_id);
     }
 
-    // Build xmlns declarations string
-    let xmlns_decls: Vec<String> = namespace::PREFIX_MAP
-        .iter()
-        .map(|(prefix, uri)| format!("xmlns:{prefix}=\"{uri}\""))
-        .collect();
-
-    // Collect inner XML from all files
-    let mut inner_xml = String::new();
+    // Parse each file and move its root element's children under <cmb:spec>
     for file_path in file_paths {
         let content = std::fs::read_to_string(file_path.as_ref())?;
-        // Extract content between the root element's opening and closing tags
-        if let Some(inner) = extract_inner_xml(&content) {
-            inner_xml.push_str(inner);
-            inner_xml.push('\n');
+        let doc = xot.parse(&content).map_err(xot::Error::from)?;
+        let file_root = xot.document_element(doc)?;
+
+        // Collect children first to avoid iterator invalidation during moves
+        let children: Vec<_> = xot.children(file_root).collect();
+        for child in children {
+            xot.append(root, child)?;
         }
     }
 
-    // Build the combined document
-    let combined_xml = format!(
-        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<cmb:spec {}>\n{inner_xml}</cmb:spec>",
-        xmlns_decls.join(" "),
-    );
-
-    let doc = xot.parse(&combined_xml).map_err(xot::Error::from)?;
-    let root = xot.document_element(doc)?;
-
     Ok((xot, root))
-}
-
-/// Extract the inner XML content from a `<spec:clayers ...>` document.
-///
-/// Returns the content between the root element's opening and closing tags.
-fn extract_inner_xml(xml: &str) -> Option<&str> {
-    let trimmed = xml.trim();
-
-    // Skip XML declaration if present
-    let mut content = if trimmed.starts_with("<?xml") {
-        let decl_end = trimmed.find("?>")?;
-        trimmed[decl_end + 2..].trim()
-    } else {
-        trimmed
-    };
-
-    // Skip any comments before the root element
-    while content.starts_with("<!--") {
-        let comment_end = content.find("-->")?;
-        content = content[comment_end + 3..].trim();
-    }
-
-    // Now content should start with the root element '<spec:clayers ...'
-    if !content.starts_with('<') {
-        return None;
-    }
-
-    // Find the end of the opening root tag
-    let first_gt = content.find('>')?;
-
-    // Check for self-closing tag
-    if content[..first_gt].ends_with('/') {
-        return Some("");
-    }
-
-    let inner_start = first_gt + 1;
-
-    // Find the closing tag (last '</' in the document)
-    let close_start = content.rfind("</")?;
-
-    if close_start <= inner_start {
-        return Some("");
-    }
-
-    Some(&content[inner_start..close_start])
 }
 
 /// Assemble combined document and return it as an XML string.

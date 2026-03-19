@@ -9,6 +9,7 @@ use std::pin::pin;
 
 use clayers_xml::ContentHash;
 use futures_core::Stream;
+use xot::Xot;
 
 use crate::error::{Error, Result};
 use crate::object::{Object, REPO_NS};
@@ -41,28 +42,51 @@ pub struct ConflictSide {
 /// Each side and the ancestor redeclare all necessary namespaces for
 /// portability and self-containment.
 #[must_use]
+#[allow(clippy::missing_panics_doc)]
 pub fn generate_divergence_xml(
     path: &str,
     ancestor_commit: ContentHash,
     ancestor_xml: &str,
     sides: &[(ContentHash, &str, &str)], // (commit, ref, content_xml)
 ) -> String {
-    use std::fmt::Write;
-    let mut xml = format!(
-        "<repo:divergence xmlns:repo=\"{REPO_NS}\" path=\"{path}\">"
-    );
-    let _ = write!(
-        xml,
-        "<repo:ancestor commit=\"{ancestor_commit}\">{ancestor_xml}</repo:ancestor>"
-    );
+    let mut xot = Xot::new();
+    let ns = xot.add_namespace(REPO_NS);
+    let prefix = xot.add_prefix("repo");
+    let divergence_name = xot.add_name_ns("divergence", ns);
+    let ancestor_name = xot.add_name_ns("ancestor", ns);
+    let side_name = xot.add_name_ns("side", ns);
+    let path_attr = xot.add_name("path");
+    let commit_attr = xot.add_name("commit");
+    let ref_attr = xot.add_name("ref");
+
+    let div_el = xot.new_element(divergence_name);
+    xot.namespaces_mut(div_el).insert(prefix, ns);
+    xot.attributes_mut(div_el)
+        .insert(path_attr, path.to_string());
+
+    // <repo:ancestor commit="...">content</repo:ancestor>
+    let ancestor_el = xot.new_element(ancestor_name);
+    xot.attributes_mut(ancestor_el)
+        .insert(commit_attr, ancestor_commit.to_string());
+    let parsed = xot.parse(ancestor_xml).expect("parse ancestor XML");
+    let parsed_root = xot.document_element(parsed).expect("ancestor root");
+    xot.append(ancestor_el, parsed_root).expect("append ancestor content");
+    xot.append(div_el, ancestor_el).expect("append ancestor");
+
+    // <repo:side commit="..." ref="...">content</repo:side>
     for (commit, ref_name, content_xml) in sides {
-        let _ = write!(
-            xml,
-            "<repo:side commit=\"{commit}\" ref=\"{ref_name}\">{content_xml}</repo:side>"
-        );
+        let side_el = xot.new_element(side_name);
+        xot.attributes_mut(side_el)
+            .insert(commit_attr, commit.to_string());
+        xot.attributes_mut(side_el)
+            .insert(ref_attr, (*ref_name).to_string());
+        let parsed = xot.parse(content_xml).expect("parse side XML");
+        let parsed_root = xot.document_element(parsed).expect("side root");
+        xot.append(side_el, parsed_root).expect("append side content");
+        xot.append(div_el, side_el).expect("append side");
     }
-    xml.push_str("</repo:divergence>");
-    xml
+
+    xot.to_string(div_el).expect("serialize divergence")
 }
 
 /// Collect a stream of `Result<(K, V)>` into a `HashMap`, short-circuiting on error.
