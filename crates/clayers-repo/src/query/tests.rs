@@ -902,6 +902,138 @@ impl<S: ObjectStore + RefStore + QueryStore> QueryTester<S> {
         }
     }
 
+    // --- Per-document query tests ---
+
+    /// Helper: create a multi-doc tree with two files and commit it.
+    async fn commit_multi_doc_tree(&self, branch: &str) {
+        let xml_a = r#"<root xmlns:ns="urn:test"><ns:item id="1">alpha</ns:item><ns:item id="2">beta</ns:item></root>"#;
+        let xml_b = r#"<root xmlns:ns="urn:test"><ns:item id="3">gamma</ns:item></root>"#;
+        let doc_a = import::import_xml(&self.store, xml_a).await.unwrap();
+        let doc_b = import::import_xml(&self.store, xml_b).await.unwrap();
+        let tree = TreeObject::new(vec![
+            TreeEntry { path: "a.xml".into(), document: doc_a },
+            TreeEntry { path: "b.xml".into(), document: doc_b },
+        ]);
+        let tree_xml = tree.to_xml();
+        let tree_hash = crate::hash::hash_exclusive(&tree_xml).unwrap();
+        let mut tx = self.store.transaction().await.unwrap();
+        tx.put(tree_hash, Object::Tree(tree)).await.unwrap();
+        tx.commit().await.unwrap();
+        let commit = CommitObject {
+            tree: tree_hash,
+            parents: vec![],
+            author: author(),
+            timestamp: Utc::now(),
+            message: format!("multi-doc {branch}"),
+        };
+        let commit_xml = commit.to_xml();
+        let commit_hash = crate::hash::hash_exclusive(&commit_xml).unwrap();
+        let mut tx = self.store.transaction().await.unwrap();
+        tx.put(commit_hash, Object::Commit(commit)).await.unwrap();
+        tx.commit().await.unwrap();
+        self.store.set_ref(&refs::branch_ref(branch), commit_hash).await.unwrap();
+    }
+
+    /// `query_by_document` returns per-document results with file paths.
+    pub async fn test_query_by_document_returns_paths(&self) {
+        use crate::query;
+
+        self.commit_multi_doc_tree("by_doc_paths").await;
+        let ns = vec![("ns".to_string(), "urn:test".to_string())];
+        let results = query::query_by_document(
+            &self.store, &self.store, &self.store,
+            "by_doc_paths", "//ns:item", QueryMode::Count, &ns, &[],
+        ).await.unwrap();
+
+        assert_eq!(results.len(), 2, "should have results from 2 documents");
+        let paths: Vec<&str> = results.iter().map(|r| r.path.as_str()).collect();
+        assert!(paths.contains(&"a.xml"), "should include a.xml");
+        assert!(paths.contains(&"b.xml"), "should include b.xml");
+
+        // Verify counts per document.
+        for doc in &results {
+            match (&*doc.path, &doc.result) {
+                ("a.xml", QueryResult::Count(n)) => assert_eq!(*n, 2),
+                ("b.xml", QueryResult::Count(n)) => assert_eq!(*n, 1),
+                _ => panic!("unexpected doc result: {:?}", doc.path),
+            }
+        }
+    }
+
+    /// `query_by_document` with file filter constrains to matching docs.
+    pub async fn test_query_by_document_file_filter(&self) {
+        use crate::query;
+
+        self.commit_multi_doc_tree("by_doc_filter").await;
+        let ns = vec![("ns".to_string(), "urn:test".to_string())];
+        let results = query::query_by_document(
+            &self.store, &self.store, &self.store,
+            "by_doc_filter", "//ns:item", QueryMode::Count, &ns,
+            &["b.xml".to_string()],
+        ).await.unwrap();
+
+        assert_eq!(results.len(), 1, "should only query b.xml");
+        assert_eq!(results[0].path, "b.xml");
+        match &results[0].result {
+            QueryResult::Count(n) => assert_eq!(*n, 1),
+            _ => panic!("expected Count"),
+        }
+    }
+
+    /// `query_by_document` with file filter supports substring matching.
+    pub async fn test_query_by_document_file_filter_substring(&self) {
+        use crate::query;
+
+        self.commit_multi_doc_tree("by_doc_substr").await;
+        let ns = vec![("ns".to_string(), "urn:test".to_string())];
+        // "a" matches "a.xml"
+        let results = query::query_by_document(
+            &self.store, &self.store, &self.store,
+            "by_doc_substr", "//ns:item", QueryMode::Text, &ns,
+            &["a".to_string()],
+        ).await.unwrap();
+
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].path, "a.xml");
+        match &results[0].result {
+            QueryResult::Text(texts) => assert_eq!(texts, &["alpha", "beta"]),
+            _ => panic!("expected Text"),
+        }
+    }
+
+    /// `query_by_document` skips documents with zero matches.
+    pub async fn test_query_by_document_skips_empty(&self) {
+        use crate::query;
+
+        self.commit_multi_doc_tree("by_doc_empty").await;
+        let results = query::query_by_document(
+            &self.store, &self.store, &self.store,
+            "by_doc_empty", "//nonexistent", QueryMode::Count, &vec![], &[],
+        ).await.unwrap();
+
+        assert!(results.is_empty(), "no documents should have matches");
+    }
+
+    /// `query_by_document` with empty file filter queries all documents.
+    pub async fn test_query_by_document_no_filter_queries_all(&self) {
+        use crate::query;
+
+        self.commit_multi_doc_tree("by_doc_all").await;
+        let ns = vec![("ns".to_string(), "urn:test".to_string())];
+        let results = query::query_by_document(
+            &self.store, &self.store, &self.store,
+            "by_doc_all", "//ns:item", QueryMode::Count, &ns, &[],
+        ).await.unwrap();
+
+        // Both docs have matches.
+        assert_eq!(results.len(), 2);
+        let total: usize = results.iter().map(|r| match &r.result {
+            QueryResult::Count(n) => *n,
+            _ => 0,
+        }).sum();
+        assert_eq!(total, 3, "total across docs should be 3");
+    }
+
     /// `resolve_to_tree` returns the tree hash and `TreeObject`.
     pub async fn test_resolve_to_tree_from_commit(&self) {
         use crate::query::resolve_to_tree;
@@ -1005,6 +1137,16 @@ macro_rules! query_tests {
         async fn query_descendant_axis() { QueryTester { store: $create }.test_query_descendant_axis().await; }
         #[tokio::test]
         async fn query_string_function() { QueryTester { store: $create }.test_query_string_function().await; }
+        #[tokio::test]
+        async fn query_by_document_returns_paths() { QueryTester { store: $create }.test_query_by_document_returns_paths().await; }
+        #[tokio::test]
+        async fn query_by_document_file_filter() { QueryTester { store: $create }.test_query_by_document_file_filter().await; }
+        #[tokio::test]
+        async fn query_by_document_file_filter_substring() { QueryTester { store: $create }.test_query_by_document_file_filter_substring().await; }
+        #[tokio::test]
+        async fn query_by_document_skips_empty() { QueryTester { store: $create }.test_query_by_document_skips_empty().await; }
+        #[tokio::test]
+        async fn query_by_document_no_filter_queries_all() { QueryTester { store: $create }.test_query_by_document_no_filter_queries_all().await; }
     };
 }
 

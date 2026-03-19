@@ -40,7 +40,7 @@ pub use object::{
     PIObject, TagObject, TextObject, TreeEntry, TreeObject, REPO_NS,
 };
 pub use repo::Repo;
-pub use query::{QueryStore, QueryMode, QueryResult, NamespaceMap, resolve_revspec};
+pub use query::{QueryStore, QueryMode, QueryResult, DocumentQueryResult, NamespaceMap, resolve_revspec};
 pub use store::{ObjectStore, RefStore, Transaction};
 pub use store::memory::MemoryStore;
 pub use sync::{FastForwardOnly, Overwrite, RefConflict, Reject};

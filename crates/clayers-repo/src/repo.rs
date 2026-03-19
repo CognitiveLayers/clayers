@@ -315,6 +315,27 @@ impl<S: ObjectStore + RefStore + QueryStore> Repo<S> {
         query::query(&self.store, &self.store, &self.store, revspec, xpath, mode, namespaces).await
     }
 
+    /// Query each document in the tree, returning per-document results.
+    ///
+    /// When `files` is non-empty, only matching documents are queried.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if resolution or query fails.
+    pub async fn query_by_document(
+        &self,
+        revspec: &str,
+        xpath: &str,
+        mode: QueryMode,
+        namespaces: &NamespaceMap,
+        files: &[String],
+    ) -> Result<Vec<query::DocumentQueryResult>> {
+        query::query_by_document(
+            &self.store, &self.store, &self.store, revspec, xpath, mode, namespaces, files,
+        )
+        .await
+    }
+
     /// Query across all refs matching a prefix.
     ///
     /// # Errors

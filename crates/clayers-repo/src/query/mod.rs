@@ -46,6 +46,15 @@ pub enum QueryResult {
 /// Namespace prefix-to-URI map for `XPath` evaluation.
 pub type NamespaceMap = Vec<(String, String)>;
 
+/// Per-document query result, pairing a file path with its matches.
+#[derive(Debug)]
+pub struct DocumentQueryResult {
+    /// File path within the tree (e.g., `overview.xml`).
+    pub path: String,
+    /// The query result for this document.
+    pub result: QueryResult,
+}
+
 // ---------------------------------------------------------------------------
 // QueryStore trait
 // ---------------------------------------------------------------------------
@@ -304,28 +313,23 @@ pub async fn query_refs(
         };
         // Query each document in the tree, aggregate results.
         // Skip documents where XPath compilation fails (unknown prefix).
-        let mut combined_count = 0usize;
-        let mut combined_texts = Vec::new();
-        let mut combined_xmls = Vec::new();
+        let mut doc_results = Vec::new();
         for entry in &tree.entries {
             match query_store
                 .query_document(entry.document, xpath, mode, namespaces)
                 .await
             {
-                Ok(result) => match result {
-                    QueryResult::Count(n) => combined_count += n,
-                    QueryResult::Text(ts) => combined_texts.extend(ts),
-                    QueryResult::Xml(xs) => combined_xmls.extend(xs),
-                },
-                Err(Error::Xml(ref e)) if e.to_string().contains("compile error") => {},
+                Ok(result) => {
+                    doc_results.push(DocumentQueryResult {
+                        path: entry.path.clone(),
+                        result,
+                    });
+                }
+                Err(Error::Xml(ref e)) if e.to_string().contains("compile error") => {}
                 Err(e) => return Err(e),
             }
         }
-        let combined = match mode {
-            QueryMode::Count => QueryResult::Count(combined_count),
-            QueryMode::Text => QueryResult::Text(combined_texts),
-            QueryMode::Xml => QueryResult::Xml(combined_xmls),
-        };
+        let combined = aggregate_results(mode, doc_results);
         let doc_hash = tree.entries.first()
             .map_or(tree_hash, |e| e.document);
         results.push(RefQueryResult {
@@ -339,7 +343,69 @@ pub async fn query_refs(
     Ok(results)
 }
 
-/// Convenience: resolve a revspec, then query all documents in the tree.
+/// Resolve a revspec and query each document in the tree, returning
+/// per-document results with file paths.
+///
+/// When `files` is non-empty, only documents whose path matches one of the
+/// entries are queried (substring match on the tree entry path).
+///
+/// # Errors
+///
+/// Returns an error if resolution or query fails.
+#[allow(clippy::too_many_arguments)]
+pub async fn query_by_document(
+    store: &(dyn ObjectStore + Sync),
+    query_store: &dyn QueryStore,
+    ref_store: &dyn RefStore,
+    revspec: &str,
+    xpath: &str,
+    mode: QueryMode,
+    namespaces: &NamespaceMap,
+    files: &[String],
+) -> Result<Vec<DocumentQueryResult>> {
+    let hash = resolve_revspec(ref_store, revspec).await?;
+    let tree_hash = follow_to_tree(store, hash).await?;
+    let tree_obj = store.get(&tree_hash).await?.ok_or(Error::NotFound(tree_hash))?;
+    let Object::Tree(tree) = tree_obj else {
+        return Err(Error::InvalidObject("expected Tree object".into()));
+    };
+
+    let mut results = Vec::new();
+    for entry in &tree.entries {
+        // Apply file filter if specified.
+        if !files.is_empty() && !files.iter().any(|f| entry.path.contains(f.as_str())) {
+            continue;
+        }
+
+        match query_store
+            .query_document(entry.document, xpath, mode, namespaces)
+            .await
+        {
+            Ok(result) => {
+                // Skip documents with zero matches.
+                let has_matches = match &result {
+                    QueryResult::Count(0) => false,
+                    QueryResult::Count(_) => true,
+                    QueryResult::Text(t) => !t.is_empty(),
+                    QueryResult::Xml(x) => !x.is_empty(),
+                };
+                if has_matches {
+                    results.push(DocumentQueryResult {
+                        path: entry.path.clone(),
+                        result,
+                    });
+                }
+            }
+            Err(Error::Xml(ref e)) if e.to_string().contains("compile error") => {
+                // Document doesn't know the namespace prefix; skip it.
+            }
+            Err(e) => return Err(e),
+        }
+    }
+    Ok(results)
+}
+
+/// Convenience: resolve a revspec, query all documents, aggregate results.
 ///
 /// # Errors
 ///
@@ -353,39 +419,29 @@ pub async fn query(
     mode: QueryMode,
     namespaces: &NamespaceMap,
 ) -> Result<QueryResult> {
-    let hash = resolve_revspec(ref_store, revspec).await?;
-    let tree_hash = follow_to_tree(store, hash).await?;
-    let tree_obj = store.get(&tree_hash).await?.ok_or(Error::NotFound(tree_hash))?;
-    let Object::Tree(tree) = tree_obj else {
-        return Err(Error::InvalidObject("expected Tree object".into()));
-    };
+    let docs = query_by_document(
+        store, query_store, ref_store, revspec, xpath, mode, namespaces, &[],
+    )
+    .await?;
+    Ok(aggregate_results(mode, docs))
+}
 
-    // Query each document in the tree and aggregate results.
-    // Skip documents where XPath compilation fails (e.g., because the
-    // document doesn't declare a namespace prefix used in the query).
+/// Aggregate per-document results into a single combined result.
+fn aggregate_results(mode: QueryMode, docs: Vec<DocumentQueryResult>) -> QueryResult {
     let mut combined_count = 0usize;
     let mut combined_texts = Vec::new();
     let mut combined_xmls = Vec::new();
-    for entry in &tree.entries {
-        match query_store
-            .query_document(entry.document, xpath, mode, namespaces)
-            .await
-        {
-            Ok(result) => match result {
-                QueryResult::Count(n) => combined_count += n,
-                QueryResult::Text(ts) => combined_texts.extend(ts),
-                QueryResult::Xml(xs) => combined_xmls.extend(xs),
-            },
-            Err(Error::Xml(ref e)) if e.to_string().contains("compile error") => {
-                // Document doesn't know the namespace prefix; skip it.
-            }
-            Err(e) => return Err(e),
+    for doc in docs {
+        match doc.result {
+            QueryResult::Count(n) => combined_count += n,
+            QueryResult::Text(ts) => combined_texts.extend(ts),
+            QueryResult::Xml(xs) => combined_xmls.extend(xs),
         }
     }
-    Ok(match mode {
+    match mode {
         QueryMode::Count => QueryResult::Count(combined_count),
         QueryMode::Text => QueryResult::Text(combined_texts),
         QueryMode::Xml => QueryResult::Xml(combined_xmls),
-    })
+    }
 }
 

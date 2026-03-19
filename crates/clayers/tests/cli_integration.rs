@@ -1756,12 +1756,16 @@ fn query_count_mode() {
         ("a.xml", "<root><item>1</item><item>2</item></root>"),
         ("b.xml", "<root><item>3</item></root>"),
     ]);
-    clayers()
-        .args(["query", "//item", "--count"])
-        .current_dir(tmp.path())
-        .assert()
-        .success()
-        .stdout(predicates::str::contains('3'));
+    let out = stdout_of(
+        clayers()
+            .args(["query", "//item", "--count"])
+            .current_dir(tmp.path()),
+    );
+    // Per-document counts with file headers.
+    assert!(out.contains("--- a.xml ---"), "should show a.xml header: {out}");
+    assert!(out.contains("--- b.xml ---"), "should show b.xml header: {out}");
+    assert!(out.contains('2'), "a.xml should have 2 items: {out}");
+    assert!(out.contains('1'), "b.xml should have 1 item: {out}");
 }
 
 #[test]

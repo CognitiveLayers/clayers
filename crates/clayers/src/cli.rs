@@ -79,6 +79,12 @@ enum Command {
         /// Path to a bare .db file.
         #[arg(long)]
         db: Option<PathBuf>,
+        /// Constrain query to specific documents (substring match on path).
+        #[arg(long = "file", short = 'f')]
+        files: Vec<String>,
+        /// Output results as JSON.
+        #[arg(long)]
+        json: bool,
     },
     /// Bootstrap clayers in a project (plant schemas, amend agent file).
     Adopt {
@@ -248,6 +254,8 @@ fn run(cli: &Cli) -> Result<()> {
             rev,
             branch,
             db,
+            files,
+            json,
         } => cmd_query(
             path.as_deref(),
             xpath,
@@ -257,6 +265,8 @@ fn run(cli: &Cli) -> Result<()> {
             rev.as_deref(),
             branch.as_deref(),
             db.as_deref(),
+            files,
+            *json,
         ),
         Command::Adopt { path, update } => cmd_adopt(path, *update),
 
@@ -624,7 +634,7 @@ fn cmd_adopt(path: &Path, update: bool) -> Result<()> {
     crate::adopt::adopt(path, update)
 }
 
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, clippy::fn_params_excessive_bools)]
 fn cmd_query(
     path: Option<&Path>,
     xpath: &str,
@@ -634,12 +644,13 @@ fn cmd_query(
     rev: Option<&str>,
     branch_arg: Option<&str>,
     db_arg: Option<&Path>,
+    files: &[String],
+    json: bool,
 ) -> Result<()> {
     // Determine mode: spec vs repo.
     let use_spec = path.is_some_and(|p| p.is_dir() && !p.join(".clayers.db").exists());
 
     if use_spec {
-        // Fall back to spec query (existing behavior).
         let path = path.unwrap();
         let mode = if count {
             clayers_spec::query::QueryMode::Count
@@ -650,7 +661,8 @@ fn cmd_query(
         };
         let result =
             clayers_spec::query::execute_query(path, xpath, mode).context("query failed")?;
-        print_spec_query_result(result);
+        let entries = vec![("(combined)".to_string(), spec_to_values(&result))];
+        print_output(&entries, json);
         return Ok(());
     }
 
@@ -663,7 +675,6 @@ fn cmd_query(
         clayers_repo::QueryMode::Xml
     };
 
-    // Resolve db_path.
     let db_path = if let Some(db) = db_arg {
         db.to_path_buf()
     } else if let Some(p) = path {
@@ -678,7 +689,6 @@ fn cmd_query(
         db
     };
 
-    // Determine revspec: --rev, --branch, or current branch.
     let conn = crate::repo::open_cli_db(&db_path)?;
     let current_branch =
         crate::repo::schema::get_meta(&conn, "current_branch")?.unwrap_or_else(|| "main".into());
@@ -690,48 +700,76 @@ fn cmd_query(
         format!("refs/heads/{current_branch}")
     };
 
+    let files = files.to_vec();
     crate::repo::block_on(async move {
         let store = clayers_repo::SqliteStore::open(&db_path)?;
         let repo = clayers_repo::Repo::init(store);
         let namespaces = vec![];
-        let result = repo.query(&revspec, xpath, mode, &namespaces).await?;
-        print_repo_query_result(result);
+        let doc_results = repo
+            .query_by_document(&revspec, xpath, mode, &namespaces, &files)
+            .await?;
+        let entries: Vec<(String, Vec<String>)> = doc_results
+            .into_iter()
+            .map(|d| (d.path, repo_to_values(&d.result)))
+            .collect();
+        print_output(&entries, json);
         Ok(())
     })
 }
 
-fn print_spec_query_result(result: clayers_spec::query::QueryResult) {
+/// Extract string values from a spec query result.
+fn spec_to_values(result: &clayers_spec::query::QueryResult) -> Vec<String> {
     match result {
-        clayers_spec::query::QueryResult::Count(n) => {
-            println!("{n}");
-        }
-        clayers_spec::query::QueryResult::Text(texts) => {
-            for t in &texts {
-                println!("{t}");
+        clayers_spec::query::QueryResult::Count(n) => vec![n.to_string()],
+        clayers_spec::query::QueryResult::Text(texts) => texts.clone(),
+        clayers_spec::query::QueryResult::Xml(xmls) => xmls.clone(),
+    }
+}
+
+/// Extract string values from a repo query result.
+fn repo_to_values(result: &clayers_repo::QueryResult) -> Vec<String> {
+    match result {
+        clayers_repo::QueryResult::Count(n) => vec![n.to_string()],
+        clayers_repo::QueryResult::Text(texts) => texts.clone(),
+        clayers_repo::QueryResult::Xml(xmls) => xmls.clone(),
+    }
+}
+
+/// Print query output: per-document entries as plain text or JSON.
+fn print_output(entries: &[(String, Vec<String>)], json: bool) {
+    if json {
+        print_json(entries);
+    } else {
+        print_plain(entries);
+    }
+}
+
+fn print_plain(entries: &[(String, Vec<String>)]) {
+    let single_doc = entries.len() == 1;
+    for (path, values) in entries {
+        if single_doc && path == "(combined)" {
+            for v in values {
+                println!("{v}");
             }
-        }
-        clayers_spec::query::QueryResult::Xml(xmls) => {
-            for x in &xmls {
-                println!("{x}");
+        } else {
+            println!("--- {path} ---");
+            for v in values {
+                println!("{v}");
             }
         }
     }
 }
 
-fn print_repo_query_result(result: clayers_repo::QueryResult) {
-    match result {
-        clayers_repo::QueryResult::Count(n) => {
-            println!("{n}");
-        }
-        clayers_repo::QueryResult::Text(texts) => {
-            for t in &texts {
-                println!("{t}");
+fn print_json(entries: &[(String, Vec<String>)]) {
+    let docs: Vec<serde_json::Value> = entries
+        .iter()
+        .map(|(path, values)| {
+            // If single numeric value (count mode), emit as integer.
+            if values.len() == 1 && let Ok(n) = values[0].parse::<usize>() {
+                return serde_json::json!({ "file": path, "count": n });
             }
-        }
-        clayers_repo::QueryResult::Xml(xmls) => {
-            for x in &xmls {
-                println!("{x}");
-            }
-        }
-    }
+            serde_json::json!({ "file": path, "matches": values })
+        })
+        .collect();
+    println!("{}", serde_json::to_string_pretty(&docs).unwrap_or_default());
 }
