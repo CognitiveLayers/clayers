@@ -21,6 +21,9 @@ pub fn cmd_add(files: &[PathBuf]) -> Result<()> {
     let cwd = std::env::current_dir().context("failed to get CWD")?;
     let (repo_root, db_path) = discover_repo(&cwd)?;
 
+    // When scanning a directory (add .), skip files that fail to parse.
+    // When files are explicitly named, errors are fatal.
+    let scanning = files.is_empty() || (files.len() == 1 && files[0] == Path::new("."));
     let resolved = resolve_files(files, &cwd, &repo_root)?;
 
     block_on(async move {
@@ -38,9 +41,17 @@ pub fn cmd_add(files: &[PathBuf]) -> Result<()> {
                 .with_context(|| format!("failed to read {}", abs_path.display()))?;
 
             // Import into object store.
-            let doc_hash = clayers_repo::import::import_xml(&store, &xml)
-                .await
-                .with_context(|| format!("failed to import {}", abs_path.display()))?;
+            let doc_hash = match clayers_repo::import::import_xml(&store, &xml).await {
+                Ok(h) => h,
+                Err(e) if scanning => {
+                    eprintln!("warning: skipping {}: {e}", abs_path.display());
+                    continue;
+                }
+                Err(e) => {
+                    return Err(e)
+                        .with_context(|| format!("failed to import {}", abs_path.display()));
+                }
+            };
 
             // Determine action: add vs modify.
             let action = get_working_copy_hash(&conn, &rel_path)?
@@ -310,9 +321,7 @@ fn collect_xml_recursive(
 
         if path.is_dir() {
             collect_xml_recursive(root, &path, files)?;
-        } else if path.is_file()
-            && path.extension().is_some_and(|ext| ext == "xml")
-        {
+        } else if path.is_file() {
             files.push(path);
         }
     }
@@ -337,13 +346,8 @@ fn resolve_files(files: &[PathBuf], cwd: &Path, _repo_root: &Path) -> Result<Vec
         }
         if abs.is_dir() {
             resolved.extend(collect_xml_files(&abs)?);
-        } else if abs.extension().is_some_and(|ext| ext == "xml") {
-            resolved.push(abs);
         } else {
-            eprintln!(
-                "warning: skipping non-XML file: {}",
-                abs.display()
-            );
+            resolved.push(abs);
         }
     }
     Ok(resolved)
