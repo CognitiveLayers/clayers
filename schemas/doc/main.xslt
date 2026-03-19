@@ -611,13 +611,113 @@ details summary {
   margin-bottom: 0.75rem;
 }
 
-/* SPA pages */
-.page { display: none; }
+/* Breadcrumbs */
+.breadcrumbs {
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.breadcrumbs a {
+  color: hsl(var(--muted-foreground));
+  text-decoration: none;
+}
+.breadcrumbs a:hover { color: hsl(var(--foreground)); }
+.breadcrumbs .sep { opacity: 0.4; }
+
+/* Anchor links on headings */
+.heading-anchor {
+  opacity: 0;
+  color: hsl(var(--muted-foreground));
+  text-decoration: none;
+  margin-left: 0.35rem;
+  font-size: 0.75em;
+  transition: opacity 0.15s;
+}
+h1:hover .heading-anchor,
+h2:hover .heading-anchor,
+h3:hover .heading-anchor,
+h4:hover .heading-anchor,
+h5:hover .heading-anchor,
+h6:hover .heading-anchor { opacity: 1; }
+.heading-anchor:hover { color: hsl(var(--foreground)); }
+
+/* Smooth page transitions */
+.page {
+  display: none;
+  animation: fadeIn 0.15s ease-out;
+}
 .page.active { display: block; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive: hamburger on narrow screens */
+.sidebar-toggle {
+  display: none;
+  position: fixed;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 1001;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 1px solid hsl(var(--border));
+  border-radius: calc(var(--radius) - 2px);
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+}
+.sidebar-toggle svg { width: 18px; height: 18px; }
+
+@media (max-width: 768px) {
+  :root { --sidebar-width: 280px; }
+  .sidebar-toggle { display: inline-flex; }
+  nav#sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+    z-index: 1000;
+    box-shadow: 2px 0 8px rgb(0 0 0 / 0.1);
+  }
+  nav#sidebar.open { transform: translateX(0); }
+  main {
+    margin-left: 0;
+    padding: 3rem 1.25rem 4rem;
+  }
+}
+
+/* Print stylesheet */
+@media print {
+  nav#sidebar, .sidebar-toggle, .theme-toggle, #search,
+  #search-results, .sort-controls, .heading-anchor { display: none !important; }
+  main {
+    margin-left: 0 !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+  .page { display: block !important; animation: none !important; }
+  .page + .page { page-break-before: always; }
+  body { font-size: 11pt; color: #000; background: #fff; }
+  h1, h2, h3, h4 { page-break-after: avoid; }
+  .card { border: 1px solid #ccc; box-shadow: none; }
+  .badge { border: 1px solid #999; background: #eee !important; color: #333 !important; }
+  a { color: #000; text-decoration: underline; }
+  pre { border: 1px solid #ccc; background: #f5f5f5 !important; }
+  .relations { border: 1px solid #ccc; background: #f9f9f9 !important; }
+  .breadcrumbs { display: none !important; }
+}
           </xsl:text>
         </style>
       </head>
       <body>
+        <button class="sidebar-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')" aria-label="Toggle sidebar">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
         <nav id="sidebar">
           <div class="sidebar-header">
             <input id="search" type="search" placeholder="Find..." autocomplete="off"/>
@@ -842,6 +942,8 @@ details summary {
         </nav>
 
         <main>
+          <div id="breadcrumbs" class="breadcrumbs"></div>
+
           <!-- Revision metadata banner -->
           <xsl:if test=".//rev:revision">
             <div class="revision-banner">
@@ -928,6 +1030,32 @@ function syncHljsTheme(theme) {
   }
 }
 
+function updateBreadcrumbs(pageId) {
+  var bc = document.getElementById('breadcrumbs');
+  if (!bc) return;
+  bc.innerHTML = '';
+  var link = document.querySelector('#sidebar a[href="#' + pageId + '"]');
+  if (!link) return;
+  var group = link.closest('.nav-group');
+  if (group) {
+    var heading = group.querySelector('.heading-left');
+    if (heading) {
+      var catName = heading.textContent.trim();
+      var span = document.createElement('span');
+      span.textContent = catName;
+      bc.appendChild(span);
+      var sep = document.createElement('span');
+      sep.className = 'sep';
+      sep.textContent = '/';
+      bc.appendChild(sep);
+    }
+  }
+  var current = document.createElement('span');
+  current.style.color = 'hsl(var(--foreground))';
+  current.textContent = link.textContent.trim();
+  bc.appendChild(current);
+}
+
 function showPage(pageId, pushHistory) {
   document.querySelectorAll('.page').forEach(function(p) {
     p.classList.remove('active');
@@ -945,6 +1073,10 @@ function showPage(pageId, pushHistory) {
   if (pushHistory !== false) {
     history.pushState({ page: pageId }, '', '#' + pageId);
   }
+  updateBreadcrumbs(pageId);
+  // Close mobile sidebar on navigation
+  var sidebar = document.getElementById('sidebar');
+  if (sidebar) sidebar.classList.remove('open');
 }
 
 window.addEventListener('popstate', function(e) {
@@ -1177,6 +1309,16 @@ window.addEventListener('popstate', function(e) {
     navigateTo(li.getAttribute('data-id'));
     searchInput.value = '';
     searchResults.classList.remove('visible'); searchInput.classList.remove('has-results');
+  });
+
+  // Keyboard shortcuts: / to focus search, Escape to blur
+  document.addEventListener('keydown', function(e) {
+    // Don't trigger shortcuts when typing in input
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (e.key === '/') {
+      e.preventDefault();
+      searchInput.focus();
+    }
   });
 
   // Nav group sorting

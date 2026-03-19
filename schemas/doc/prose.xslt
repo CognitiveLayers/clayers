@@ -17,6 +17,7 @@
       <xsl:element name="h{$level}">
         <xsl:attribute name="id" select="@id"/>
         <xsl:value-of select="pr:title"/>
+        <a class="heading-anchor" href="#{@id}">#</a>
         <!-- Organization badge if this section is typed -->
         <xsl:variable name="sid" select="@id"/>
         <xsl:apply-templates select="ancestor::cmb:spec//org:concept[@ref = $sid]" mode="badge"/>
