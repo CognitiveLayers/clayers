@@ -358,11 +358,11 @@
   <art:mapping id="map-schema-design-acyclic">
     <art:spec-ref node="schema-design"
               revision="draft-1"
-              node-hash="sha256:0d82daa69bc10a35f3838a7b0c6f41a8326b736287758aee67b13a18b2d511fd"/>
+              node-hash="sha256:cc085cd296eac82258752d3b80b4b37202ac0e5014019599b20d5f09e9acc3d7"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/schema.rs">
-        <art:range hash="sha256:ecd7c7e084c305bc020fa4974a603f8ea10f1e52ff6af342c4017de7fd6a296b"
+        <art:range hash="sha256:b9490bcd7af972a7c38fd3b40fc474dc01c279c8f8f5729bf4671ed9ff6d3c5b"
                    start-line="1" end-line="95"/>
       </art:artifact>
     <art:coverage>partial</art:coverage>
@@ -373,11 +373,11 @@
   <art:mapping id="map-schema-design-content-discover">
     <art:spec-ref node="schema-design"
               revision="draft-1"
-              node-hash="sha256:0d82daa69bc10a35f3838a7b0c6f41a8326b736287758aee67b13a18b2d511fd"/>
+              node-hash="sha256:cc085cd296eac82258752d3b80b4b37202ac0e5014019599b20d5f09e9acc3d7"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/schema.rs">
-        <art:range hash="sha256:5d79971db3782aa2baf4dcc1b94d162121568b9beaefdf9590620ccc75c787e7"
+        <art:range hash="sha256:1cbcdcd3ce6de44abf871fff464df3fe9f20d03abb5eb53c65dbda2f601983cb"
                    start-line="97" end-line="176"/>
       </art:artifact>
     <art:coverage>partial</art:coverage>
@@ -388,11 +388,11 @@
   <art:mapping id="map-schema-design-content-collect">
     <art:spec-ref node="schema-design"
               revision="draft-1"
-              node-hash="sha256:0d82daa69bc10a35f3838a7b0c6f41a8326b736287758aee67b13a18b2d511fd"/>
+              node-hash="sha256:cc085cd296eac82258752d3b80b4b37202ac0e5014019599b20d5f09e9acc3d7"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/schema.rs">
-        <art:range hash="sha256:e6be004049680db4366ad4023ee6922cda8435a1fc8c6b81fd7eaeeb52a5cd32"
+        <art:range hash="sha256:00745af9619d781662368824bf0522635d396422116c06ad45d762de129e3359"
                    start-line="179" end-line="226"/>
       </art:artifact>
     <art:coverage>partial</art:coverage>
@@ -403,7 +403,7 @@
   <art:mapping id="map-open-world-layers">
     <art:spec-ref node="open-world-layers"
               revision="draft-1"
-              node-hash="sha256:40b6d55d850ac4e6d2feb489c58daca226cf0537f4f646786470be15e55f9d56"/>
+              node-hash="sha256:66cb6aebbe47892b07abe3051ccf824d4882b7ff5b7ce82aa82a48f5421bc01d"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="schemas/spec.xsd">
@@ -418,7 +418,7 @@
   <art:mapping id="map-revision-layer">
     <art:spec-ref node="revision-layer"
               revision="draft-1"
-              node-hash="sha256:a60a6b29b929ed2c6545b46665c9c4128f3d8941df5909312f434cfb598bc43e"/>
+              node-hash="sha256:7a88b3bc7de43085f0b7d5e162bff0bd767de7ac8bcdf97c659b9a3048913849"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="schemas/revision.xsd">
@@ -432,7 +432,7 @@
   <art:mapping id="map-index-layer">
     <art:spec-ref node="index-layer"
               revision="draft-1"
-              node-hash="sha256:bdc2512903513b67f3a91599c2f5ec29b318f5f9eacfda218b77687a59a17121"/>
+              node-hash="sha256:6e3d5fd43fe768669d3a44749554fe7c0e62772ae7b74fc5371a43d565f03d0e"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="schemas/index.xsd">
@@ -446,7 +446,7 @@
   <art:mapping id="map-extensible-relation-types-xsd">
     <art:spec-ref node="extensible-relation-types"
               revision="draft-1"
-              node-hash="sha256:5084df0ef85d9c64b94db4b6cf6ded574888dbe894610a8f3ecd7be7d5612932"/>
+              node-hash="sha256:3eda29e1954dc848fee2725189125ef66f330f1fe317e8ea0f23aff5bdac90d5"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="schemas/relation.xsd">
@@ -462,11 +462,11 @@
   <art:mapping id="map-extensible-relation-types-py">
     <art:spec-ref node="extensible-relation-types"
               revision="draft-1"
-              node-hash="sha256:5084df0ef85d9c64b94db4b6cf6ded574888dbe894610a8f3ecd7be7d5612932"/>
+              node-hash="sha256:3eda29e1954dc848fee2725189125ef66f330f1fe317e8ea0f23aff5bdac90d5"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/schema.rs">
-        <art:range hash="sha256:5c0a02d86eb74a5e9c342e2c24e5f0705e3fb2b2d0ec8222e60f21990f079cb5"
+        <art:range hash="sha256:90476e577300ade7b1bd755f75f100ff88f81998eed1853ddb12fb303ae7b395"
                    start-line="27" end-line="116"/>
       </art:artifact>
     <art:coverage>full</art:coverage>
@@ -547,11 +547,11 @@
   <art:mapping id="map-schema-discovery-lib">
     <art:spec-ref node="schema-discovery"
               revision="draft-1"
-              node-hash="sha256:44b27f8a8db336cfb0044a1029f9b20a94091c9b614c52a564ee9d606ab25232"/>
+              node-hash="sha256:0adff8803536d2b77802143fdd04c2aa181ed9ac4103ffc7451798942b939476"/>
     <art:artifact repo="clayers"
               repo-revision="HEAD"
               path="crates/clayers-spec/src/discovery.rs">
-      <art:range hash="sha256:a164ebeb1add7ac941eb33e5048770565a9f5a0017dddb530d10482886efb871"
+      <art:range hash="sha256:f5765b20c37f9c60a7924e6b70eb73d098da0d75e3905e03ccaee486acf826b9"
                  start-line="173" end-line="194"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -562,7 +562,7 @@
   <art:mapping id="map-schema-discovery-connectivity">
     <art:spec-ref node="schema-discovery"
               revision="draft-1"
-              node-hash="sha256:44b27f8a8db336cfb0044a1029f9b20a94091c9b614c52a564ee9d606ab25232"/>
+              node-hash="sha256:0adff8803536d2b77802143fdd04c2aa181ed9ac4103ffc7451798942b939476"/>
     <art:artifact repo="clayers"
               repo-revision="HEAD"
               path="crates/clayers-spec/src/connectivity.rs">
@@ -577,12 +577,12 @@
   <art:mapping id="map-schema-discovery-cli">
     <art:spec-ref node="schema-discovery"
               revision="draft-1"
-              node-hash="sha256:44b27f8a8db336cfb0044a1029f9b20a94091c9b614c52a564ee9d606ab25232"/>
+              node-hash="sha256:0adff8803536d2b77802143fdd04c2aa181ed9ac4103ffc7451798942b939476"/>
     <art:artifact repo="clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/cli.rs">
       <art:range hash="sha256:2732a67f5bdab6b471453de53c74b1295b12af1efac6d1b4d95a0dea858d9f97"
-                 start-line="393" end-line="413"/>
+                 start-line="628" end-line="648"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>resolve_schema_dir() and cmd_schema() make the schema
@@ -605,7 +605,7 @@
   <art:mapping id="map-type-relation-schema">
     <art:spec-ref node="type-relation"
               revision="draft-1"
-              node-hash="sha256:a8b4825ba43165a5b92d49b9c5224bb9b4295bcc39465b8ae352e0a9f87ae441"/>
+              node-hash="sha256:8364d191b05acb8309a526b135a794e75147739311c497f6e567adabfbde12cc"/>
     <art:artifact repo="clayers"
               repo-revision="753ad37"
               path="schemas/relation.xsd">
@@ -619,7 +619,7 @@
   <art:mapping id="map-type-relation-kind-schema">
     <art:spec-ref node="type-relation-kind"
               revision="draft-1"
-              node-hash="sha256:89b27b93dcfc9bcc187d9930479508ce54a5bba23ca35496a31b225560505990"/>
+              node-hash="sha256:8207d4905a4279535feef68b6b5db1fe83a16dfca43a36a42c8f8c74c254154e"/>
     <art:artifact repo="clayers"
               repo-revision="753ad37"
               path="schemas/relation.xsd">
