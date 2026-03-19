@@ -1019,7 +1019,7 @@ h6:hover .heading-anchor { opacity: 1; }
           <xsl:if test=".//rev:revision">
             <div class="revision-banner">
               <xsl:for-each select=".//rev:revision">
-                <span class="badge badge-gray"><xsl:value-of select="@id"/></span>
+                <span class="badge badge-gray"><xsl:value-of select="(@name, @id)[1]"/></span>
               </xsl:for-each>
             </div>
           </xsl:if>
