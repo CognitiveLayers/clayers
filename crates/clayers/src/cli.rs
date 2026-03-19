@@ -93,6 +93,9 @@ enum Command {
         /// Output file path (default: derived from spec name).
         #[arg(short, long)]
         output: Option<PathBuf>,
+        /// Inline all CDN resources for fully offline HTML.
+        #[arg(long)]
+        self_contained: bool,
     },
     /// Bootstrap clayers in a project (plant schemas, amend agent file).
     Adopt {
@@ -233,6 +236,7 @@ pub fn cli_main() {
     }
 }
 
+#[allow(clippy::too_many_lines)]
 fn run(cli: &Cli) -> Result<()> {
     match &cli.command {
         Command::Validate { path } => cmd_validate(path),
@@ -276,7 +280,11 @@ fn run(cli: &Cli) -> Result<()> {
             files,
             *json,
         ),
-        Command::Doc { path, output } => crate::doc::cmd_doc(path, output.as_deref()),
+        Command::Doc {
+            path,
+            output,
+            self_contained,
+        } => crate::doc::cmd_doc(path, output.as_deref(), *self_contained),
         Command::Adopt { path, update } => cmd_adopt(path, *update),
 
         // Repository commands.

@@ -9,6 +9,8 @@ path = "src/main.rs"
 
 [dependencies]
 anyhow = "1"
+base64 = "0.22"
+reqwest = { version = "0.13", features = ["blocking"] }
 clap = { version = "4", features = ["derive"] }
 clayers-spec = { path = "../clayers-spec" }
 clayers-repo = { path = "../clayers-repo", features = ["sqlite"] }
