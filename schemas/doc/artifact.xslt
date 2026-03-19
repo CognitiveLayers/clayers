@@ -2,10 +2,14 @@
 <xsl:stylesheet version="3.0"
     xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
     xmlns:art="urn:clayers:artifact"
-    exclude-result-prefixes="art">
+    xmlns:doc="urn:clayers:doc"
+    xmlns:cmb="urn:clayers:combined"
+    exclude-result-prefixes="art doc cmb">
 
   <!-- Artifact mapping card -->
   <xsl:template match="art:mapping">
+    <xsl:variable name="mid" select="@id"/>
+    <xsl:variable name="drift" select="ancestor::cmb:spec//doc:drift[@mapping = $mid]"/>
     <div class="card" id="{@id}">
       <h4>
         <xsl:value-of select="@id"/>
@@ -22,6 +26,12 @@
             <span class="badge badge-red">none</span>
           </xsl:when>
         </xsl:choose>
+        <xsl:if test="$drift/@status = 'spec-drifted' or $drift/@status = 'artifact-drifted'">
+          <xsl:text> </xsl:text>
+          <span class="badge {if ($drift/@status = 'spec-drifted') then 'badge-drift-spec' else 'badge-drift-artifact'}">
+            <xsl:value-of select="if ($drift/@status = 'spec-drifted') then 'spec drifted' else 'artifact drifted'"/>
+          </span>
+        </xsl:if>
       </h4>
       <p>
         <strong>Spec node:</strong>
@@ -51,6 +61,26 @@
       <xsl:if test="art:note">
         <p><xsl:value-of select="art:note"/></p>
       </xsl:if>
+      <!-- Code fragments from doc:report -->
+      <xsl:variable name="fragments" select="ancestor::cmb:spec//doc:fragment[@mapping = $mid]"/>
+      <xsl:for-each select="$fragments">
+        <div class="code-fragment">
+          <details>
+            <summary>
+              <xsl:text>View source (</xsl:text>
+              <xsl:value-of select="@path"/>
+              <xsl:if test="@start and @end">
+                <xsl:text>:</xsl:text>
+                <xsl:value-of select="@start"/>
+                <xsl:text>-</xsl:text>
+                <xsl:value-of select="@end"/>
+              </xsl:if>
+              <xsl:text>)</xsl:text>
+            </summary>
+            <pre><code class="language-{@language}"><xsl:value-of select="."/></code></pre>
+          </details>
+        </div>
+      </xsl:for-each>
     </div>
   </xsl:template>
 

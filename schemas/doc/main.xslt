@@ -15,7 +15,8 @@
     xmlns:llm="urn:clayers:llm"
     xmlns:rev="urn:clayers:revision"
     xmlns:idx="urn:clayers:index"
-    exclude-result-prefixes="xs cmb spec pr trm org rel dec src pln art llm rev idx">
+    xmlns:doc="urn:clayers:doc"
+    exclude-result-prefixes="xs cmb spec pr trm org rel dec src pln art llm rev idx doc">
 
   <xsl:import href="catchall.xslt"/>
   <xsl:import href="prose.xslt"/>
@@ -611,6 +612,57 @@ details summary {
   margin-bottom: 0.75rem;
 }
 
+/* Drift indicators */
+a.drift-dot, .drift-dot {
+  font-size: 0.6em;
+  vertical-align: middle;
+  text-decoration: none;
+}
+.drift-artifact { color: var(--clr-red); }
+.drift-spec { color: var(--clr-yellow); }
+.drift-both { background: linear-gradient(135deg, var(--clr-yellow) 50%, var(--clr-red) 50%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+a.drift-dot:hover { opacity: 0.7; }
+
+.badge-drift-spec { background: color-mix(in srgb, var(--clr-yellow) 15%, transparent); color: var(--clr-yellow); border-color: color-mix(in srgb, var(--clr-yellow) 30%, transparent); }
+.badge-drift-artifact { background: color-mix(in srgb, var(--clr-red) 15%, transparent); color: var(--clr-red); border-color: color-mix(in srgb, var(--clr-red) 30%, transparent); }
+
+.highlight-flash {
+  animation: flash 1.5s ease-out;
+}
+@keyframes flash {
+  0% { background: color-mix(in srgb, var(--clr-red) 25%, transparent); }
+  100% { background: transparent; }
+}
+
+/* Code fragments */
+.code-fragment details {
+  margin-top: 0.35rem;
+}
+.code-fragment summary {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+  cursor: pointer;
+  user-select: none;
+}
+.code-fragment summary:hover { color: hsl(var(--foreground)); }
+.code-fragment pre {
+  margin: 0.25rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  max-height: 24rem;
+  overflow-y: auto;
+}
+.code-fragment .line-num {
+  display: inline-block;
+  width: 3.5em;
+  text-align: right;
+  padding-right: 1em;
+  color: hsl(var(--muted-foreground));
+  opacity: 0.5;
+  user-select: none;
+}
+
 /* Breadcrumbs */
 .breadcrumbs {
   font-size: 0.75rem;
@@ -935,7 +987,26 @@ h6:hover .heading-anchor { opacity: 1; }
                 <span class="heading-left" onclick="this.closest('.nav-group').classList.toggle('collapsed')"><svg class="chevron" viewBox="0 0 10 10"><path d="M3 1l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>Artifacts</span>
               </div>
               <ul>
-                <li><a href="#artifacts">Mappings (<xsl:value-of select="count(.//art:mapping)"/>)</a></li>
+                <li>
+                  <a href="#artifacts">Mappings (<xsl:value-of select="count(.//art:mapping)"/>)</a>
+                  <ul>
+                    <xsl:for-each select=".//art:mapping">
+                      <xsl:variable name="mid" select="@id"/>
+                      <xsl:variable name="adrift" select="ancestor::cmb:spec//doc:drift[@mapping = $mid and (@status = 'spec-drifted' or @status = 'artifact-drifted')]"/>
+                      <li>
+                        <a href="#{@id}">
+                          <span>
+                            <xsl:if test="$adrift">
+                              <span class="drift-dot {if ($adrift/@status = 'spec-drifted') then 'drift-spec' else 'drift-artifact'}" title="{$adrift/@status}">&#x25CF;</span>
+                              <xsl:text> </xsl:text>
+                            </xsl:if>
+                            <xsl:value-of select="@id"/>
+                          </span>
+                        </a>
+                      </li>
+                    </xsl:for-each>
+                  </ul>
+                </li>
               </ul>
             </div>
           </xsl:if>
@@ -1115,7 +1186,11 @@ window.addEventListener('popstate', function(e) {
       var parentPage = el.closest('.page');
       if (parentPage) {
         showPage(parentPage.getAttribute('data-page'));
-        setTimeout(function() { el.scrollIntoView({ behavior: 'smooth' }); }, 50);
+        setTimeout(function() {
+          el.scrollIntoView({ behavior: 'smooth' });
+          el.classList.add('highlight-flash');
+          setTimeout(function() { el.classList.remove('highlight-flash'); }, 1600);
+        }, 50);
       }
     }
   }
@@ -1392,9 +1467,31 @@ showPage = function(id, push) { origShowPage(id, push); hljs.highlightAll(); };
     <xsl:variable name="sid" select="$section/@id"/>
     <xsl:variable name="out" select="count($section/ancestor::cmb:spec//rel:relation[@from = $sid])"/>
     <xsl:variable name="inc" select="count($section/ancestor::cmb:spec//rel:relation[@to = $sid])"/>
+    <xsl:variable name="spec-drifts" select="$section/ancestor::cmb:spec//doc:drift[@node = $sid and @status = 'spec-drifted']"/>
+    <xsl:variable name="art-drifts" select="$section/ancestor::cmb:spec//doc:drift[@node = $sid and @status = 'artifact-drifted']"/>
+    <xsl:variable name="has-spec-drift" select="boolean($spec-drifts)"/>
+    <xsl:variable name="has-art-drift" select="boolean($art-drifts)"/>
     <li data-label="{$section/pr:title}" data-conn="{$out + $inc}">
       <a href="#{$sid}">
-        <span><xsl:value-of select="$section/pr:title"/></span>
+        <span>
+          <xsl:if test="$has-spec-drift or $has-art-drift">
+            <xsl:variable name="drift-class">
+              <xsl:choose>
+                <xsl:when test="$has-spec-drift and $has-art-drift">drift-both</xsl:when>
+                <xsl:when test="$has-spec-drift">drift-spec</xsl:when>
+                <xsl:otherwise>drift-artifact</xsl:otherwise>
+              </xsl:choose>
+            </xsl:variable>
+            <xsl:variable name="drift-title">
+              <xsl:if test="$has-spec-drift"><xsl:value-of select="count($spec-drifts)"/> spec drifted</xsl:if>
+              <xsl:if test="$has-spec-drift and $has-art-drift">, </xsl:if>
+              <xsl:if test="$has-art-drift"><xsl:value-of select="count($art-drifts)"/> artifact drifted</xsl:if>
+            </xsl:variable>
+            <span class="drift-dot {$drift-class}" title="{$drift-title}">&#x25CF;</span>
+            <xsl:text> </xsl:text>
+          </xsl:if>
+          <xsl:value-of select="$section/pr:title"/>
+        </span>
         <xsl:if test="$out + $inc > 0">
           <span class="conn-count" title="{$out} outgoing, {$inc} incoming relations">
             <xsl:if test="$out > 0"><xsl:value-of select="$out"/>&#x2197;</xsl:if>
@@ -1470,6 +1567,7 @@ showPage = function(id, push) { origShowPage(id, push); hljs.highlightAll(); };
   <xsl:template match="rel:note"/>
   <xsl:template match="rev:date"/>
   <xsl:template match="spec:clayers"/>
+  <xsl:template match="doc:report | doc:drift | doc:fragment"/>
 
 
 </xsl:stylesheet>

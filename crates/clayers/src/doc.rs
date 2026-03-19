@@ -1,4 +1,5 @@
-use std::path::Path;
+use std::fmt::Write as _;
+use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
 use base64::Engine;
@@ -27,8 +28,18 @@ pub fn cmd_doc(path: &Path, output: Option<&Path>, self_contained: bool) -> Resu
     }
 
     // Assemble combined XML.
-    let combined_xml = clayers_spec::assembly::assemble_combined_string(&all_file_paths)
+    let mut combined_xml = clayers_spec::assembly::assemble_combined_string(&all_file_paths)
         .context("assembly failed")?;
+
+    // Generate doc:report layer (drift + code fragments) and inject into combined XML.
+    let repo_root = clayers_spec::artifact::find_repo_root(path);
+    let report_xml = build_doc_report(path, &all_file_paths, repo_root.as_deref());
+    if !report_xml.is_empty() {
+        // Insert before closing </cmb:spec>
+        if let Some(pos) = combined_xml.rfind("</") {
+            combined_xml.insert_str(pos, &report_xml);
+        }
+    }
 
     // Transform via XSLT.
     let mut html = clayers_xml::xslt::transform(&combined_xml, embedded::DOC_XSLT_FILES)
@@ -45,7 +56,7 @@ pub fn cmd_doc(path: &Path, output: Option<&Path>, self_contained: bool) -> Resu
         let name = path
             .file_name()
             .map_or_else(|| "spec".into(), |n| n.to_string_lossy().into_owned());
-        std::path::PathBuf::from(format!("{name}.html"))
+        PathBuf::from(format!("{name}.html"))
     };
 
     std::fs::write(&out_path, &html)
@@ -54,6 +65,238 @@ pub fn cmd_doc(path: &Path, output: Option<&Path>, self_contained: bool) -> Resu
     println!("{}", out_path.display());
     Ok(())
 }
+
+/// Build a `<doc:report>` XML fragment with drift status and code fragments.
+///
+/// This gets injected into the combined XML so XSLT can render everything
+/// natively without post-processing.
+fn build_doc_report(
+    spec_path: &Path,
+    file_paths: &[PathBuf],
+    repo_root: Option<&Path>,
+) -> String {
+    let mut xml = String::from(
+        "<doc:report xmlns:doc=\"urn:clayers:doc\">\n",
+    );
+
+    // Collect artifact mappings.
+    let mappings = collect_mappings(file_paths);
+
+    // Run drift check.
+    let drift_map = build_drift_map(spec_path, repo_root);
+
+    for m in &mappings {
+        let status = drift_map
+            .get(&m.mapping_id)
+            .map_or("unknown", String::as_str);
+
+        // Drift element.
+        let _ = writeln!(
+            xml,
+            "  <doc:drift mapping=\"{}\" node=\"{}\" status=\"{}\"/>",
+            xml_escape(&m.mapping_id),
+            xml_escape(&m.node_id),
+            xml_escape(status),
+        );
+
+        // Code fragment elements.
+        let resolved = if let Some(root) = repo_root {
+            root.join(&m.artifact_path)
+        } else {
+            PathBuf::from(&m.artifact_path)
+        };
+
+        if let Ok(content) = std::fs::read_to_string(&resolved) {
+            let lines: Vec<&str> = content.lines().collect();
+            let ext = resolved
+                .extension()
+                .and_then(|e| e.to_str())
+                .unwrap_or("");
+            let language = ext_to_language(ext);
+
+            for range in &m.ranges {
+                let (from, to) = match (range.start_line, range.end_line) {
+                    (Some(s), Some(e)) => (
+                        s.saturating_sub(1).min(lines.len()),
+                        e.min(lines.len()),
+                    ),
+                    _ => (0, lines.len()),
+                };
+                if from >= to || from >= lines.len() {
+                    continue;
+                }
+
+                let mut code = String::new();
+                for (i, line) in lines[from..to].iter().enumerate() {
+                    let line_no = from + i + 1;
+                    let _ = writeln!(code, "{line_no:>5} | {line}");
+                }
+
+                let start_attr = range
+                    .start_line
+                    .map_or(String::new(), |s| format!(" start=\"{s}\""));
+                let end_attr = range
+                    .end_line
+                    .map_or(String::new(), |e| format!(" end=\"{e}\""));
+
+                let _ = writeln!(
+                    xml,
+                    "  <doc:fragment mapping=\"{}\" path=\"{}\" language=\"{}\"{}{}>",
+                    xml_escape(&m.mapping_id),
+                    xml_escape(&m.artifact_path),
+                    xml_escape(language),
+                    start_attr,
+                    end_attr,
+                );
+                xml.push_str(&xml_escape(&code));
+                xml.push_str("</doc:fragment>\n");
+            }
+        }
+    }
+
+    xml.push_str("</doc:report>\n");
+    xml
+}
+
+struct MappingInfo {
+    mapping_id: String,
+    node_id: String,
+    artifact_path: String,
+    ranges: Vec<RangeInfo>,
+}
+
+struct RangeInfo {
+    start_line: Option<usize>,
+    end_line: Option<usize>,
+}
+
+/// Collect artifact mapping info from spec files (lightweight, no xot needed).
+fn collect_mappings(file_paths: &[PathBuf]) -> Vec<MappingInfo> {
+    let mut mappings = Vec::new();
+    for path in file_paths {
+        let Ok(content) = std::fs::read_to_string(path) else {
+            continue;
+        };
+        // Simple XML attribute extraction - not a full parser but sufficient.
+        let mut pos = 0;
+        while let Some(start) = content[pos..].find("<art:mapping") {
+            let abs_start = pos + start;
+            let Some(block_end) = content[abs_start..].find("</art:mapping>") else {
+                break;
+            };
+            let block = &content[abs_start..abs_start + block_end + "</art:mapping>".len()];
+
+            let mapping_id = extract_xml_attr(block, "id").unwrap_or_default();
+            let node_id = extract_xml_attr(
+                &block[block.find("<art:spec-ref").unwrap_or(0)..],
+                "node",
+            )
+            .unwrap_or_default();
+            let artifact_path = extract_xml_attr(
+                &block[block.find("<art:artifact").unwrap_or(0)..],
+                "path",
+            )
+            .unwrap_or_default();
+
+            let mut ranges = Vec::new();
+            let mut rpos = 0;
+            while let Some(rs) = block[rpos..].find("<art:range") {
+                let rabs = rpos + rs;
+                let range_tag = &block[rabs..block[rabs..].find("/>").map_or(block.len(), |i| rabs + i + 2)];
+                let sl = extract_xml_attr(range_tag, "start-line")
+                    .and_then(|s| s.parse().ok());
+                let el = extract_xml_attr(range_tag, "end-line")
+                    .and_then(|s| s.parse().ok());
+                ranges.push(RangeInfo {
+                    start_line: sl,
+                    end_line: el,
+                });
+                rpos = rabs + 1;
+            }
+
+            if ranges.is_empty() && !artifact_path.is_empty() {
+                ranges.push(RangeInfo {
+                    start_line: None,
+                    end_line: None,
+                });
+            }
+
+            if !mapping_id.is_empty() && !artifact_path.is_empty() {
+                mappings.push(MappingInfo {
+                    mapping_id,
+                    node_id,
+                    artifact_path,
+                    ranges,
+                });
+            }
+
+            pos = abs_start + block_end + "</art:mapping>".len();
+        }
+    }
+    mappings
+}
+
+fn extract_xml_attr(tag: &str, name: &str) -> Option<String> {
+    let patterns = [format!("{name}=\""), format!("{name}='")];
+    for pat in &patterns {
+        if let Some(start) = tag.find(pat.as_str()) {
+            let val_start = start + pat.len();
+            let quote = tag.as_bytes()[start + pat.len() - 1] as char;
+            let val_end = tag[val_start..].find(quote)? + val_start;
+            return Some(tag[val_start..val_end].to_string());
+        }
+    }
+    None
+}
+
+fn build_drift_map(
+    path: &Path,
+    repo_root: Option<&Path>,
+) -> std::collections::HashMap<String, String> {
+    let mut map = std::collections::HashMap::new();
+    if let Ok(report) = clayers_spec::drift::check_drift(path, repo_root) {
+        for md in &report.mapping_drifts {
+            let status = match &md.status {
+                clayers_spec::drift::DriftStatus::Clean => "clean",
+                clayers_spec::drift::DriftStatus::SpecDrifted { .. } => "spec-drifted",
+                clayers_spec::drift::DriftStatus::ArtifactDrifted { .. } => "artifact-drifted",
+                clayers_spec::drift::DriftStatus::Unavailable { .. } => "unavailable",
+            };
+            map.insert(md.mapping_id.clone(), status.to_string());
+        }
+    }
+    map
+}
+
+fn ext_to_language(ext: &str) -> &'static str {
+    match ext {
+        "rs" => "rust",
+        "ts" | "tsx" => "typescript",
+        "js" | "jsx" => "javascript",
+        "py" => "python",
+        "toml" => "toml",
+        "xml" | "xsd" | "xslt" => "xml",
+        "sql" => "sql",
+        "sh" | "bash" => "bash",
+        "yaml" | "yml" => "yaml",
+        "json" => "json",
+        "css" => "css",
+        "html" => "html",
+        "md" => "markdown",
+        _ => "",
+    }
+}
+
+fn xml_escape(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+}
+
+// ---------------------------------------------------------------------------
+// Self-contained inlining (unchanged)
+// ---------------------------------------------------------------------------
 
 /// Fetch a URL via reqwest and return bytes.
 /// Uses a modern user-agent so Google Fonts serves woff2 instead of ttf.
@@ -73,15 +316,12 @@ fn fetch(url: &str) -> Result<Vec<u8>> {
     Ok(bytes.to_vec())
 }
 
-/// Convert bytes to a data URI.
 fn to_data_uri(bytes: &[u8], mime: &str) -> String {
     let b64 = base64::engine::general_purpose::STANDARD.encode(bytes);
     format!("data:{mime};base64,{b64}")
 }
 
-/// Guess MIME type from URL.
 fn mime_for(url: &str) -> &'static str {
-    // Strip query string for extension check.
     let path_part = url.split('?').next().unwrap_or(url);
     let p = std::path::Path::new(path_part);
     match p.extension().and_then(|e| e.to_str()) {
@@ -91,7 +331,6 @@ fn mime_for(url: &str) -> &'static str {
         Some("woff") => "font/woff",
         Some("ttf") => "font/ttf",
         _ => {
-            // Heuristic: Google Fonts API returns CSS.
             if url.contains("fonts.googleapis.com/css") {
                 "text/css"
             } else {
@@ -108,14 +347,12 @@ fn inline_all(html: &str) -> Result<String> {
     let mut cache: std::collections::HashMap<String, String> =
         std::collections::HashMap::new();
 
-    // 1. Remove preconnect links first (they contain bare domain hrefs).
     result = result
         .lines()
         .filter(|line| !line.contains("rel=\"preconnect\""))
         .collect::<Vec<_>>()
         .join("\n");
 
-    // 2. Replace href="https://..." and src="https://..." with data URIs.
     for attr in &["href=\"https://", "src=\"https://"] {
         loop {
             let Some(attr_start) = result.find(attr) else {
@@ -128,12 +365,10 @@ fn inline_all(html: &str) -> Result<String> {
                 .context("unclosed attribute")?;
             let url = result[url_start..url_end].to_string();
 
-            // Skip content links (not resources).
             if !url.contains("cdn.")
                 && !url.contains("fonts.googleapis.com")
                 && !url.contains("cdnjs.")
             {
-                // Replace with a marker to skip on next iteration.
                 result.replace_range(
                     url_start..url_start + "https://".len(),
                     "https-skip://",
@@ -162,13 +397,10 @@ fn inline_all(html: &str) -> Result<String> {
         }
     }
 
-    // 3. Restore skipped URLs.
     result = result.replace("https-skip://", "https://");
-
     Ok(result)
 }
 
-/// Inline url(https://...) references inside CSS content (fonts).
 fn inline_css_urls(
     css: &str,
     cache: &mut std::collections::HashMap<String, String>,
