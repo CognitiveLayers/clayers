@@ -314,7 +314,7 @@ fn compute_single_file_coverage(
     if let Some(ranges) = ranges {
         for entry in ranges {
             #[allow(clippy::cast_possible_truncation)]
-            let start = (entry.start_line as usize).saturating_sub(1);
+            let start = std::cmp::min((entry.start_line as usize).saturating_sub(1), total_lines);
             #[allow(clippy::cast_possible_truncation)]
             let end = std::cmp::min(entry.end_line as usize, total_lines);
             for c in &mut covered[start..end] {

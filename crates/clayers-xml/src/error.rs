@@ -13,6 +13,9 @@ pub enum Error {
     #[error("invalid hash format: {0}")]
     InvalidHashFormat(String),
 
+    #[error("XPath query error: {0}")]
+    Query(String),
+
     #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),
 }

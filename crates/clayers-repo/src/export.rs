@@ -77,7 +77,7 @@ pub async fn export_xml(store: &dyn ObjectStore, hash: ContentHash) -> Result<St
 }
 
 /// Synchronously build an XML string from a pre-collected object map.
-fn build_xml_from_objects(
+pub(crate) fn build_xml_from_objects(
     objects: &HashMap<ContentHash, Object>,
     hash: ContentHash,
 ) -> Result<String> {

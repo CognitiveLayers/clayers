@@ -3,6 +3,7 @@ pub mod catalog;
 pub mod diff;
 pub mod error;
 pub mod hash;
+pub mod query;
 pub mod rnc;
 
 pub use c14n::{CanonicalizationMode, canonicalize, canonicalize_and_hash, canonicalize_str};

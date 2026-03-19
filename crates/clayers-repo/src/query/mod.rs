@@ -1,7 +1,7 @@
 //! `XPath` queries on repository objects.
 //!
-//! Provides `QueryStore` trait, default `XPath` evaluation via xot, revision
-//! resolution, and cross-ref search.
+//! Provides `QueryStore` trait, default `XPath` evaluation via xee-xpath,
+//! revision resolution, and cross-ref search.
 
 #[cfg(test)]
 pub(crate) mod tests;
@@ -12,7 +12,6 @@ use std::pin::pin;
 use async_trait::async_trait;
 use clayers_xml::ContentHash;
 use futures_core::Stream;
-
 use crate::error::{Error, Result};
 use crate::object::Object;
 use crate::refs;
@@ -54,8 +53,8 @@ pub type NamespaceMap = Vec<(String, String)>;
 /// Trait for querying documents stored in the object store.
 ///
 /// Backends can override this to use specialized indexing/search strategies.
-/// The default implementation collects the subtree, builds a xot tree, and
-/// evaluates `XPath`.
+/// The default implementation collects the subtree, builds XML via export,
+/// and evaluates `XPath` using xee-xpath.
 #[async_trait]
 pub trait QueryStore: Send + Sync {
     /// Query a document by its hash.
@@ -86,7 +85,8 @@ where
     Ok(map)
 }
 
-/// Default query implementation: collect subtree, build xot, evaluate `XPath`.
+/// Default query implementation: collect subtree, serialize to XML, evaluate
+/// `XPath` via xee-xpath.
 ///
 /// # Errors
 ///
@@ -107,110 +107,25 @@ pub async fn default_query_document(
         None => return Err(Error::NotFound(doc_hash)),
     };
 
-    // Build xot tree directly from objects.
-    let (mut xot, xot_root) = build_xot_from_objects(&objects, root_hash)?;
+    // Serialize objects to XML string via the export module.
+    let xml_string = crate::export::build_xml_from_objects(&objects, root_hash)?;
 
-    // Pre-collect predicate attribute names.
-    let attr_names = collect_predicate_attr_names(xpath)?;
-
-    // Evaluate `XPath`.
-    match mode {
-        QueryMode::Count => {
-            let nodes = find_matching_nodes(&mut xot, xot_root, xpath, namespaces, &attr_names)?;
-            Ok(QueryResult::Count(nodes.len()))
-        }
-        QueryMode::Text => {
-            let nodes = find_matching_nodes(&mut xot, xot_root, xpath, namespaces, &attr_names)?;
-            let texts = nodes.into_iter().map(|n| collect_all_text(&xot, n)).collect();
-            Ok(QueryResult::Text(texts))
-        }
-        QueryMode::Xml => {
-            let nodes = find_matching_nodes(&mut xot, xot_root, xpath, namespaces, &attr_names)?;
-            let xmls = nodes
-                .into_iter()
-                .map(|n| xot.to_string(n).unwrap_or_default())
-                .collect();
-            Ok(QueryResult::Xml(xmls))
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------
-// Direct xot tree building from objects
-// ---------------------------------------------------------------------------
-
-/// Build a xot tree directly from the object `HashMap`.
-///
-/// Walks the object graph starting from `root_hash`, creating xot nodes
-/// directly (no string serialization/reparsing round-trip).
-fn build_xot_from_objects(
-    objects: &HashMap<ContentHash, Object>,
-    root_hash: ContentHash,
-) -> Result<(xot::Xot, xot::Node)> {
-    let mut xot = xot::Xot::new();
-    let root_node = build_xot_node(&mut xot, objects, root_hash)?;
-    let _doc_node = xot
-        .new_document_with_element(root_node)
-        .map_err(|e: xot::Error| Error::InvalidObject(e.to_string()))?;
-    Ok((xot, root_node))
-}
-
-/// Recursively build a single xot node from the object map.
-fn build_xot_node(
-    xot: &mut xot::Xot,
-    objects: &HashMap<ContentHash, Object>,
-    hash: ContentHash,
-) -> Result<xot::Node> {
-    let obj = objects.get(&hash).ok_or(Error::NotFound(hash))?;
-
-    match obj {
-        Object::Text(t) => Ok(xot.new_text(&t.content)),
-        Object::Comment(c) => Ok(xot.new_comment(&c.content)),
-        Object::PI(pi) => {
-            let target_name = xot.add_name(&pi.target);
-            Ok(xot.new_processing_instruction(target_name, pi.data.as_deref()))
-        }
-        Object::Element(el) => {
-            // Create element with namespace.
-            let ns_uri = el.namespace_uri.as_deref().unwrap_or("");
-            let ns = if ns_uri.is_empty() {
-                xot.add_namespace("")
-            } else {
-                xot.add_namespace(ns_uri)
-            };
-            let name = xot.add_name_ns(&el.local_name, ns);
-            let elem_node = xot.new_element(name);
-
-            // Add namespace declaration so serialization works.
-            if !ns_uri.is_empty() {
-                let prefix = xot.add_prefix("");
-                xot.namespaces_mut(elem_node).insert(prefix, ns);
-            }
-
-            // Set attributes.
-            for attr in &el.attributes {
-                let attr_ns = if let Some(ref attr_ns_uri) = attr.namespace_uri {
-                    xot.add_namespace(attr_ns_uri)
-                } else {
-                    xot.add_namespace("")
-                };
-                let attr_name = xot.add_name_ns(&attr.local_name, attr_ns);
-                xot.set_attribute(elem_node, attr_name, &attr.value);
-            }
-
-            // Recursively build children.
-            for child_hash in &el.children {
-                let child_node = build_xot_node(xot, objects, *child_hash)?;
-                xot.append(elem_node, child_node)
-                    .map_err(|e| Error::InvalidObject(e.to_string()))?;
-            }
-
-            Ok(elem_node)
-        }
-        _ => Err(Error::InvalidObject(
-            "cannot build xot node from versioning object".into(),
-        )),
-    }
+    // Evaluate XPath in a plain fn (all !Send xee-xpath types stay off the async stack).
+    let ns_refs: Vec<(&str, &str)> = namespaces
+        .iter()
+        .map(|(p, u)| (p.as_str(), u.as_str()))
+        .collect();
+    let xml_mode = match mode {
+        QueryMode::Count => clayers_xml::query::QueryMode::Count,
+        QueryMode::Text => clayers_xml::query::QueryMode::Text,
+        QueryMode::Xml => clayers_xml::query::QueryMode::Xml,
+    };
+    let result = clayers_xml::query::evaluate_xpath(&xml_string, xpath, xml_mode, &ns_refs)?;
+    Ok(match result {
+        clayers_xml::query::QueryResult::Count(n) => QueryResult::Count(n),
+        clayers_xml::query::QueryResult::Text(t) => QueryResult::Text(t),
+        clayers_xml::query::QueryResult::Xml(x) => QueryResult::Xml(x),
+    })
 }
 
 // ---------------------------------------------------------------------------
@@ -388,17 +303,22 @@ pub async fn query_refs(
             return Err(Error::InvalidObject("expected Tree object".into()));
         };
         // Query each document in the tree, aggregate results.
+        // Skip documents where XPath compilation fails (unknown prefix).
         let mut combined_count = 0usize;
         let mut combined_texts = Vec::new();
         let mut combined_xmls = Vec::new();
         for entry in &tree.entries {
-            let result = query_store
+            match query_store
                 .query_document(entry.document, xpath, mode, namespaces)
-                .await?;
-            match result {
-                QueryResult::Count(n) => combined_count += n,
-                QueryResult::Text(ts) => combined_texts.extend(ts),
-                QueryResult::Xml(xs) => combined_xmls.extend(xs),
+                .await
+            {
+                Ok(result) => match result {
+                    QueryResult::Count(n) => combined_count += n,
+                    QueryResult::Text(ts) => combined_texts.extend(ts),
+                    QueryResult::Xml(xs) => combined_xmls.extend(xs),
+                },
+                Err(Error::Xml(ref e)) if e.to_string().contains("compile error") => {},
+                Err(e) => return Err(e),
             }
         }
         let combined = match mode {
@@ -441,17 +361,25 @@ pub async fn query(
     };
 
     // Query each document in the tree and aggregate results.
+    // Skip documents where XPath compilation fails (e.g., because the
+    // document doesn't declare a namespace prefix used in the query).
     let mut combined_count = 0usize;
     let mut combined_texts = Vec::new();
     let mut combined_xmls = Vec::new();
     for entry in &tree.entries {
-        let result = query_store
+        match query_store
             .query_document(entry.document, xpath, mode, namespaces)
-            .await?;
-        match result {
-            QueryResult::Count(n) => combined_count += n,
-            QueryResult::Text(ts) => combined_texts.extend(ts),
-            QueryResult::Xml(xs) => combined_xmls.extend(xs),
+            .await
+        {
+            Ok(result) => match result {
+                QueryResult::Count(n) => combined_count += n,
+                QueryResult::Text(ts) => combined_texts.extend(ts),
+                QueryResult::Xml(xs) => combined_xmls.extend(xs),
+            },
+            Err(Error::Xml(ref e)) if e.to_string().contains("compile error") => {
+                // Document doesn't know the namespace prefix; skip it.
+            }
+            Err(e) => return Err(e),
         }
     }
     Ok(match mode {
@@ -461,274 +389,3 @@ pub async fn query(
     })
 }
 
-// ---------------------------------------------------------------------------
-// `XPath` evaluator (ported from clayers-spec/src/query.rs)
-// ---------------------------------------------------------------------------
-
-struct ParsedStep {
-    prefix: String,
-    local_name: String,
-    predicate: Option<(String, String)>, // (attr_name, attr_value)
-    is_descendant: bool,
-}
-
-struct ResolvedStep {
-    prefix: String,
-    local_name: String,
-    pred_value: Option<String>,
-    pred_name_id: Option<xot::NameId>,
-    is_descendant: bool,
-}
-
-/// Collect predicate attribute names from an `XPath` expression.
-fn collect_predicate_attr_names(xpath: &str) -> Result<Vec<String>> {
-    let steps = parse_xpath_steps(xpath.trim())?;
-    Ok(steps
-        .into_iter()
-        .filter_map(|s| s.predicate.map(|(name, _)| name))
-        .collect())
-}
-
-fn parse_xpath_steps(xpath: &str) -> Result<Vec<ParsedStep>> {
-    let xpath = xpath.trim();
-    if !xpath.starts_with("//") {
-        return Err(Error::InvalidObject(format!(
-            "only //descendant XPath is supported, got: {xpath}"
-        )));
-    }
-
-    let path = &xpath[2..];
-    let mut steps = Vec::new();
-    let mut first = true;
-
-    for part in split_xpath_path(path) {
-        let step = parse_single_step(part, first)?;
-        steps.push(step);
-        first = false;
-    }
-
-    Ok(steps)
-}
-
-fn split_xpath_path(path: &str) -> Vec<&str> {
-    let mut parts = Vec::new();
-    let mut depth = 0;
-    let mut start = 0;
-
-    for (i, c) in path.char_indices() {
-        match c {
-            '[' => depth += 1,
-            ']' => depth -= 1,
-            '/' if depth == 0 => {
-                if i > start {
-                    parts.push(&path[start..i]);
-                }
-                start = i + 1;
-            }
-            _ => {}
-        }
-    }
-    if start < path.len() {
-        parts.push(&path[start..]);
-    }
-    parts
-}
-
-fn parse_single_step(step: &str, is_first: bool) -> Result<ParsedStep> {
-    let (name_part, predicate) = if let Some(bracket_start) = step.find('[') {
-        let bracket_end = step
-            .rfind(']')
-            .ok_or_else(|| Error::InvalidObject(format!("unmatched bracket in: {step}")))?;
-        let pred_str = &step[bracket_start + 1..bracket_end];
-        let pred = parse_predicate(pred_str)?;
-        (&step[..bracket_start], Some(pred))
-    } else {
-        (step, None)
-    };
-
-    let (prefix, local_name) = if let Some(colon) = name_part.find(':') {
-        (
-            name_part[..colon].trim_start_matches('@').to_string(),
-            name_part[colon + 1..].to_string(),
-        )
-    } else {
-        (String::new(), name_part.to_string())
-    };
-
-    Ok(ParsedStep {
-        prefix,
-        local_name,
-        predicate,
-        is_descendant: is_first,
-    })
-}
-
-fn parse_predicate(pred: &str) -> Result<(String, String)> {
-    let pred = pred.trim();
-    if !pred.starts_with('@') {
-        return Err(Error::InvalidObject(format!(
-            "only @attr=\"value\" predicates supported, got: {pred}"
-        )));
-    }
-
-    let pred = &pred[1..];
-    let eq_pos = pred
-        .find('=')
-        .ok_or_else(|| Error::InvalidObject(format!("missing = in predicate: {pred}")))?;
-
-    let attr_name = pred[..eq_pos].to_string();
-    let value_str = &pred[eq_pos + 1..];
-    let value = value_str.trim_matches('"').trim_matches('\'').to_string();
-
-    Ok((attr_name, value))
-}
-
-/// Resolve parsed `XPath` steps by interning attribute names into the Xot arena.
-fn resolve_steps(
-    xot: &mut xot::Xot,
-    steps: Vec<ParsedStep>,
-    attr_names: &[String],
-) -> Vec<ResolvedStep> {
-    let mut name_idx = 0;
-    steps
-        .into_iter()
-        .map(|s| {
-            let (pred_name_id, pred_value) = match s.predicate {
-                Some((_, attr_value)) => {
-                    let name_id = xot.add_name(&attr_names[name_idx]);
-                    name_idx += 1;
-                    (Some(name_id), Some(attr_value))
-                }
-                None => (None, None),
-            };
-            ResolvedStep {
-                prefix: s.prefix,
-                local_name: s.local_name,
-                pred_value,
-                pred_name_id,
-                is_descendant: s.is_descendant,
-            }
-        })
-        .collect()
-}
-
-/// Find matching nodes in the xot tree using caller-provided namespace map.
-fn find_matching_nodes(
-    xot: &mut xot::Xot,
-    root: xot::Node,
-    xpath: &str,
-    namespaces: &NamespaceMap,
-    attr_names: &[String],
-) -> Result<Vec<xot::Node>> {
-    let xpath = xpath.trim();
-    let steps = parse_xpath_steps(xpath)?;
-    let resolved = resolve_steps(xot, steps, attr_names);
-
-    let mut results = Vec::new();
-    find_nodes_by_steps(xot, root, &resolved, namespaces, 0, true, &mut results);
-    Ok(results)
-}
-
-fn find_nodes_by_steps(
-    xot: &xot::Xot,
-    node: xot::Node,
-    steps: &[ResolvedStep],
-    namespaces: &NamespaceMap,
-    step_idx: usize,
-    search_descendants: bool,
-    results: &mut Vec<xot::Node>,
-) {
-    if step_idx >= steps.len() {
-        return;
-    }
-
-    let resolved = &steps[step_idx];
-    let is_last = step_idx == steps.len() - 1;
-
-    if !xot.is_element(node) {
-        return;
-    }
-
-    // Check if this node matches the current step.
-    if matches_step(xot, node, resolved, namespaces) {
-        if is_last {
-            results.push(node);
-        } else {
-            // Continue with next step on children.
-            for child in xot.children(node) {
-                find_nodes_by_steps(xot, child, steps, namespaces, step_idx + 1, false, results);
-            }
-        }
-    }
-
-    // If searching descendants (// axis), recurse into all children.
-    if search_descendants || resolved.is_descendant {
-        for child in xot.children(node) {
-            find_nodes_by_steps(xot, child, steps, namespaces, step_idx, true, results);
-        }
-    }
-}
-
-/// Check if a node matches a resolved step, using caller-provided namespace map.
-fn matches_step(
-    xot: &xot::Xot,
-    node: xot::Node,
-    resolved: &ResolvedStep,
-    namespaces: &NamespaceMap,
-) -> bool {
-    let Some(element) = xot.element(node) else {
-        return false;
-    };
-
-    let name_id = element.name();
-    let (local, ns_uri) = xot.name_ns_str(name_id);
-    if local != resolved.local_name {
-        return false;
-    }
-
-    // Check namespace prefix via caller-provided map.
-    if !resolved.prefix.is_empty() {
-        let expected_uri = namespaces
-            .iter()
-            .find(|(prefix, _)| prefix == &resolved.prefix)
-            .map(|(_, uri)| uri.as_str());
-        if let Some(expected) = expected_uri {
-            if ns_uri != expected {
-                return false;
-            }
-        } else {
-            // Unknown prefix: no match.
-            return false;
-        }
-    }
-
-    // Check predicate.
-    if let Some(ref attr_value) = resolved.pred_value {
-        if let Some(attr_id) = resolved.pred_name_id {
-            match xot.get_attribute(node, attr_id) {
-                Some(val) if val == attr_value => {}
-                _ => return false,
-            }
-        } else {
-            return false;
-        }
-    }
-
-    true
-}
-
-/// Collect all text content from a node and its descendants.
-fn collect_all_text(xot: &xot::Xot, node: xot::Node) -> String {
-    let mut text = String::new();
-    collect_text_recursive(xot, node, &mut text);
-    text.trim().to_string()
-}
-
-fn collect_text_recursive(xot: &xot::Xot, node: xot::Node, out: &mut String) {
-    if let Some(t) = xot.text_str(node) {
-        out.push_str(t);
-    }
-    for child in xot.children(node) {
-        collect_text_recursive(xot, child, out);
-    }
-}

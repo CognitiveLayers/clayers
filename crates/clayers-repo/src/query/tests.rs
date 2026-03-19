@@ -317,14 +317,20 @@ impl<S: ObjectStore + RefStore + QueryStore> QueryTester<S> {
 
     // --- Adversarial / unhappy path tests ---
 
-    /// `XPath` without `//` prefix must error, not silently return empty.
+    /// `XPath` `app:item` is valid `XPath` 3.1 (child axis from context node).
+    /// Against the test XML, evaluating from the document node, `app:item`
+    /// matches nothing because root's child is `root`, not `app:item`.
     pub async fn test_query_malformed_xpath_no_slashes(&self) {
         let doc_hash = self.import_test_doc().await;
         let result = self
             .store
             .query_document(doc_hash, "app:item", QueryMode::Count, &test_namespaces())
-            .await;
-        assert!(result.is_err(), "XPath without // should error");
+            .await
+            .unwrap();
+        match result {
+            QueryResult::Count(n) => assert_eq!(n, 0, "app:item from document root matches nothing"),
+            _ => panic!("expected Count"),
+        }
     }
 
     /// Unbalanced bracket in predicate must error.
@@ -337,28 +343,31 @@ impl<S: ObjectStore + RefStore + QueryStore> QueryTester<S> {
         assert!(result.is_err(), "unbalanced bracket should error");
     }
 
-    /// Predicate without @ prefix must error.
+    /// `[id="1"]` is valid `XPath` 3.1: tests whether a child element named
+    /// `id` has string value `"1"`. The test XML has `id` as an attribute,
+    /// not a child element, so this matches nothing.
     pub async fn test_query_malformed_predicate_no_at(&self) {
         let doc_hash = self.import_test_doc().await;
         let result = self
             .store
             .query_document(doc_hash, "//app:item[id=\"1\"]", QueryMode::Count, &test_namespaces())
-            .await;
-        assert!(result.is_err(), "predicate without @ should error");
+            .await
+            .unwrap();
+        match result {
+            QueryResult::Count(n) => assert_eq!(n, 0, "child-element predicate matches nothing"),
+            _ => panic!("expected Count"),
+        }
     }
 
-    /// Query with unknown namespace prefix returns 0 results, not error.
+    /// Query with unknown namespace prefix must error (xee-xpath rejects
+    /// unknown prefixes at compile time).
     pub async fn test_query_unknown_prefix_returns_zero(&self) {
         let doc_hash = self.import_test_doc().await;
         let result = self
             .store
             .query_document(doc_hash, "//bogus:item", QueryMode::Count, &test_namespaces())
-            .await
-            .unwrap();
-        match result {
-            QueryResult::Count(n) => assert_eq!(n, 0, "unknown prefix should match nothing"),
-            _ => panic!("expected Count"),
-        }
+            .await;
+        assert!(result.is_err(), "unknown prefix should error at compile time");
     }
 
     /// No-namespace elements don't match prefixed queries.
@@ -601,20 +610,24 @@ impl<S: ObjectStore + RefStore + QueryStore> QueryTester<S> {
 
     /// `export_xml` and query Xml mode must produce structurally equivalent output.
     /// This catches divergence between the two XML-building code paths.
+    ///
+    /// Note: uses `entry` instead of `child` as element name because `child`
+    /// is an `XPath` axis keyword that xee-xpath's lexer cannot use as a `QName`
+    /// local part.
     pub async fn test_export_vs_query_xml_equivalence(&self) {
         use crate::export;
 
-        let xml = r#"<root xmlns="urn:example"><child id="1">hello</child><child id="2">world</child></root>"#;
+        let xml = r#"<root xmlns="urn:example"><entry id="1">hello</entry><entry id="2">world</entry></root>"#;
         let doc_hash = import::import_xml(&self.store, xml).await.unwrap();
 
         // Get the root element via export.
         let exported = export::export_xml(&self.store, doc_hash).await.unwrap();
 
-        // Query the root element via build_xot path.
+        // Query using a prefix mapped to the default namespace.
         let ns = vec![("ex".to_string(), "urn:example".to_string())];
         let result = self
             .store
-            .query_document(doc_hash, "//ex:child[@id=\"1\"]", QueryMode::Text, &ns)
+            .query_document(doc_hash, "//ex:entry[@id=\"1\"]", QueryMode::Text, &ns)
             .await
             .unwrap();
         match result {
@@ -624,14 +637,14 @@ impl<S: ObjectStore + RefStore + QueryStore> QueryTester<S> {
             _ => panic!("expected Text"),
         }
 
-        // Both paths should agree on structure: exported XML should contain both children.
+        // Both paths should agree on structure.
         assert!(exported.contains("hello"), "export missing 'hello'");
         assert!(exported.contains("world"), "export missing 'world'");
 
         // Query for count.
         let result = self
             .store
-            .query_document(doc_hash, "//ex:child", QueryMode::Count, &ns)
+            .query_document(doc_hash, "//ex:entry", QueryMode::Count, &ns)
             .await
             .unwrap();
         match result {
@@ -742,6 +755,153 @@ impl<S: ObjectStore + RefStore + QueryStore> QueryTester<S> {
         }
     }
 
+    // --- XPath 3.1 feature tests ---
+
+    /// Absolute path (no `//` prefix) now works with `XPath` 3.1.
+    pub async fn test_query_absolute_path(&self) {
+        let doc_hash = self.import_test_doc().await;
+        let result = self
+            .store
+            .query_document(doc_hash, "/root/app:item", QueryMode::Count, &test_namespaces())
+            .await
+            .unwrap();
+        match result {
+            QueryResult::Count(n) => assert_eq!(n, 3),
+            _ => panic!("expected Count"),
+        }
+    }
+
+    /// `count()` function returns an atomic integer.
+    pub async fn test_query_count_function(&self) {
+        let doc_hash = self.import_test_doc().await;
+        let result = self
+            .store
+            .query_document(doc_hash, "count(//app:item)", QueryMode::Text, &test_namespaces())
+            .await
+            .unwrap();
+        match result {
+            QueryResult::Text(texts) => {
+                assert_eq!(texts.len(), 1);
+                assert_eq!(texts[0], "3");
+            }
+            _ => panic!("expected Text"),
+        }
+    }
+
+    /// `contains()` in predicate.
+    pub async fn test_query_contains_predicate(&self) {
+        let doc_hash = self.import_test_doc().await;
+        let result = self
+            .store
+            .query_document(
+                doc_hash,
+                "//app:item[contains(@status, 'act')]",
+                QueryMode::Count,
+                &test_namespaces(),
+            )
+            .await
+            .unwrap();
+        match result {
+            QueryResult::Count(n) => assert_eq!(n, 3, "'active' and 'inactive' both contain 'act'"),
+            _ => panic!("expected Count"),
+        }
+    }
+
+    /// Positional predicate `[2]`.
+    pub async fn test_query_positional_predicate(&self) {
+        let doc_hash = self.import_test_doc().await;
+        let result = self
+            .store
+            .query_document(
+                doc_hash,
+                "(//app:item)[2]/app:name",
+                QueryMode::Text,
+                &test_namespaces(),
+            )
+            .await
+            .unwrap();
+        match result {
+            QueryResult::Text(texts) => assert_eq!(texts, vec!["Beta"]),
+            _ => panic!("expected Text"),
+        }
+    }
+
+    /// `last()` function.
+    pub async fn test_query_last_function(&self) {
+        let doc_hash = self.import_test_doc().await;
+        let result = self
+            .store
+            .query_document(
+                doc_hash,
+                "(//app:item)[last()]/app:name",
+                QueryMode::Text,
+                &test_namespaces(),
+            )
+            .await
+            .unwrap();
+        match result {
+            QueryResult::Text(texts) => assert_eq!(texts, vec!["Gamma"]),
+            _ => panic!("expected Text"),
+        }
+    }
+
+    /// Parent axis `..`.
+    pub async fn test_query_parent_axis(&self) {
+        let doc_hash = self.import_test_doc().await;
+        let result = self
+            .store
+            .query_document(
+                doc_hash,
+                "//app:name[text()='Alpha']/..",
+                QueryMode::Count,
+                &test_namespaces(),
+            )
+            .await
+            .unwrap();
+        match result {
+            QueryResult::Count(n) => assert_eq!(n, 1, "parent is the app:item element"),
+            _ => panic!("expected Count"),
+        }
+    }
+
+    /// Explicit descendant axis.
+    pub async fn test_query_descendant_axis(&self) {
+        let doc_hash = self.import_test_doc().await;
+        let result = self
+            .store
+            .query_document(
+                doc_hash,
+                "/root/descendant::app:name",
+                QueryMode::Count,
+                &test_namespaces(),
+            )
+            .await
+            .unwrap();
+        match result {
+            QueryResult::Count(n) => assert_eq!(n, 3),
+            _ => panic!("expected Count"),
+        }
+    }
+
+    /// `string()` function.
+    pub async fn test_query_string_function(&self) {
+        let doc_hash = self.import_test_doc().await;
+        let result = self
+            .store
+            .query_document(
+                doc_hash,
+                "string(//app:item[@id='1']/app:name)",
+                QueryMode::Text,
+                &test_namespaces(),
+            )
+            .await
+            .unwrap();
+        match result {
+            QueryResult::Text(texts) => assert_eq!(texts, vec!["Alpha"]),
+            _ => panic!("expected Text"),
+        }
+    }
+
     /// `resolve_to_tree` returns the tree hash and `TreeObject`.
     pub async fn test_resolve_to_tree_from_commit(&self) {
         use crate::query::resolve_to_tree;
@@ -829,6 +989,22 @@ macro_rules! query_tests {
         async fn query_file_scoped() { QueryTester { store: $create }.test_query_file_scoped().await; }
         #[tokio::test]
         async fn resolve_to_tree_from_commit() { QueryTester { store: $create }.test_resolve_to_tree_from_commit().await; }
+        #[tokio::test]
+        async fn query_absolute_path() { QueryTester { store: $create }.test_query_absolute_path().await; }
+        #[tokio::test]
+        async fn query_count_function() { QueryTester { store: $create }.test_query_count_function().await; }
+        #[tokio::test]
+        async fn query_contains_predicate() { QueryTester { store: $create }.test_query_contains_predicate().await; }
+        #[tokio::test]
+        async fn query_positional_predicate() { QueryTester { store: $create }.test_query_positional_predicate().await; }
+        #[tokio::test]
+        async fn query_last_function() { QueryTester { store: $create }.test_query_last_function().await; }
+        #[tokio::test]
+        async fn query_parent_axis() { QueryTester { store: $create }.test_query_parent_axis().await; }
+        #[tokio::test]
+        async fn query_descendant_axis() { QueryTester { store: $create }.test_query_descendant_axis().await; }
+        #[tokio::test]
+        async fn query_string_function() { QueryTester { store: $create }.test_query_string_function().await; }
     };
 }
 
