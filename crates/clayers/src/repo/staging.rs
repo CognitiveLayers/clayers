@@ -310,7 +310,9 @@ fn collect_xml_recursive(
 
         if path.is_dir() {
             collect_xml_recursive(root, &path, files)?;
-        } else if path.is_file() {
+        } else if path.is_file()
+            && path.extension().is_some_and(|ext| ext == "xml")
+        {
             files.push(path);
         }
     }
@@ -335,8 +337,13 @@ fn resolve_files(files: &[PathBuf], cwd: &Path, _repo_root: &Path) -> Result<Vec
         }
         if abs.is_dir() {
             resolved.extend(collect_xml_files(&abs)?);
-        } else {
+        } else if abs.extension().is_some_and(|ext| ext == "xml") {
             resolved.push(abs);
+        } else {
+            eprintln!(
+                "warning: skipping non-XML file: {}",
+                abs.display()
+            );
         }
     }
     Ok(resolved)
