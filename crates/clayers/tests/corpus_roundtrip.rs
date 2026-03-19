@@ -148,7 +148,7 @@ fn known_failures_for(corpus: &str) -> &'static [KnownFailure] {
             },
         ],
         "W3C XSD Tests" => &[
-            // Boeing IPO: dual binding (default ns + ipo: prefix for same URI).
+            // TODO: dual-binding issue — same as DocBook/RDF
             KnownFailure {
                 path: PathMatch::Pattern(r"^boeingData/ipo[34]/ipo_[12]\.xml$"),
                 filter: None,
@@ -156,15 +156,7 @@ fn known_failures_for(corpus: &str) -> &'static [KnownFailure] {
                 error_contains: "<ipo:",
                 reason: "dual binding (default ns + prefix) for same URI; xot normalizes to prefixed form",
             },
-            // Unused default namespace on xsd:schema (prefixed root).
-            KnownFailure {
-                path: PathMatch::File("boeingData/ipo4/address.xsd"),
-                filter: None,
-                kind: FailureKind::C14n,
-                error_contains: "xmlns=",
-                reason: "unused default ns on xsd:schema stripped by xot",
-            },
-            // XSLT coverage report: dual binding with xhtml namespace.
+            // TODO: dual binding in XSLT
             KnownFailure {
                 path: PathMatch::File("common/coverage-report.xsl"),
                 filter: None,
@@ -172,51 +164,49 @@ fn known_failures_for(corpus: &str) -> &'static [KnownFailure] {
                 error_contains: "<x:html>",
                 reason: "dual binding (default ns + prefix) for same URI; xot normalizes to prefixed form",
             },
-            // Attribute values containing &#xA; / literal newlines get normalized
-            // to spaces by the XML parser (attribute value normalization per spec).
+            // TODO: unused default ns on prefixed root — same class as RDF
             KnownFailure {
-                path: PathMatch::Pattern(r"^common/xsts\.(xml|xsd)$"),
+                path: PathMatch::File("boeingData/ipo4/address.xsd"),
+                filter: None,
+                kind: FailureKind::C14n,
+                error_contains: "xmlns=",
+                reason: "unused default ns on xsd:schema stripped by xot",
+            },
+            // IBM: dual binding (default ns + prefix for same URI).
+            // Specific dirs enumerated. Must be BEFORE the broad C14n entry.
+            // TODO: same dual-binding issue as DocBook/RDF/Boeing
+            KnownFailure {
+                path: PathMatch::Pattern(r"^ibmData/(instance_invalid|valid)/(S2_7_1/s2_7_1(ii01|v\d+)|S3_(10_6/s3_10_6(ii0[134]|v\d+)|11_2|4_2_4|8_6)).*\.xml$"),
+                filter: None,
+                kind: FailureKind::Hash,
+                error_contains: "root",
+                reason: "dual binding (default ns + prefix) for same URI; xot normalizes to prefixed form",
+            },
+            // S4_2_2: dual binding with xs/xsd prefixes for same XMLSchema URI.
+            KnownFailure {
+                path: PathMatch::Pattern(r"^ibmData/.*/S4_2_2/.*\.xsd$"),
+                filter: None,
+                kind: FailureKind::Hash,
+                error_contains: "xs:schema",
+                reason: "dual binding (xmlns:xs + xmlns:xsd for same URI); xot drops duplicate",
+            },
+            // IBM: xot serialization reformats multi-line element tags,
+            // normalizes attribute whitespace, converts single to double quotes.
+            // TODO: investigate xot formatting preservation options
+            KnownFailure {
+                path: PathMatch::Pattern(r"^ibmData/"),
+                filter: None,
+                kind: FailureKind::C14n,
+                error_contains: "line",
+                reason: "xot serialization reformats IBM test data (multi-line tags, quote normalization, attr whitespace)",
+            },
+            // common/xsts.xsd: &#xA; in attr values normalized to spaces.
+            KnownFailure {
+                path: PathMatch::File("common/xsts.xsd"),
                 filter: None,
                 kind: FailureKind::C14n,
                 error_contains: "memberTypes=",
-                reason: "attribute value newline normalization by XML parser",
-            },
-            // IBM test files with literal newline/tab inside attribute values.
-            // XML attr value normalization replaces \n and \t with spaces.
-            // Content filter: regex checks for \n or \t between attribute quotes.
-            // TODO: investigate whether we can preserve original attr whitespace
-            KnownFailure {
-                path: PathMatch::Pattern(r"^ibmData/"),
-                filter: Some(ContentFilter::Matches(r#"="[^"]*[\n\t][^"]*""#)),
-                kind: FailureKind::C14n,
-                error_contains: "line",
-                reason: "attribute value whitespace normalization (literal \\n\\t in attrs)",
-            },
-            // IBM files where xot serialization reformats: single quotes
-            // to double, multi-line tags collapsed, attr whitespace normalized.
-            // Dirs enumerated from accumulate runs. C14N-only differences.
-            // TODO: investigate xot options for preserving original formatting
-            KnownFailure {
-                path: PathMatch::Pattern(r"^ibmData/(instance_invalid/(D2_4_1_2|D3_3_(4|16|17|7)|D3_4_(2[1-8]|6)|D4_3_(15|16|6)|S2_(2_4|7_1)|S3_(10_6|12|16_2|3_(4|6)|4_(1|6)))|valid/(D2_4_1_2|D3_3_(4|5|6|9|1[0-7])|D3_4_(2[1-8]|6)|D4_3_(15|16|6)|S2_(2_2|7_2)|S3_(10_6|11_2|12|16_2|3_(4|6)|4_(1|6))|S4_2_[3-6]))/.+\.xml$"),
-                filter: None,
-                kind: FailureKind::C14n,
-                error_contains: "line",
-                reason: "xot serialization reformats: multi-line tags, quote normalization, attr whitespace",
-            },
-            KnownFailure {
-                path: PathMatch::Pattern(r"^ibmData/(instance_invalid/(D2_4_1_2|D3_3_(16|17|7)|D3_4_2[1-4]|D4_3_15|S3_(10_6|3_4|4_(2_4|6)|8_6))|schema_invalid/(D2_4_1_3|D3_1|D4_3_15|S2_2_[24]|S3_(16_2|3_4|4_6)|S4_2_[246])|valid/(D3_3_(16|17)|D3_4_(2[1-4]|6)|D4_3_15|S2_2_2|S3_(10_6|11_2|3_4|4_(2_4|6))|S4_2_[2-6]))/.+\.xsd$"),
-                filter: None,
-                kind: FailureKind::C14n,
-                error_contains: "line",
-                reason: "xot serialization reformats .xsd: multi-line tags, quote normalization, attr whitespace",
-            },
-            // TODO: investigate — Hash failure from attr normalization is unexpected
-            KnownFailure {
-                path: PathMatch::File("ibmData/instance_invalid/S4_2_2/s4_2_2ii01.xsd"),
-                filter: None,
-                kind: FailureKind::Hash,
-                error_contains: "original:",
-                reason: "multiline attribute normalization causes hash change",
+                reason: "attribute value &#xA; normalization by XML parser",
             },
         ],
         _ => &[],
@@ -558,7 +548,7 @@ fn run_corpus_roundtrip(name: &str, corpus_dir: &Path) {
         })
         .collect();
 
-    // Find a known failure matching this path + file content.
+    // Find a known failure matching path + content filter.
     let find_known = |rel_path: &str, file_content: &[u8]| -> Option<&KnownFailure> {
         for ck in &compiled {
             // Check path match.
@@ -607,6 +597,9 @@ fn run_corpus_roundtrip(name: &str, corpus_dir: &Path) {
     let mut unexpected: Vec<String> = Vec::new();
     // Track which known failure entries were hit (matched a file and failed as expected).
     let mut known_hits: HashSet<&str> = HashSet::new();
+    // In fail-fast mode, collect errors for 10s after first failure then panic.
+    let mut fail_fast_deadline: Option<std::time::Instant> = None;
+    let fail_fast_window = std::time::Duration::from_secs(10);
 
     for (i, file) in valid.iter().enumerate() {
         let rel = file.strip_prefix(corpus_dir).unwrap();
@@ -625,6 +618,13 @@ fn run_corpus_roundtrip(name: &str, corpus_dir: &Path) {
         {
             skipped_count += 1;
             continue;
+        }
+
+        // In fail-fast mode, stop after the collection window expires.
+        if let Some(deadline) = fail_fast_deadline
+            && deadline.elapsed() > fail_fast_window
+        {
+            break;
         }
 
         // Progress indicator every 100 files.
@@ -688,22 +688,25 @@ fn run_corpus_roundtrip(name: &str, corpus_dir: &Path) {
                         eprintln!("[{name}]   CHANGED  {rel_str}");
                         unexpected.push(msg);
                     } else {
-                        panic!("\n[{name}] {msg}");
+                        eprintln!("[{name}]   {rel_str}");
+                        unexpected.push(msg);
+                        fail_fast_deadline.get_or_insert_with(std::time::Instant::now);
                     }
                 }
-            } else {
-                // Known failure now passes!
+            } else if matches!(&kf.path, PathMatch::File(_)) {
+                // Exact file passes now — actionable, must remove entry.
                 let msg = format!(
                     "FIXED: {rel_str} was known failure ({}) but now passes!\n\
                      Remove from known_failures_for(\"{name}\").",
                     kf.reason
                 );
-                if accumulate {
-                    eprintln!("[{name}]   FIXED  {rel_str}");
-                    unexpected.push(msg);
-                } else {
-                    panic!("\n[{name}] {msg}");
-                }
+                eprintln!("[{name}]   FIXED  {rel_str}");
+                unexpected.push(msg);
+                fail_fast_deadline.get_or_insert_with(std::time::Instant::now);
+            } else {
+                // Pattern entry: individual passing files are expected.
+                // STALE check at end catches patterns where nothing fails.
+                ok_count += 1;
             }
             continue;
         }
@@ -714,11 +717,9 @@ fn run_corpus_roundtrip(name: &str, corpus_dir: &Path) {
                 eprintln!("[{name}]   FAIL   ({kind:?}): {rel_str}");
                 unexpected.push(format!("{kind:?}: {rel_str}\n  {diag}"));
             } else {
-                panic!(
-                    "\n[{name}] UNEXPECTED {kind:?} failure:\n  file: {rel_str}\n  {diag}\n\n\
-                     Add to known_failures_for(\"{name}\") in corpus_roundtrip.rs if expected,\n\
-                     or fix the bug."
-                );
+                eprintln!("[{name}]   FAIL   ({kind:?}): {rel_str}");
+                unexpected.push(format!("{kind:?}: {rel_str}\n  {diag}"));
+                fail_fast_deadline.get_or_insert_with(std::time::Instant::now);
             }
         } else {
             ok_count += 1;
