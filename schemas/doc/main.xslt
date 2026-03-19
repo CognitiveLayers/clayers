@@ -628,16 +628,20 @@ details summary {
           </div>
           <ul id="search-results"></ul>
 
-          <!-- Reading Maps (top of sidebar) -->
+          <!-- Reading Maps (top of sidebar, collapsible) -->
           <xsl:if test=".//org:map">
-            <div class="toc-heading">Reading Maps</div>
-            <ul>
-              <xsl:for-each select=".//org:map">
-                <li>
-                  <a href="#{@id}"><xsl:value-of select="org:title"/></a>
-                </li>
-              </xsl:for-each>
-            </ul>
+            <div class="nav-group">
+              <div class="toc-heading">
+                <span class="heading-left" onclick="this.closest('.nav-group').classList.toggle('collapsed')"><svg class="chevron" viewBox="0 0 10 10"><path d="M3 1l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>Reading Maps</span>
+              </div>
+              <ul>
+                <xsl:for-each select=".//org:map">
+                  <li>
+                    <a href="#{@id}"><xsl:value-of select="org:title"/></a>
+                  </li>
+                </xsl:for-each>
+              </ul>
+            </div>
           </xsl:if>
 
           <!-- Sections grouped by organization type -->
