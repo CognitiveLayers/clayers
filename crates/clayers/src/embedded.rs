@@ -21,3 +21,45 @@ pub const SCHEMAS: &[(&str, &str)] = &[
 
 pub const CATALOG: &str = include_str!("../../../schemas/catalog.xml");
 pub const POSTPROCESS_XSLT: &str = include_str!("../../../schemas/postprocess.xslt");
+
+pub const DOC_XSLT_FILES: &[(&str, &str)] = &[
+    ("main.xslt", include_str!("../../../schemas/doc/main.xslt")),
+    (
+        "catchall.xslt",
+        include_str!("../../../schemas/doc/catchall.xslt"),
+    ),
+    (
+        "prose.xslt",
+        include_str!("../../../schemas/doc/prose.xslt"),
+    ),
+    (
+        "terminology.xslt",
+        include_str!("../../../schemas/doc/terminology.xslt"),
+    ),
+    (
+        "organization.xslt",
+        include_str!("../../../schemas/doc/organization.xslt"),
+    ),
+    (
+        "relation.xslt",
+        include_str!("../../../schemas/doc/relation.xslt"),
+    ),
+    (
+        "decision.xslt",
+        include_str!("../../../schemas/doc/decision.xslt"),
+    ),
+    (
+        "source.xslt",
+        include_str!("../../../schemas/doc/source.xslt"),
+    ),
+    ("plan.xslt", include_str!("../../../schemas/doc/plan.xslt")),
+    (
+        "artifact.xslt",
+        include_str!("../../../schemas/doc/artifact.xslt"),
+    ),
+    ("llm.xslt", include_str!("../../../schemas/doc/llm.xslt")),
+    (
+        "revision.xslt",
+        include_str!("../../../schemas/doc/revision.xslt"),
+    ),
+];

@@ -178,12 +178,12 @@
   <!-- Actual reading map: a newcomer's guide to the clayers format -->
 
   <org:map id="newcomers-guide" audience="developer architect" experience-level="beginner intermediate">
-    <org:title>Newcomer's Guide to Cognitive Layersifications</org:title>
+    <org:title>Newcomer's Guide to Cognitive Layers</org:title>
 
     <org:part experience-level="beginner">
       <org:title>Orientation</org:title>
       <org:topicref ref="overview">
-        <org:title>What are Cognitive Layersifications?</org:title>
+        <org:title>What are Cognitive Layers?</org:title>
       </org:topicref>
       <org:topicref ref="layered-architecture">
         <org:title>The Layer System</org:title>

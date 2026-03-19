@@ -90,7 +90,6 @@
     repository revision. No AST addressing in the schema. The format is
     VCS-agnostic: it does not assume git, even if git is the first
     backend.</pr:note>
-  </pr:section>
 
   <pr:section id="artifact-hash-tooling">
     <pr:title>Artifact Hash Maintenance</pr:title>
@@ -163,6 +162,8 @@
     <pr:note type="info">The command exits with code 0 when no drift is found,
     and code 1 when any mapping has drifted. This enables use in CI pipelines
     and scripted checks.</pr:note>
+  </pr:section>
+
   </pr:section>
 
   <!-- Topic typing -->

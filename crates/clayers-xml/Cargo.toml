@@ -12,13 +12,13 @@ bergshamra-c14n = "0.3"
 bytes = "1"
 serde = { version = "1", optional = true }
 sha2 = "0.10"
+tempfile = "3"
 thiserror = "2"
 xee-xpath = "0.1.5"
 xot = "0.31"
 
 [dev-dependencies]
 serde_json = "1"
-tempfile = "3"
 
 [lints]
 workspace = true

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Cognitive Layersifications: What they are and why they exist.
+  Cognitive Layers: What they are and why they exist.
   Introduces the layered format and its core vocabulary.
 -->
 <spec:clayers xmlns:spec="urn:clayers:spec"
@@ -48,7 +48,7 @@
   <!-- Content -->
 
   <pr:section id="overview">
-    <pr:title>Cognitive Layersifications</pr:title>
+    <pr:title>Cognitive Layers</pr:title>
     <pr:shortdesc>A layered XML format for software specifications that
     co-evolve with their implementations.</pr:shortdesc>
 
@@ -57,7 +57,7 @@
     heavyweight tools that drift from reality. Code becomes the de facto spec,
     but code only captures how, not why.</pr:p>
 
-    <pr:p>A cognitive layers inverts this. Instead of iterating directly on
+    <pr:p>Cognitive layers inverts this. Instead of iterating directly on
     code, iterate on the specification. The spec is the source of truth for
     software construction. Code is a produced artifact that implements the
     spec, and tooling can verify the mapping between them.</pr:p>

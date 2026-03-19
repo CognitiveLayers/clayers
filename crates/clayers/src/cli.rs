@@ -86,6 +86,14 @@ enum Command {
         #[arg(long)]
         json: bool,
     },
+    /// Generate HTML documentation from a spec.
+    Doc {
+        /// Path to spec directory, single XML file, or index.xml.
+        path: PathBuf,
+        /// Output file path (default: derived from spec name).
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
     /// Bootstrap clayers in a project (plant schemas, amend agent file).
     Adopt {
         /// Path to the target project directory.
@@ -268,6 +276,7 @@ fn run(cli: &Cli) -> Result<()> {
             files,
             *json,
         ),
+        Command::Doc { path, output } => crate::doc::cmd_doc(path, output.as_deref()),
         Command::Adopt { path, update } => cmd_adopt(path, *update),
 
         // Repository commands.

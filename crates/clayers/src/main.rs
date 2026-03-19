@@ -1,5 +1,6 @@
 mod adopt;
 mod cli;
+mod doc;
 mod embedded;
 mod repo;
 

@@ -16,6 +16,9 @@ pub enum Error {
     #[error("XPath query error: {0}")]
     Query(String),
 
+    #[error("XSLT error: {0}")]
+    Xslt(String),
+
     #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),
 }

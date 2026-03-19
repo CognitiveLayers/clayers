@@ -167,7 +167,7 @@
 
     <pr:p>For example, a traceability extension layer might define:</pr:p>
 
-    <pr:codeblock>
+    <pr:codeblock language="xml">
 &lt;xs:complexType name="TraceLinkType" id="type-trace-link"&gt;
   &lt;xs:annotation&gt;&lt;xs:appinfo&gt;
     &lt;rel:relation-type-properties acyclic="true"
