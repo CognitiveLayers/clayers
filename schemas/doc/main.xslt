@@ -740,76 +740,104 @@ details summary {
 
           <!-- Terminology -->
           <xsl:if test=".//trm:term">
-            <div class="toc-heading">Terminology</div>
-            <ul>
-              <li><a href="#glossary">Glossary (<xsl:value-of select="count(.//trm:term)"/>)</a></li>
-            </ul>
+            <div class="nav-group">
+              <div class="toc-heading">
+                <span class="heading-left" onclick="this.closest('.nav-group').classList.toggle('collapsed')"><svg class="chevron" viewBox="0 0 10 10"><path d="M3 1l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>Terminology</span>
+              </div>
+              <ul>
+                <li>
+                  <a href="#glossary">Glossary (<xsl:value-of select="count(.//trm:term)"/>)</a>
+                  <ul>
+                    <xsl:for-each select=".//trm:term">
+                      <xsl:sort select="trm:name"/>
+                      <li><a href="#{@id}"><xsl:value-of select="trm:name"/></a></li>
+                    </xsl:for-each>
+                  </ul>
+                </li>
+              </ul>
+            </div>
           </xsl:if>
 
           <!-- Decisions -->
           <xsl:if test=".//dec:decision">
-            <div class="toc-heading">Decisions</div>
-            <ul>
-              <xsl:for-each select=".//dec:decision">
-                <li>
-                  <a href="#{@id}">
-                    <xsl:variable name="ref" select="@ref"/>
-                    <xsl:variable name="title" select="ancestor::cmb:spec//pr:section[@id = $ref]/pr:title"/>
-                    <xsl:choose>
-                      <xsl:when test="$title"><xsl:value-of select="$title"/></xsl:when>
-                      <xsl:otherwise><xsl:value-of select="@id"/></xsl:otherwise>
-                    </xsl:choose>
-                    <xsl:text> </xsl:text>
-                    <span class="badge badge-{if (dec:status = 'accepted') then 'green' else if (dec:status = 'proposed') then 'yellow' else 'gray'}" style="font-size:0.6rem;">
-                      <xsl:value-of select="dec:status"/>
-                    </span>
-                  </a>
-                </li>
-              </xsl:for-each>
-            </ul>
+            <div class="nav-group">
+              <div class="toc-heading">
+                <span class="heading-left" onclick="this.closest('.nav-group').classList.toggle('collapsed')"><svg class="chevron" viewBox="0 0 10 10"><path d="M3 1l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>Decisions</span>
+              </div>
+              <ul>
+                <xsl:for-each select=".//dec:decision">
+                  <li>
+                    <a href="#{@id}">
+                      <xsl:variable name="ref" select="@ref"/>
+                      <xsl:variable name="title" select="ancestor::cmb:spec//pr:section[@id = $ref]/pr:title"/>
+                      <xsl:choose>
+                        <xsl:when test="$title"><xsl:value-of select="$title"/></xsl:when>
+                        <xsl:otherwise><xsl:value-of select="@id"/></xsl:otherwise>
+                      </xsl:choose>
+                      <xsl:text> </xsl:text>
+                      <span class="badge badge-{if (dec:status = 'accepted') then 'green' else if (dec:status = 'proposed') then 'yellow' else 'gray'}" style="font-size:0.6rem;">
+                        <xsl:value-of select="dec:status"/>
+                      </span>
+                    </a>
+                  </li>
+                </xsl:for-each>
+              </ul>
+            </div>
           </xsl:if>
 
           <!-- Plans -->
           <xsl:if test=".//pln:plan">
-            <div class="toc-heading">Plans</div>
-            <ul>
-              <xsl:for-each select=".//pln:plan">
-                <li>
-                  <a href="#{@id}">
-                    <xsl:value-of select="pln:title"/>
-                    <xsl:text> </xsl:text>
-                    <span class="badge badge-{if (pln:status = 'completed' or pln:status = 'done') then 'green' else if (pln:status = 'active' or pln:status = 'in-progress') then 'yellow' else 'blue'}" style="font-size:0.6rem;">
-                      <xsl:value-of select="pln:status"/>
-                    </span>
-                  </a>
-                </li>
-              </xsl:for-each>
-            </ul>
+            <div class="nav-group">
+              <div class="toc-heading">
+                <span class="heading-left" onclick="this.closest('.nav-group').classList.toggle('collapsed')"><svg class="chevron" viewBox="0 0 10 10"><path d="M3 1l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>Plans</span>
+              </div>
+              <ul>
+                <xsl:for-each select=".//pln:plan">
+                  <li>
+                    <a href="#{@id}">
+                      <xsl:value-of select="pln:title"/>
+                      <xsl:text> </xsl:text>
+                      <span class="badge badge-{if (pln:status = 'completed' or pln:status = 'done') then 'green' else if (pln:status = 'active' or pln:status = 'in-progress') then 'yellow' else 'blue'}" style="font-size:0.6rem;">
+                        <xsl:value-of select="pln:status"/>
+                      </span>
+                    </a>
+                  </li>
+                </xsl:for-each>
+              </ul>
+            </div>
           </xsl:if>
 
           <!-- Sources -->
           <xsl:if test=".//src:source">
-            <div class="toc-heading">Sources</div>
-            <ul>
-              <xsl:for-each select=".//src:source">
-                <li>
-                  <a href="#{@id}">
-                    <xsl:choose>
-                      <xsl:when test="src:title"><xsl:value-of select="src:title"/></xsl:when>
-                      <xsl:otherwise><xsl:value-of select="@id"/></xsl:otherwise>
-                    </xsl:choose>
-                  </a>
-                </li>
-              </xsl:for-each>
-            </ul>
+            <div class="nav-group">
+              <div class="toc-heading">
+                <span class="heading-left" onclick="this.closest('.nav-group').classList.toggle('collapsed')"><svg class="chevron" viewBox="0 0 10 10"><path d="M3 1l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>Sources</span>
+              </div>
+              <ul>
+                <xsl:for-each select=".//src:source">
+                  <li>
+                    <a href="#{@id}">
+                      <xsl:choose>
+                        <xsl:when test="src:title"><xsl:value-of select="src:title"/></xsl:when>
+                        <xsl:otherwise><xsl:value-of select="@id"/></xsl:otherwise>
+                      </xsl:choose>
+                    </a>
+                  </li>
+                </xsl:for-each>
+              </ul>
+            </div>
           </xsl:if>
 
           <!-- Artifacts -->
           <xsl:if test=".//art:mapping">
-            <div class="toc-heading">Artifacts</div>
-            <ul>
-              <li><a href="#artifacts">Mappings (<xsl:value-of select="count(.//art:mapping)"/>)</a></li>
-            </ul>
+            <div class="nav-group">
+              <div class="toc-heading">
+                <span class="heading-left" onclick="this.closest('.nav-group').classList.toggle('collapsed')"><svg class="chevron" viewBox="0 0 10 10"><path d="M3 1l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>Artifacts</span>
+              </div>
+              <ul>
+                <li><a href="#artifacts">Mappings (<xsl:value-of select="count(.//art:mapping)"/>)</a></li>
+              </ul>
+            </div>
           </xsl:if>
         </nav>
 
