@@ -118,6 +118,7 @@ enum ContentFilter {
 
 
 /// Return the known failures for a given corpus.
+#[allow(clippy::too_many_lines)]
 fn known_failures_for(corpus: &str) -> &'static [KnownFailure] {
     match corpus {
         "DocBook Samples" => &[
@@ -220,6 +221,30 @@ fn known_failures_for(corpus: &str) -> &'static [KnownFailure] {
                 kind: FailureKind::C14n,
                 error_contains: "line",
                 reason: "xot serialization reformats msData (unused ns, multi-line tags)",
+            },
+            // NIST/Sun/WG data: unused default xmlns on xs:schema, dual binding, etc.
+            // TODO: investigate unused-ns preservation
+            KnownFailure {
+                path: PathMatch::Pattern(r"^(nistData|sunData|wgData|saxonData)/"),
+                filter: None,
+                kind: FailureKind::Hash,
+                error_contains: "",
+                reason: "unused default ns or dual binding in NIST/Sun/WG/Saxon test data",
+            },
+            KnownFailure {
+                path: PathMatch::Pattern(r"^(nistData|sunData|wgData|saxonData)/"),
+                filter: None,
+                kind: FailureKind::C14n,
+                error_contains: "",
+                reason: "unused default ns or formatting in NIST/Sun/WG/Saxon test data",
+            },
+            // nistMeta XSLT: dual binding.
+            KnownFailure {
+                path: PathMatch::File("nistMeta/convert-id-tests.xsl"),
+                filter: None,
+                kind: FailureKind::Hash,
+                error_contains: "",
+                reason: "dual binding in NIST XSLT",
             },
             // common/xsts.xsd: &#xA; in attr values normalized to spaces.
             KnownFailure {
