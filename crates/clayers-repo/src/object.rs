@@ -497,4 +497,61 @@ mod tests {
         assert!(xml.contains("v1.0"));
         assert!(xml.contains("Bob"));
     }
+
+    // -----------------------------------------------------------------------
+    // Property-based tests (Group D)
+    // -----------------------------------------------------------------------
+    use proptest::prelude::*;
+
+    proptest! {
+        #![proptest_config(ProptestConfig::with_cases(256))]
+
+        /// D1: Sort determinism - any permutation of the same entries produces the same to_xml().
+        #[test]
+        fn prop_tree_sort_determinism(
+            entries in prop::collection::hash_map(
+                "[a-z]{1,8}\\.xml",
+                crate::store::prop_strategies::arb_content_hash(),
+                2..=10,
+            )
+        ) {
+            let tree_entries: Vec<TreeEntry> = entries.iter()
+                .map(|(path, hash)| TreeEntry { path: path.clone(), document: *hash })
+                .collect();
+            let tree1 = TreeObject::new(tree_entries.clone());
+
+            let mut reversed = tree_entries;
+            reversed.reverse();
+            let tree2 = TreeObject::new(reversed);
+
+            prop_assert_eq!(tree1.to_xml(), tree2.to_xml());
+        }
+
+        /// D2: Build tree hash determinism - shuffled entries give same hash via Repo::build_tree.
+        #[test]
+        fn prop_build_tree_hash_determinism(
+            entries in prop::collection::hash_map(
+                "[a-z]{1,8}\\.xml",
+                crate::store::prop_strategies::arb_content_hash(),
+                2..=10,
+            )
+        ) {
+            let rt = crate::store::prop_strategies::runtime();
+            rt.block_on(async {
+                let store = crate::store::memory::MemoryStore::new();
+                let repo = crate::repo::Repo::init(store);
+
+                let forward: Vec<(String, ContentHash)> = entries.iter()
+                    .map(|(p, h)| (p.clone(), *h))
+                    .collect();
+                let mut backward = forward.clone();
+                backward.reverse();
+
+                let h1 = repo.build_tree(forward).await.unwrap();
+                let h2 = repo.build_tree(backward).await.unwrap();
+                prop_assert_eq!(h1, h2, "shuffled entries should produce same tree hash");
+                Ok(())
+            })?;
+        }
+    }
 }

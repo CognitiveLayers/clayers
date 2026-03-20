@@ -659,4 +659,70 @@ mod tests {
         let result = export_tree(&store, doc_hash).await;
         assert!(result.is_err());
     }
+
+    // -----------------------------------------------------------------------
+    // Property-based tests (Group C)
+    // -----------------------------------------------------------------------
+    use proptest::prelude::*;
+
+    proptest! {
+        #![proptest_config(ProptestConfig::with_cases(100))]
+
+        /// C1: Import determinism - same XML imported twice gives same hash.
+        #[test]
+        fn prop_import_determinism(xml in crate::store::prop_strategies::arb_xml_document()) {
+            let rt = crate::store::prop_strategies::runtime();
+            rt.block_on(async {
+                let store = MemoryStore::new();
+                let h1 = import_xml(&store, &xml).await;
+                let h2 = import_xml(&store, &xml).await;
+                match (h1, h2) {
+                    (Ok(h1), Ok(h2)) => {
+                        prop_assert_eq!(h1, h2, "same XML should produce same hash");
+                    }
+                    (Err(_), Err(_)) => {} // both fail is fine
+                    (Ok(_), Err(e)) => {
+                        prop_assert!(false, "first import succeeded but second failed: {e}");
+                    }
+                    (Err(e), Ok(_)) => {
+                        prop_assert!(false, "first import failed but second succeeded: {e}");
+                    }
+                }
+                Ok(())
+            })?;
+        }
+
+        /// C2: Export/import idempotency - import -> export -> reimport gives same hash.
+        #[test]
+        fn prop_export_import_idempotent(xml in crate::store::prop_strategies::arb_xml_document()) {
+            let rt = crate::store::prop_strategies::runtime();
+            rt.block_on(async {
+                let store = MemoryStore::new();
+                let Ok(h1) = import_xml(&store, &xml).await else {
+                    return Ok(());  // skip inputs that fail to import
+                };
+                let exported = export_xml(&store, h1).await.unwrap();
+                let h2 = import_xml(&store, &exported).await.unwrap();
+                prop_assert_eq!(h1, h2, "export->reimport should give same hash");
+                Ok(())
+            })?;
+        }
+
+        /// C3: All objects stored - after import, subtree(doc) yields objects.
+        #[test]
+        fn prop_import_stores_subtree(xml in crate::store::prop_strategies::arb_xml_document()) {
+            let rt = crate::store::prop_strategies::runtime();
+            rt.block_on(async {
+                let store = MemoryStore::new();
+                let Ok(hash) = import_xml(&store, &xml).await else {
+                    return Ok(());  // skip inputs that fail to import
+                };
+                // Collect the subtree; should contain at least the document itself
+                let objects = try_collect_stream(store.subtree(&hash)).await.unwrap();
+                prop_assert!(!objects.is_empty(), "subtree should contain at least the document");
+                prop_assert!(objects.contains_key(&hash), "subtree should contain the document hash");
+                Ok(())
+            })?;
+        }
+    }
 }

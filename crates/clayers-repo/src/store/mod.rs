@@ -6,6 +6,10 @@ pub mod memory;
 #[cfg(feature = "sqlite")]
 pub mod sqlite;
 #[cfg(test)]
+pub(crate) mod prop_strategies;
+#[cfg(test)]
+pub(crate) mod prop_tests;
+#[cfg(test)]
 pub(crate) mod tests;
 
 use std::collections::HashSet;

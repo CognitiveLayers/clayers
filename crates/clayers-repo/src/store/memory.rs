@@ -218,3 +218,9 @@ mod query_tests {
     use super::MemoryStore;
     crate::query::tests::query_tests!(MemoryStore::new());
 }
+
+#[cfg(test)]
+mod prop_tests {
+    use super::MemoryStore;
+    crate::store::prop_tests::prop_store_tests!(MemoryStore::new());
+}

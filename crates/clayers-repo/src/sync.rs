@@ -252,6 +252,7 @@ mod tests {
     };
     use crate::store::memory::MemoryStore;
     use chrono::Utc;
+    use proptest::prelude::*;
 
     fn author() -> Author {
         Author {
@@ -958,5 +959,125 @@ mod tests {
             .unwrap();
 
         assert_eq!(count, 0);
+    }
+
+    // --- Group E: Sync Properties (proptest) ---
+
+    proptest! {
+        #![proptest_config(ProptestConfig::with_cases(100))]
+
+        /// E1: Transfer idempotency - transfer_objects twice; second returns 0.
+        #[test]
+        fn prop_transfer_idempotent((dag, root) in crate::store::prop_strategies::arb_object_dag()) {
+            let rt = crate::store::prop_strategies::runtime();
+            rt.block_on(async {
+                let src = MemoryStore::new();
+                let dst = MemoryStore::new();
+
+                // Store all DAG objects in src
+                let mut tx = src.transaction().await.unwrap();
+                for (h, o) in &dag {
+                    tx.put(*h, o.clone()).await.unwrap();
+                }
+                tx.commit().await.unwrap();
+
+                let first = transfer_objects(&src, &dst, root).await.unwrap();
+                assert!(first > 0, "first transfer should copy objects");
+
+                let second = transfer_objects(&src, &dst, root).await.unwrap();
+                assert_eq!(second, 0, "second transfer should be a no-op");
+            });
+        }
+
+        /// E2: Transfer completeness - after transfer, every hash from the DAG is on dst.
+        #[test]
+        fn prop_transfer_complete((dag, root) in crate::store::prop_strategies::arb_object_dag()) {
+            let rt = crate::store::prop_strategies::runtime();
+            rt.block_on(async {
+                let src = MemoryStore::new();
+                let dst = MemoryStore::new();
+
+                let mut tx = src.transaction().await.unwrap();
+                for (h, o) in &dag {
+                    tx.put(*h, o.clone()).await.unwrap();
+                }
+                tx.commit().await.unwrap();
+
+                transfer_objects(&src, &dst, root).await.unwrap();
+
+                for (h, _) in &dag {
+                    assert!(
+                        dst.contains(h).await.unwrap(),
+                        "hash {h} should be on dst after transfer"
+                    );
+                }
+            });
+        }
+
+        /// E3: Transfer preserves objects - src.get(h) == dst.get(h) for all h.
+        #[test]
+        fn prop_transfer_preserves((dag, root) in crate::store::prop_strategies::arb_object_dag()) {
+            let rt = crate::store::prop_strategies::runtime();
+            rt.block_on(async {
+                let src = MemoryStore::new();
+                let dst = MemoryStore::new();
+
+                let mut tx = src.transaction().await.unwrap();
+                for (h, o) in &dag {
+                    tx.put(*h, o.clone()).await.unwrap();
+                }
+                tx.commit().await.unwrap();
+
+                transfer_objects(&src, &dst, root).await.unwrap();
+
+                for (h, _) in &dag {
+                    let src_obj = src.get(h).await.unwrap();
+                    let dst_obj = dst.get(h).await.unwrap();
+                    assert_eq!(
+                        src_obj, dst_obj,
+                        "object at {h} should be identical on src and dst"
+                    );
+                }
+            });
+        }
+
+        /// E4: Transfer with commit DAGs - use arb_commit_dag() for more complex
+        /// topologies with trees, commits, and merge parents.
+        #[test]
+        fn prop_transfer_commit_dag((dag, root) in crate::store::prop_strategies::arb_commit_dag()) {
+            let rt = crate::store::prop_strategies::runtime();
+            rt.block_on(async {
+                let src = MemoryStore::new();
+                let dst = MemoryStore::new();
+
+                let mut tx = src.transaction().await.unwrap();
+                for (h, o) in &dag {
+                    tx.put(*h, o.clone()).await.unwrap();
+                }
+                tx.commit().await.unwrap();
+
+                // First transfer should move all objects
+                let first = transfer_objects(&src, &dst, root).await.unwrap();
+                assert!(first > 0, "first transfer should copy objects");
+
+                // Second transfer should be idempotent
+                let second = transfer_objects(&src, &dst, root).await.unwrap();
+                assert_eq!(second, 0, "second transfer should be a no-op");
+
+                // Every hash from the DAG should be present and identical
+                for (h, _) in &dag {
+                    assert!(
+                        dst.contains(h).await.unwrap(),
+                        "hash {h} should be on dst after commit-dag transfer"
+                    );
+                    let src_obj = src.get(h).await.unwrap();
+                    let dst_obj = dst.get(h).await.unwrap();
+                    assert_eq!(
+                        src_obj, dst_obj,
+                        "object at {h} should be identical on src and dst after commit-dag transfer"
+                    );
+                }
+            });
+        }
     }
 }

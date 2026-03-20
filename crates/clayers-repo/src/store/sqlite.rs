@@ -251,10 +251,12 @@ impl RefStore for SqliteStore {
             .map_err(|e| Error::Storage(e.to_string()))?;
         let mut stmt = conn
             .prepare_cached(
-                "SELECT name, hash FROM refs WHERE name LIKE ?1",
+                "SELECT name, hash FROM refs WHERE name LIKE ?1 ESCAPE '\\'",
             )
             .map_err(|e| Error::Storage(e.to_string()))?;
-        let pattern = format!("{prefix}%");
+        // Escape LIKE wildcards (% and _) in the prefix so they match literally.
+        let escaped_prefix = prefix.replace('\\', "\\\\").replace('%', "\\%").replace('_', "\\_");
+        let pattern = format!("{escaped_prefix}%");
         let rows = stmt
             .query_map(params![pattern], |row| {
                 let name: String = row.get(0)?;
@@ -379,4 +381,10 @@ mod tests {
 mod query_tests {
     use super::SqliteStore;
     crate::query::tests::query_tests!(SqliteStore::open_in_memory().unwrap());
+}
+
+#[cfg(test)]
+mod prop_tests {
+    use super::SqliteStore;
+    crate::store::prop_tests::prop_store_tests!(SqliteStore::open_in_memory().unwrap());
 }
