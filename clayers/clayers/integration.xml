@@ -1219,4 +1219,99 @@ print(count_terms(repo))</pr:codeblock>
     call py.detach() to release GIL, then block_on() on this runtime.
   </llm:node>
 
+  <!-- ================================================================== -->
+  <!-- Artifact mappings for unmapped integration nodes                    -->
+  <!-- ================================================================== -->
+
+  <art:mapping id="map-python-repo-api">
+    <art:spec-ref node="python-repo-api"
+              revision="draft-1"
+              node-hash="sha256:35351bb3123955becb29dc2b8ab898f55d0e8757969e9969c0d6075b928c181a"/>
+    <art:artifact repo="clayers"
+              repo-revision="9191483"
+              path="crates/clayers-py/src/repo/mod.rs">
+      <art:range hash="sha256:585916aa8ac5d5651c15b9f7316d28dd846b1988347fc42f1c37b8f7e55546aa"
+                 start-line="1" end-line="33"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Rust module root organizing repo submodules (sync, async,
+    inner, objects) that implement the Python Repository API.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-term-knowledge-model">
+    <art:spec-ref node="term-knowledge-model"
+              revision="draft-1"
+              node-hash="sha256:a269a6d4f3017514598a691a2840de850bc90dc57f5104d785a5f879140c02b5"/>
+    <art:artifact repo="clayers"
+              repo-revision="9191483"
+              path="crates/clayers-py/src/knowledge_model.rs">
+      <art:range hash="sha256:0cc54dabf5652187bd28781812dfe93649e2886fbc46e27b649856438e63a99d"
+                 start-line="9" end-line="143"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>KnowledgeModel pyclass: wraps spec discovery, validation,
+    drift, coverage, connectivity, hash fixing, and XPath querying.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-term-python-binding">
+    <art:spec-ref node="term-python-binding"
+              revision="draft-1"
+              node-hash="sha256:4f81bf20f1ccba9beb05c6267519d048f480ce3dcf139df6baaf8ba9605b8b1a"/>
+    <art:artifact repo="clayers"
+              repo-revision="9191483"
+              path="crates/clayers-py/src/lib.rs">
+      <art:range hash="sha256:08c3f10c376ee7f1285fac63fbd9ecf4a6bc0abf8a85cce960c6dd6119d54578"
+                 start-line="1" end-line="31"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>PyO3 module root: registers KnowledgeModel, Repo, error
+    types, and submodules as a Python native extension.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-term-global-runtime">
+    <art:spec-ref node="term-global-runtime"
+              revision="draft-1"
+              node-hash="sha256:01589538217a551a3141adbfc609a49ca9cca6c8fb375b11e999480e539e0d83"/>
+    <art:artifact repo="clayers"
+              repo-revision="9191483"
+              path="crates/clayers-py/src/repo/inner.rs">
+      <art:range hash="sha256:6f1937340aaeadddc49faf8d26f977d91a1cc7c1e2e008b0439322b3a9c8075e"
+                 start-line="1" end-line="16"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>get_runtime() with OnceLock: lazily-initialized shared
+    tokio multi-thread runtime for sync Repo class.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-python-module-structure">
+    <art:spec-ref node="python-module-structure"
+              revision="draft-1"
+              node-hash="sha256:dab65327cc842455143467b453bf071c0e796d10b9df30e525f7b4a81eecb6e0"/>
+    <art:artifact repo="clayers"
+              repo-revision="9191483"
+              path="crates/clayers-py/src/lib.rs">
+      <art:range hash="sha256:08c3f10c376ee7f1285fac63fbd9ecf4a6bc0abf8a85cce960c6dd6119d54578"
+                 start-line="1" end-line="31"/>
+    </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>Rust-side module registration that defines the Python
+    package structure. Python __init__.py files provide re-exports.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-python-knowledge-model-api">
+    <art:spec-ref node="python-knowledge-model-api"
+              revision="draft-1"
+              node-hash="sha256:717aa96cc849959539abc22ca93a93837b5bf9fc178232cdb8d6e40eecf7798c"/>
+    <art:artifact repo="clayers"
+              repo-revision="9191483"
+              path="crates/clayers-py/src/knowledge_model.rs">
+      <art:range hash="sha256:0cc54dabf5652187bd28781812dfe93649e2886fbc46e27b649856438e63a99d"
+                 start-line="9" end-line="143"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>KnowledgeModel implementation: constructor, properties
+    (name, files, schema_dir, combined_xml), and methods (validate,
+    check_drift, coverage, connectivity, query, fix_*_hashes).</art:note>
+  </art:mapping>
+
 </spec:clayers>

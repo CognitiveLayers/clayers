@@ -289,12 +289,13 @@
     <art:artifact repo="clayers"
               repo-revision="1934036"
               path="crates/clayers-repo/src/store/remote/client.rs">
-      <art:range hash="sha256:6ee650b6207017b118ab81ea9e8bfc044e071f83638e70b4ed4d34d429579707"
-                 start-line="1" end-line="473"/>
+      <art:range hash="sha256:6e86a09b084ce60f7829e6fd54c6abe3d051fe142909884093fda5ad5a4ef2df"
+                 start-line="1" end-line="522"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>RemoteStore struct with ObjectStore, RefStore, QueryStore impls.
-    RemoteTransaction with Transaction impl and Drop-based rollback.</art:note>
+    RemoteTransaction with Transaction impl, Drop-based rollback,
+    and list_repositories standalone function.</art:note>
   </art:mapping>
 
   <art:mapping id="map-remote-store-server">
@@ -304,8 +305,8 @@
     <art:artifact repo="clayers"
               repo-revision="1934036"
               path="crates/clayers-repo/src/store/remote/server.rs">
-      <art:range hash="sha256:545a0a3c92f13967b53b9e1ed8db7df5588756b85eb870cc58b4dbd0bccd4b32"
-                 start-line="1" end-line="430"/>
+      <art:range hash="sha256:e1b8466794d6645d2c64eff0369ea2cb29ddfcc602e0427947da1a23bef6cdbc"
+                 start-line="1" end-line="431"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>Server struct with handle(), RepositoryProvider trait,
@@ -347,8 +348,8 @@
     <art:artifact repo="clayers"
               repo-revision="1934036"
               path="crates/clayers-repo/src/store/remote/websocket.rs">
-      <art:range hash="sha256:fa328bfefc8c56a4d47ad7a94fdc517ae11e52ee5edb9dbbedd11c6992855109"
-                 start-line="1" end-line="255"/>
+      <art:range hash="sha256:432f44d27af36e1b1e1be71a8480775074fb9be08e46350cd2fd989273d86c94"
+                 start-line="1" end-line="318"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>WsTransport with channel-based IO, serve_ws server function,
@@ -613,8 +614,8 @@
     <art:artifact repo="clayers"
               repo-revision="1934036"
               path="crates/clayers-repo/src/store/remote/websocket.rs">
-      <art:range hash="sha256:a3caea742a34d0d0d07f6c9e99a31e3c5c920976267038828cdc6d87acce047a"
-                 start-line="302" end-line="355"/>
+      <art:range hash="sha256:46dce53e50ee3b06468c95737348373d62964fc154786eff65891343f32b4ad9"
+                 start-line="320" end-line="367"/>
     </art:artifact>
     <art:coverage>partial</art:coverage>
     <art:note>MultiTokenValidator: multi-user auth with hot-reloadable token set.</art:note>
@@ -663,5 +664,117 @@
     Transparent proxy: same Store trait, same operations. Multi-hop federation
     possible. No caching or store-and-forward.
   </llm:node>
+
+  <!-- ================================================================== -->
+  <!-- Artifact mappings for unmapped remote-store nodes                   -->
+  <!-- ================================================================== -->
+
+  <art:mapping id="map-term-remote-store">
+    <art:spec-ref node="term-remote-store"
+              revision="draft-1"
+              node-hash="sha256:80995591c534a69ba3f8b1cba51ffae259a97f405f678cb59ada8c52a7acfd47"/>
+    <art:artifact repo="clayers"
+              repo-revision="9191483"
+              path="crates/clayers-repo/src/store/remote/client.rs">
+      <art:range hash="sha256:6e86a09b084ce60f7829e6fd54c6abe3d051fe142909884093fda5ad5a4ef2df"
+                 start-line="1" end-line="522"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>RemoteStore struct implementing ObjectStore, RefStore,
+    QueryStore over a pluggable transport with MessageId correlation.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-term-protocol-message">
+    <art:spec-ref node="term-protocol-message"
+              revision="draft-1"
+              node-hash="sha256:787378a671f5be8f4fc495f302899246fe9425521f872388bf05cf51d915ae03"/>
+    <art:artifact repo="clayers"
+              repo-revision="9191483"
+              path="crates/clayers-repo/src/store/remote/mod.rs">
+      <art:range hash="sha256:1e9afed84b8feaf78edfd936dca3813ae56f91c747d1ecd36aa2deaff6100848"
+                 start-line="23" end-line="186"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>ClientMessage and ServerMessage enums: typed message
+    envelopes with MessageId correlation and notification variants.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-term-ref-updated">
+    <art:spec-ref node="term-ref-updated"
+              revision="draft-1"
+              node-hash="sha256:7657ec4d44abcea021ac3c0b268dfab6c3f65e3da633af425112b9c5e65c6848"/>
+    <art:artifact repo="clayers"
+              repo-revision="9191483"
+              path="crates/clayers-repo/src/store/remote/server.rs">
+      <art:range hash="sha256:5b60df63d209ed02ce702a8b0fbec26089f5c1c00c61222e7b74574670063a3e"
+                 start-line="403" end-line="423"/>
+    </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>broadcast_ref_updated: sends RefUpdated notification to
+    all connected clients except the originator. Enum variant and
+    client-side routing are covered by protocol/client mappings.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-term-url-dispatch">
+    <art:spec-ref node="term-url-dispatch"
+              revision="draft-1"
+              node-hash="sha256:89c92209222ae97f01677ddd44e50ee942deee6c6d90de324fcaf5b469c16f92"/>
+    <art:artifact repo="clayers"
+              repo-revision="9191483"
+              path="crates/clayers/src/repo/remote.rs">
+      <art:range hash="sha256:91d0664ef64068c73640c6d0c4cc7c535202fd2040b4e6217581f985d7af131d"
+                 start-line="15" end-line="76"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>RemoteTarget enum with Local/WebSocket variants,
+    parse_remote_url for URL dispatch, open_remote for store creation.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-term-config-hot-reload">
+    <art:spec-ref node="term-config-hot-reload"
+              revision="draft-1"
+              node-hash="sha256:e2d70ec7a4e39982e2b9cab8c1aba9297c012348559a7d2dbd6f02ddf6f32f56"/>
+    <art:artifact repo="clayers"
+              repo-revision="9191483"
+              path="crates/clayers/src/serve.rs">
+      <art:range hash="sha256:e26583b6a53f6b5a0f0c6899cceab45ee5ec3f05595d3b162d438371cf4a9e3a"
+                 start-line="286" end-line="365"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>spawn_config_watcher: notify-based file watcher with
+    200ms debounce, re-parses YAML config, rebuilds repo map and
+    token set. Parse failures keep old config.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-daisy-chain-proxy">
+    <art:spec-ref node="daisy-chain-proxy"
+              revision="draft-1"
+              node-hash="sha256:78702ceb67150ba3aa107ca0a98bc1d44c2e50eca8069e709fcda4ddc8e62dda"/>
+    <art:artifact repo="clayers"
+              repo-revision="9191483"
+              path="crates/clayers/src/serve.rs">
+      <art:range hash="sha256:ba17458e6be222761012154e3198f6fa7b5fddaa957521496d4fb0601bd49cdd"
+                 start-line="108" end-line="113"/>
+    </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>open_backend currently only supports local SQLite paths.
+    Config accepts ws:// URLs but proxy pass-through is not yet
+    implemented (noted as future enhancement in comment).</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-term-daisy-chain">
+    <art:spec-ref node="term-daisy-chain"
+              revision="draft-1"
+              node-hash="sha256:0e556f9b5e2d49c18953cc23bfbab6418329ee5e8c5b246a9b8de3130e6927ae"/>
+    <art:artifact repo="clayers"
+              repo-revision="9191483"
+              path="crates/clayers/src/serve.rs">
+      <art:range hash="sha256:ba17458e6be222761012154e3198f6fa7b5fddaa957521496d4fb0601bd49cdd"
+                 start-line="108" end-line="113"/>
+    </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>open_backend stub: config parsing accepts ws:// URLs
+    but proxy functionality is not yet implemented.</art:note>
+  </art:mapping>
 
 </spec:clayers>

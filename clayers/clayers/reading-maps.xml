@@ -257,83 +257,12 @@
   </org:map>
 
 
-  <!-- Self-referential mappings -->
-
-  <art:mapping id="map-term-reading-map-self">
-    <art:spec-ref node="term-reading-map"
-              revision="draft-1"
-              node-hash="sha256:89d1d453b24ae39a2235b51e4beb56cd13243f887b82ae84d0e5ceda12aa3717"/>
-    <art:artifact repo="clayers"
-              repo-revision="753ad37"
-              path="clayers/clayers/reading-maps.xml">
-      </art:artifact>
-    <art:coverage>full</art:coverage>
-    <art:note>Documentation section/term in reading-maps.xml describing reading map concepts.</art:note>
-  </art:mapping>
-
-
-  <art:mapping id="map-term-topicref-self">
-    <art:spec-ref node="term-topicref"
-              revision="draft-1"
-              node-hash="sha256:be382cb7874e47424abe9cf8960bd6f215979d6e650b9f2efe567ec9eb950a6f"/>
-    <art:artifact repo="clayers"
-              repo-revision="753ad37"
-              path="clayers/clayers/reading-maps.xml">
-      </art:artifact>
-    <art:coverage>full</art:coverage>
-    <art:note>Documentation section/term in reading-maps.xml describing reading map concepts.</art:note>
-  </art:mapping>
-
-
-  <art:mapping id="map-term-profiling-self">
-    <art:spec-ref node="term-profiling"
-              revision="draft-1"
-              node-hash="sha256:8faf80836ea86ea53aa4bc7d56948c4e5b011899c64407647c52671ffe11d5a2"/>
-    <art:artifact repo="clayers"
-              repo-revision="753ad37"
-              path="clayers/clayers/reading-maps.xml">
-      </art:artifact>
-    <art:coverage>full</art:coverage>
-    <art:note>Documentation section/term in reading-maps.xml describing reading map concepts.</art:note>
-  </art:mapping>
-
-
-  <art:mapping id="map-newcomers-guide-self">
-    <art:spec-ref node="newcomers-guide"
-              revision="draft-1"
-              node-hash="sha256:d13ed85447e7c142f2854732bfcf1fe9aa1bf22308f11f6c934f4f65f5b069be"/>
-    <art:artifact repo="clayers"
-              repo-revision="753ad37"
-              path="clayers/clayers/reading-maps.xml">
-      </art:artifact>
-    <art:coverage>full</art:coverage>
-    <art:note>Documentation section/term in reading-maps.xml describing reading map concepts.</art:note>
-  </art:mapping>
-
-
-  <art:mapping id="map-reading-maps-concept-self">
-    <art:spec-ref node="reading-maps-concept"
-              revision="draft-1"
-              node-hash="sha256:ba934ac67a60614c92fc3f400396cb64c48e18c0102ae84ace885be07714e0d2"/>
-    <art:artifact repo="clayers"
-              repo-revision="753ad37"
-              path="clayers/clayers/reading-maps.xml">
-      </art:artifact>
-    <art:coverage>full</art:coverage>
-    <art:note>Documentation section/term in reading-maps.xml describing reading map concepts.</art:note>
-  </art:mapping>
-
-
-  <art:mapping id="map-reading-maps-structure-self">
-    <art:spec-ref node="reading-maps-structure"
-              revision="draft-1"
-              node-hash="sha256:de1bb4d370dab36d5bf0564f0fb1f2af36639b1f15c9c036a120be84ea42602b"/>
-    <art:artifact repo="clayers"
-              repo-revision="753ad37"
-              path="clayers/clayers/reading-maps.xml">
-      </art:artifact>
-    <art:coverage>full</art:coverage>
-    <art:note>Documentation section/term in reading-maps.xml describing reading map concepts.</art:note>
-  </art:mapping>
+  <!-- Exempt: documentation-only concepts with no implementing code -->
+  <art:exempt node="term-reading-map"/>
+  <art:exempt node="term-topicref"/>
+  <art:exempt node="term-profiling"/>
+  <art:exempt node="newcomers-guide"/>
+  <art:exempt node="reading-maps-concept"/>
+  <art:exempt node="reading-maps-structure"/>
 
 </spec:clayers>

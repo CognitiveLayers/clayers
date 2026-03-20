@@ -476,42 +476,9 @@
   </art:mapping>
 
 
-  <art:mapping id="map-plan-usage-self">
-    <art:spec-ref node="plan-usage"
-              revision="draft-1"
-              node-hash="sha256:6b6cd8a503b0bb5d157e5631f922e817d9062a839f4e60a85ef258819d5c6651"/>
-    <art:artifact repo="clayers"
-              repo-revision="753ad37"
-              path="clayers/clayers/plans.xml">
-      </art:artifact>
-    <art:coverage>full</art:coverage>
-    <art:note>Plan documentation section in plans.xml.</art:note>
-  </art:mapping>
-
-
-  <art:mapping id="map-plan-revision-chains-self">
-    <art:spec-ref node="plan-revision-chains"
-              revision="draft-1"
-              node-hash="sha256:a46f6993717d091bc48644196df49d637db1a6ecbb16af5da59fab2801534ebe"/>
-    <art:artifact repo="clayers"
-              repo-revision="753ad37"
-              path="clayers/clayers/plans.xml">
-      </art:artifact>
-    <art:coverage>full</art:coverage>
-    <art:note>Plan documentation section in plans.xml.</art:note>
-  </art:mapping>
-
-
-  <art:mapping id="map-src-anthropic-xml-self">
-    <art:spec-ref node="src-anthropic-xml-tags"
-              revision="draft-1"
-              node-hash="sha256:e3053cb744ee72ea83f9dfc6ba2a477814de0048a8de516e7d9ec99637253955"/>
-    <art:artifact repo="clayers"
-              repo-revision="753ad37"
-              path="clayers/clayers/plans.xml">
-      </art:artifact>
-    <art:coverage>full</art:coverage>
-    <art:note>Source reference to Anthropic XML tags guide in plans.xml.</art:note>
-  </art:mapping>
+  <!-- Exempt: documentation-only concepts with no implementing code -->
+  <art:exempt node="plan-usage"/>
+  <art:exempt node="plan-revision-chains"/>
+  <art:exempt node="src-anthropic-xml-tags"/>
 
 </spec:clayers>

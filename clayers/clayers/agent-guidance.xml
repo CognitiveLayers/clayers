@@ -8,6 +8,7 @@
        xmlns:pr="urn:clayers:prose"
        xmlns:org="urn:clayers:organization"
        xmlns:rel="urn:clayers:relation"
+       xmlns:art="urn:clayers:artifact"
        xmlns:llm="urn:clayers:llm"
        spec:index="index.xml">
 
@@ -121,6 +122,12 @@ description: >
   "create specs", "clayers-onboard", "drive coverage to 100%", "catch up",
   "fill spec gaps", "missing coverage".
 argument-hint: "[--resume | --phase N | --catch-up]"
+allowed-tools:
+  - Bash(clayers validate *)
+  - Bash(clayers artifact *)
+  - Bash(clayers connectivity *)
+  - Bash(clayers query *)
+  - Bash(clayers schema *)
 ---
 
 # Clayers Onboard
@@ -891,6 +898,7 @@ Types: `depends-on`, `refines`, `references`, `precedes`, `extends`.
 | Circular `depends-on` | Acyclic violation | Restructure to break the cycle |
 | Overly broad mapping | Low traceability | Use precise `start-line`/`end-line` ranges |
 | Missing `spec:index` attribute | File not associated with spec | Add `spec:index="index.xml"` to root element |
+| Self-referential mapping | Editing spec changes artifact hash, infinite drift | **Never** map a spec XML file to itself. Exempt or map to non-spec code |
 
 ## Reference: Useful Commands
 
@@ -938,6 +946,11 @@ description: >
   "review artifacts", "check coverage", "fix drift", "clayers-review-artifacts",
   "improve mapping quality", "drive coverage to 100%".
 argument-hint: "[--code-path src/] [--rev abc123]"
+allowed-tools:
+  - Bash(clayers validate *)
+  - Bash(clayers artifact *)
+  - Bash(clayers connectivity *)
+  - Bash(clayers query *)
 ---
 
 # Clayers Review Artifacts
@@ -1459,6 +1472,7 @@ implementing code. When in doubt, ask.
 | Mapping to comments or blank lines | Inflates coverage | Map to actual logic |
 | Skipping connectivity after changes | Isolated nodes | Always check connectivity |
 | Trusting old line ranges | Code shifts happen | Verify current positions |
+| Self-referential mapping (spec file maps to itself) | Spec files are both spec and artifact; editing the spec changes the artifact hash, creating infinite drift loops | Exempt the node or map to non-spec code only. **Never** map a spec XML file to itself as an artifact |
 
 ---
 
@@ -1489,5 +1503,56 @@ clayers connectivity clayers/{{PROJECT_NAME}}/
 clayers validate clayers/{{PROJECT_NAME}}/
 ```
 ]]></llm:node>
+
+  <!-- ================================================================== -->
+  <!-- Artifact mappings for agent guidance nodes                         -->
+  <!-- ================================================================== -->
+
+  <art:mapping id="map-skill-clayers-review-artifacts">
+    <art:spec-ref node="skill-clayers-review-artifacts"
+              revision="draft-1"
+              node-hash="sha256:0ffd819f27ecb233b24c7044aad1b389b563ca5f2ae8c325d20d28f200f93397"/>
+    <art:artifact repo="clayers"
+              repo-revision="9191483"
+              path="crates/clayers/src/adopt.rs">
+      <art:range hash="sha256:3ca74ed2fe22aba6fd9b4b15bfeecde3b60331032112f47475766219962fd586"
+                 start-line="240" end-line="260"/>
+    </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>plant_skills extracts and writes the review-artifacts
+    skill from embedded guidance XML to .claude/skills/.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-skill-clayers-onboard">
+    <art:spec-ref node="skill-clayers-onboard"
+              revision="draft-1"
+              node-hash="sha256:04dc79dbaf2ce25a4d11db2bd5951f7b0f583e4a81b1bcb8e4518faa74d94199"/>
+    <art:artifact repo="clayers"
+              repo-revision="9191483"
+              path="crates/clayers/src/adopt.rs">
+      <art:range hash="sha256:3ca74ed2fe22aba6fd9b4b15bfeecde3b60331032112f47475766219962fd586"
+                 start-line="240" end-line="260"/>
+    </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>plant_skills extracts and writes the onboard skill from
+    embedded guidance XML to .claude/skills/.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-agent-workflow-instructions">
+    <art:spec-ref node="agent-workflow-instructions"
+              revision="draft-1"
+              node-hash="sha256:d74a83030d4d70bab6a74fb7db9ccdf85fcb9854192f8e368c71226a53348739"/>
+    <art:artifact repo="clayers"
+              repo-revision="9191483"
+              path="crates/clayers/src/adopt.rs">
+      <art:range hash="sha256:07a8c63ed59ebb54b1f4b7798d4b095cfca2224cf452a23283a8abbcb75534bb"
+                 start-line="16" end-line="31"/>
+      <art:range hash="sha256:bccd6c531dbdb0737897f7548411a55b1139795362745027c9089a6327504597"
+                 start-line="378" end-line="422"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>extract_from_guidance retrieves workflow content (16-31),
+    amend_agent_file injects it into AGENTS.md/CLAUDE.md (378-422).</art:note>
+  </art:mapping>
 
 </spec:clayers>

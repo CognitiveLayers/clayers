@@ -633,107 +633,14 @@
   </art:mapping>
 
 
-  <art:mapping id="map-adr-xml-format-self">
-    <art:spec-ref node="adr-xml-format"
-              revision="draft-1"
-              node-hash="sha256:c72aea7fb6b65daea58d35e483fafb85df72b5a7874b76a56843c072c761eb1f"/>
-    <art:artifact repo="clayers"
-              repo-revision="753ad37"
-              path="clayers/clayers/decisions.xml">
-      </art:artifact>
-    <art:coverage>full</art:coverage>
-    <art:note>ADR section in decisions.xml documenting the design decision.</art:note>
-  </art:mapping>
-
-
-  <art:mapping id="map-dec-xml-format-self">
-    <art:spec-ref node="dec-xml-format"
-              revision="draft-1"
-              node-hash="sha256:d12aea7b27424b198f9a07cb05eb80df6bf653a17c07cfbf0762cc80e5335d5a"/>
-    <art:artifact repo="clayers"
-              repo-revision="753ad37"
-              path="clayers/clayers/decisions.xml">
-      </art:artifact>
-    <art:coverage>full</art:coverage>
-    <art:note>Decision record in decisions.xml.</art:note>
-  </art:mapping>
-
-
-  <art:mapping id="map-adr-layered-schemas-self">
-    <art:spec-ref node="adr-layered-schemas"
-              revision="draft-1"
-              node-hash="sha256:a6a7ccfbf206251a684fe6fc5637c314da6f8f0d6297a2f2d7a683b378346435"/>
-    <art:artifact repo="clayers"
-              repo-revision="753ad37"
-              path="clayers/clayers/decisions.xml">
-      </art:artifact>
-    <art:coverage>full</art:coverage>
-    <art:note>ADR section in decisions.xml documenting the design decision.</art:note>
-  </art:mapping>
-
-
-  <art:mapping id="map-dec-layered-schemas-self">
-    <art:spec-ref node="dec-layered-schemas"
-              revision="draft-1"
-              node-hash="sha256:4db6df424b58cc4a52492bf3a37f65cc6e2af335e4529c1e61e0a2f63e4c22ac"/>
-    <art:artifact repo="clayers"
-              repo-revision="753ad37"
-              path="clayers/clayers/decisions.xml">
-      </art:artifact>
-    <art:coverage>full</art:coverage>
-    <art:note>Decision record in decisions.xml.</art:note>
-  </art:mapping>
-
-
-  <art:mapping id="map-adr-topic-files-self">
-    <art:spec-ref node="adr-topic-files"
-              revision="draft-1"
-              node-hash="sha256:992c5e7784d752d0521937aebeada9e1390286e0866137f5564c8d84162715e9"/>
-    <art:artifact repo="clayers"
-              repo-revision="753ad37"
-              path="clayers/clayers/decisions.xml">
-      </art:artifact>
-    <art:coverage>full</art:coverage>
-    <art:note>ADR section in decisions.xml documenting the design decision.</art:note>
-  </art:mapping>
-
-
-  <art:mapping id="map-dec-topic-files-self">
-    <art:spec-ref node="dec-topic-files"
-              revision="draft-1"
-              node-hash="sha256:46ec73a554337b2612fe1cc2128271daf081bad75cf42d8eed2560645545b5d6"/>
-    <art:artifact repo="clayers"
-              repo-revision="753ad37"
-              path="clayers/clayers/decisions.xml">
-      </art:artifact>
-    <art:coverage>full</art:coverage>
-    <art:note>Decision record in decisions.xml.</art:note>
-  </art:mapping>
-
-
-  <art:mapping id="map-adr-xsd-11-self">
-    <art:spec-ref node="adr-xsd-11"
-              revision="draft-1"
-              node-hash="sha256:f688ac7c3ada6622cecccd89ff0bdb3374fb9944f351069f6fbd380de74b9916"/>
-    <art:artifact repo="clayers"
-              repo-revision="753ad37"
-              path="clayers/clayers/decisions.xml">
-      </art:artifact>
-    <art:coverage>full</art:coverage>
-    <art:note>ADR section in decisions.xml documenting the design decision.</art:note>
-  </art:mapping>
-
-
-  <art:mapping id="map-dec-xsd-11-self">
-    <art:spec-ref node="dec-xsd-11"
-              revision="draft-1"
-              node-hash="sha256:1253af15eafec8f1af5828b7f8504547a9ae66a3bf9f65a06f65b18394c9a238"/>
-    <art:artifact repo="clayers"
-              repo-revision="753ad37"
-              path="clayers/clayers/decisions.xml">
-      </art:artifact>
-    <art:coverage>full</art:coverage>
-    <art:note>Decision record in decisions.xml.</art:note>
-  </art:mapping>
+  <!-- Exempt: design decisions/rationale with no implementing code -->
+  <art:exempt node="adr-xml-format"/>
+  <art:exempt node="dec-xml-format"/>
+  <art:exempt node="adr-layered-schemas"/>
+  <art:exempt node="dec-layered-schemas"/>
+  <art:exempt node="adr-topic-files"/>
+  <art:exempt node="dec-topic-files"/>
+  <art:exempt node="adr-xsd-11"/>
+  <art:exempt node="dec-xsd-11"/>
 
 </spec:clayers>

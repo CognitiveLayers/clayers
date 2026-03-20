@@ -293,42 +293,9 @@
   </art:mapping>
 
 
-  <art:mapping id="map-src-dita-spec-self">
-    <art:spec-ref node="src-dita-spec"
-              revision="draft-1"
-              node-hash="sha256:df9046c51f910cef9cdaab3492d208f2a74d6177d3549a0fbd8c97ebc1210ad5"/>
-    <art:artifact repo="clayers"
-              repo-revision="753ad37"
-              path="clayers/clayers/sources.xml">
-      </art:artifact>
-    <art:coverage>full</art:coverage>
-    <art:note>External reference declaration in sources.xml.</art:note>
-  </art:mapping>
-
-
-  <art:mapping id="map-src-xsd-11-spec-self">
-    <art:spec-ref node="src-xsd-11-spec"
-              revision="draft-1"
-              node-hash="sha256:dff020da5ed71a0e1f5f89c7c23c9077865a778609f6e645989f502fa3a4a18d"/>
-    <art:artifact repo="clayers"
-              repo-revision="753ad37"
-              path="clayers/clayers/sources.xml">
-      </art:artifact>
-    <art:coverage>full</art:coverage>
-    <art:note>External reference declaration in sources.xml.</art:note>
-  </art:mapping>
-
-
-  <art:mapping id="map-source-design-influences-self">
-    <art:spec-ref node="source-layer-design-influences"
-              revision="draft-1"
-              node-hash="sha256:a728b9f99bb26da40a2288af1e3b461240b53b5331ea3c4f8ff095fbf59a19b0"/>
-    <art:artifact repo="clayers"
-              repo-revision="753ad37"
-              path="clayers/clayers/sources.xml">
-      </art:artifact>
-    <art:coverage>full</art:coverage>
-    <art:note>Section documenting design influences from external sources.</art:note>
-  </art:mapping>
+  <!-- Exempt: external source references with no implementing code -->
+  <art:exempt node="src-dita-spec"/>
+  <art:exempt node="src-xsd-11-spec"/>
+  <art:exempt node="source-layer-design-influences"/>
 
 </spec:clayers>

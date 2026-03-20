@@ -248,7 +248,7 @@
     <art:artifact repo="clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/embedded.rs">
-      <art:range hash="sha256:a8a45b9a640c5dc5b7fe0e49d43c4f5c7af3ff36122e3dd4de629230a1dae893"/>
+      <art:range hash="sha256:6b9b92c429be9e15c84b904152c6e71a32e73477e74b72d01ca4833a480cbc21"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>The embedded module provides build-time schema embedding
@@ -478,26 +478,11 @@
     <art:artifact repo="clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/embedded.rs">
-      <art:range hash="sha256:a8a45b9a640c5dc5b7fe0e49d43c4f5c7af3ff36122e3dd4de629230a1dae893"/>
+      <art:range hash="sha256:6b9b92c429be9e15c84b904152c6e71a32e73477e74b72d01ca4833a480cbc21"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>AGENT_GUIDANCE_XML constant: embeds agent-guidance.xml
     via include_str! for runtime extraction of workflow and skills.</art:note>
-  </art:mapping>
-
-  <art:mapping id="map-adopt-guidance-content">
-    <art:spec-ref node="adopt-skills"
-              revision="draft-1"
-              node-hash="sha256:c31a583639dae9bbd8fe07775e3cb0b4a832064477df865fb307a0f1bd3af188"/>
-    <art:artifact repo="clayers"
-              repo-revision="HEAD"
-              path="clayers/clayers/agent-guidance.xml">
-      <art:range hash="sha256:f71bccc2a8ef49664e6bfd320676ca9807e97b88bee4a4d2e92371e95e550aa1"/>
-    </art:artifact>
-    <art:coverage>full</art:coverage>
-    <art:note>The agent guidance spec file: contains workflow instructions,
-    onboarding skill, and review-artifacts skill as llm:node elements
-    with CDATA sections. Content is extracted at adopt time.</art:note>
   </art:mapping>
 
   <!-- Machine descriptions -->
@@ -571,5 +556,43 @@
     participate in freshness tracking and can be added to already-
     adopted projects without requiring --update.
   </llm:node>
+
+  <!-- ================================================================== -->
+  <!-- Artifact mappings for adoption term nodes                          -->
+  <!-- ================================================================== -->
+
+  <art:mapping id="map-term-review-artifacts-skill">
+    <art:spec-ref node="term-review-artifacts-skill"
+              revision="draft-1"
+              node-hash="sha256:b0d126512de5f3f6c2aa069e3e451bff3082a8b861a779f49d33eb0605840053"/>
+    <art:artifact repo="clayers"
+              repo-revision="9191483"
+              path="crates/clayers/src/adopt.rs">
+      <art:range hash="sha256:3b0bb51368e30f6c4b77690cae0284e8eee53a80ed6ceebc4b112d3592da3345"
+                 start-line="38" end-line="55"/>
+      <art:range hash="sha256:3ca74ed2fe22aba6fd9b4b15bfeecde3b60331032112f47475766219962fd586"
+                 start-line="240" end-line="260"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>discover_skills finds skill- refs (38-55), plant_skills
+    writes them to .claude/skills/ (240-260).</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-term-onboarding-skill">
+    <art:spec-ref node="term-onboarding-skill"
+              revision="draft-1"
+              node-hash="sha256:f2bdb53a1e6e7e0c36496acb202d1a9844bc97065d508783b06be6154fc73add"/>
+    <art:artifact repo="clayers"
+              repo-revision="9191483"
+              path="crates/clayers/src/adopt.rs">
+      <art:range hash="sha256:59c577737c3c8faf17ea5944b0d61511e0e876c53b56cc6e0a9e4cbdf5a7f589"
+                 start-line="16" end-line="55"/>
+      <art:range hash="sha256:3ca74ed2fe22aba6fd9b4b15bfeecde3b60331032112f47475766219962fd586"
+                 start-line="240" end-line="260"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>extract_from_guidance (16-31), discover_skills (38-55),
+    and plant_skills (240-260) implement skill generation.</art:note>
+  </art:mapping>
 
 </spec:clayers>
