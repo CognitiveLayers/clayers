@@ -7,12 +7,15 @@ pub mod memory;
 pub mod remote;
 #[cfg(feature = "sqlite")]
 pub mod sqlite;
-#[cfg(test)]
-pub(crate) mod prop_strategies;
-#[cfg(test)]
-pub(crate) mod prop_tests;
-#[cfg(test)]
-pub(crate) mod tests;
+#[cfg(any(test, feature = "compliance"))]
+#[allow(clippy::missing_panics_doc, clippy::must_use_candidate)]
+pub mod prop_strategies;
+#[cfg(any(test, feature = "compliance"))]
+#[allow(clippy::missing_panics_doc)]
+pub mod prop_tests;
+#[cfg(any(test, feature = "compliance"))]
+#[allow(clippy::missing_panics_doc)]
+pub mod tests;
 
 use std::collections::HashSet;
 

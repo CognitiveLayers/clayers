@@ -21,7 +21,7 @@ fn rt() -> tokio::runtime::Runtime {
     tokio::runtime::Runtime::new().unwrap()
 }
 
-pub(crate) struct PropStoreTester<S: ObjectStore + RefStore> {
+pub struct PropStoreTester<S: ObjectStore + RefStore> {
     pub store: S,
 }
 
@@ -659,6 +659,7 @@ impl StoreModel {
 }
 
 /// Generate `proptest!` functions that delegate to `PropStoreTester` methods.
+#[cfg(test)]
 macro_rules! prop_store_tests {
     ($create:expr) => {
         use proptest::prelude::*;
@@ -820,13 +821,14 @@ macro_rules! prop_store_tests {
         }
     };
 }
+#[cfg(test)]
 pub(crate) use prop_store_tests;
 
 // ---------------------------------------------------------------------------
 // F2: Store equivalence -- standalone test comparing MemoryStore and SqliteStore
 // ---------------------------------------------------------------------------
 
-#[cfg(feature = "sqlite")]
+#[cfg(all(test, feature = "sqlite"))]
 mod equivalence {
     use proptest::prelude::*;
 

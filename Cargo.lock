@@ -513,11 +513,17 @@ dependencies = [
 name = "clayers-py"
 version = "0.1.0"
 dependencies = [
+ "async-stream",
+ "async-trait",
+ "chrono",
  "clayers-repo",
  "clayers-spec",
  "clayers-xml",
+ "futures-core",
+ "proptest",
  "pyo3",
  "pyo3-async-runtimes",
+ "serde_json",
  "tokio",
 ]
 

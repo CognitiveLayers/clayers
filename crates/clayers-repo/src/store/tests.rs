@@ -4,6 +4,7 @@
 //! Each backend's test module invokes `store_tests!` with a constructor.
 
 /// Generate `#[tokio::test]` functions that delegate to `StoreTester` methods.
+#[cfg(test)]
 macro_rules! store_tests {
     ($create:expr) => {
         use crate::store::tests::StoreTester;
@@ -51,6 +52,7 @@ macro_rules! store_tests {
     };
 }
 
+#[cfg(test)]
 pub(crate) use store_tests;
 
 use std::collections::HashMap;

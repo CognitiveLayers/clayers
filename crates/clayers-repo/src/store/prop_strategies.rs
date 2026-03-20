@@ -24,17 +24,17 @@ use crate::object::{
 // ---------------------------------------------------------------------------
 
 /// Arbitrary `ContentHash` via `from_canonical` on 1..64 random bytes.
-pub(crate) fn arb_content_hash() -> impl Strategy<Value = ContentHash> {
+pub fn arb_content_hash() -> impl Strategy<Value = ContentHash> {
     pvec(any::<u8>(), 1..64).prop_map(|bytes| ContentHash::from_canonical(&bytes))
 }
 
 /// Arbitrary `ContentHash` via `from_bytes` on a uniform 32-byte array.
-pub(crate) fn arb_content_hash_raw() -> impl Strategy<Value = ContentHash> {
+pub fn arb_content_hash_raw() -> impl Strategy<Value = ContentHash> {
     proptest::array::uniform32(any::<u8>()).prop_map(ContentHash::from_bytes)
 }
 
 /// Arbitrary `Author` with a 1-20 character alphabetic name and a simple email.
-pub(crate) fn arb_author() -> impl Strategy<Value = Author> {
+pub fn arb_author() -> impl Strategy<Value = Author> {
     (
         "[a-zA-Z]{1,20}",
         "[a-z]{1,8}",
@@ -47,7 +47,7 @@ pub(crate) fn arb_author() -> impl Strategy<Value = Author> {
 }
 
 /// Arbitrary `DateTime<Utc>` in the 2020-2030 range.
-pub(crate) fn arb_timestamp() -> impl Strategy<Value = DateTime<Utc>> {
+pub fn arb_timestamp() -> impl Strategy<Value = DateTime<Utc>> {
     // 2020-01-01T00:00:00Z .. 2030-01-01T00:00:00Z
     (1_577_836_800_i64..1_893_456_000_i64).prop_map(|secs| {
         Utc.timestamp_opt(secs, 0)
@@ -57,7 +57,7 @@ pub(crate) fn arb_timestamp() -> impl Strategy<Value = DateTime<Utc>> {
 }
 
 /// Create a single-threaded Tokio runtime for use in proptest closures.
-pub(crate) fn runtime() -> tokio::runtime::Runtime {
+pub fn runtime() -> tokio::runtime::Runtime {
     tokio::runtime::Runtime::new().expect("failed to build tokio runtime")
 }
 
@@ -66,19 +66,19 @@ pub(crate) fn runtime() -> tokio::runtime::Runtime {
 // ---------------------------------------------------------------------------
 
 /// Arbitrary `TextObject` (any string, including Unicode).
-pub(crate) fn arb_text_object() -> impl Strategy<Value = TextObject> {
+pub fn arb_text_object() -> impl Strategy<Value = TextObject> {
     ".*".prop_map(|content| TextObject { content })
 }
 
 /// Arbitrary `CommentObject`. XML comments must not contain `--`.
-pub(crate) fn arb_comment_object() -> impl Strategy<Value = CommentObject> {
+pub fn arb_comment_object() -> impl Strategy<Value = CommentObject> {
     "[^-]{0,50}(-[^-][^-]{0,10}){0,5}"
         .prop_map(|content| CommentObject { content })
 }
 
 /// Arbitrary `PIObject` with a valid PI target (letter start, no colons)
 /// and optional data.
-pub(crate) fn arb_pi_object() -> impl Strategy<Value = PIObject> {
+pub fn arb_pi_object() -> impl Strategy<Value = PIObject> {
     (
         "[a-zA-Z][a-zA-Z0-9._]{0,15}",
         proptest::option::of(".{0,60}"),
@@ -88,7 +88,7 @@ pub(crate) fn arb_pi_object() -> impl Strategy<Value = PIObject> {
 
 /// Arbitrary `Attribute` with a valid XML local name, optional namespace,
 /// and a string value.
-pub(crate) fn arb_attribute() -> impl Strategy<Value = Attribute> {
+pub fn arb_attribute() -> impl Strategy<Value = Attribute> {
     (
         "[a-zA-Z_][a-zA-Z0-9_]{0,10}",
         proptest::option::of("urn:[a-z]{2,8}:[a-z]{2,8}"),
@@ -105,7 +105,7 @@ pub(crate) fn arb_attribute() -> impl Strategy<Value = Attribute> {
 
 /// Arbitrary `ElementObject` with 0-5 attributes, 0-3 random child hashes,
 /// and an inclusive hash.
-pub(crate) fn arb_element_object() -> impl Strategy<Value = ElementObject> {
+pub fn arb_element_object() -> impl Strategy<Value = ElementObject> {
     (
         "[a-zA-Z][a-zA-Z0-9]{0,10}",
         proptest::option::of("urn:[a-z]{2,8}:[a-z]{2,8}"),
@@ -135,13 +135,13 @@ pub(crate) fn arb_element_object() -> impl Strategy<Value = ElementObject> {
 }
 
 /// Arbitrary `DocumentObject` with a root hash and 0-3 prologue hashes.
-pub(crate) fn arb_document_object() -> impl Strategy<Value = DocumentObject> {
+pub fn arb_document_object() -> impl Strategy<Value = DocumentObject> {
     (arb_content_hash(), pvec(arb_content_hash(), 0..3))
         .prop_map(|(root, prologue)| DocumentObject { root, prologue })
 }
 
 /// Arbitrary `TreeObject` with 0-10 entries having unique paths.
-pub(crate) fn arb_tree_object() -> impl Strategy<Value = TreeObject> {
+pub fn arb_tree_object() -> impl Strategy<Value = TreeObject> {
     let paths: Vec<&str> = vec![
         "a.xml", "b.xml", "c.xml", "d.xml", "e.xml",
         "f.xml", "g.xml", "h.xml", "i.xml", "j.xml",
@@ -163,7 +163,7 @@ pub(crate) fn arb_tree_object() -> impl Strategy<Value = TreeObject> {
 
 /// Arbitrary `CommitObject` with a tree hash, 0-3 parents, author,
 /// timestamp, and message.
-pub(crate) fn arb_commit_object() -> impl Strategy<Value = CommitObject> {
+pub fn arb_commit_object() -> impl Strategy<Value = CommitObject> {
     (
         arb_content_hash(),
         pvec(arb_content_hash(), 0..3),
@@ -181,7 +181,7 @@ pub(crate) fn arb_commit_object() -> impl Strategy<Value = CommitObject> {
 }
 
 /// Arbitrary `TagObject` with target, name, tagger, timestamp, and message.
-pub(crate) fn arb_tag_object() -> impl Strategy<Value = TagObject> {
+pub fn arb_tag_object() -> impl Strategy<Value = TagObject> {
     (
         arb_content_hash(),
         "[a-zA-Z0-9._-]{1,20}",
@@ -200,7 +200,7 @@ pub(crate) fn arb_tag_object() -> impl Strategy<Value = TagObject> {
 
 /// Arbitrary `Object` chosen uniformly from all 8 variants, paired with a
 /// `ContentHash`.
-pub(crate) fn arb_object() -> BoxedStrategy<(ContentHash, Object)> {
+pub fn arb_object() -> BoxedStrategy<(ContentHash, Object)> {
     prop_oneof![
         arb_element_object().prop_map(Object::Element),
         arb_text_object().prop_map(Object::Text),
@@ -220,7 +220,7 @@ pub(crate) fn arb_object() -> BoxedStrategy<(ContentHash, Object)> {
 // ---------------------------------------------------------------------------
 
 /// Realistic ref names: branches, tags, and HEAD.
-pub(crate) fn arb_ref_name() -> impl Strategy<Value = String> {
+pub fn arb_ref_name() -> impl Strategy<Value = String> {
     prop_oneof![
         "[a-z]{1,10}".prop_map(|name| format!("refs/heads/{name}")),
         "[0-9]{1,2}\\.[0-9]{1,2}".prop_map(|ver| format!("refs/tags/v{ver}")),
@@ -229,7 +229,7 @@ pub(crate) fn arb_ref_name() -> impl Strategy<Value = String> {
 }
 
 /// Adversarial ref names containing SQL LIKE wildcards (`%`, `_`).
-pub(crate) fn arb_ref_name_adversarial() -> impl Strategy<Value = String> {
+pub fn arb_ref_name_adversarial() -> impl Strategy<Value = String> {
     prop_oneof![
         "[a-z]{1,5}".prop_map(|name| format!("refs/heads/feat%{name}")),
         "[a-z]{1,5}".prop_map(|name| format!("refs/heads/my_{name}")),
@@ -245,14 +245,14 @@ pub(crate) fn arb_ref_name_adversarial() -> impl Strategy<Value = String> {
 /// LIKE `'refs/heads/f%x%'` matches `"refs/heads/foox"` (% expands to "oo")
 /// but `starts_with` returns false.
 #[derive(Debug, Clone)]
-pub(crate) struct AdversarialRefScenario {
+pub struct AdversarialRefScenario {
     /// The adversarial ref name (contains % or _)
     pub adversarial_name: String,
     /// A decoy ref that LIKE would match but `starts_with` would not
     pub decoy_name: String,
 }
 
-pub(crate) fn arb_adversarial_ref_scenario() -> impl Strategy<Value = AdversarialRefScenario> {
+pub fn arb_adversarial_ref_scenario() -> impl Strategy<Value = AdversarialRefScenario> {
     // Generate scenarios where LIKE's wildcard interpretation causes false matches.
     // Pattern: "refs/heads/<before>%<after>" with decoy "refs/heads/<before><filler><after>"
     (
@@ -666,7 +666,7 @@ fn arb_xml_root(scenario: XmlScenario, depth: u32) -> BoxedStrategy<XmlNode> {
 /// Uses a scenario-based approach: each scenario targets a specific pattern
 /// that historically caused bugs (namespace inheritance, cancellation,
 /// multi-namespace attributes, mixed content, clayers-style documents).
-pub(crate) fn arb_xml_document() -> impl Strategy<Value = String> {
+pub fn arb_xml_document() -> impl Strategy<Value = String> {
     (
         arb_xml_scenario(),
         1..=4_u32,
@@ -700,7 +700,7 @@ pub(crate) fn arb_xml_document() -> impl Strategy<Value = String> {
 /// Generates varied shapes: flat, deep nesting, mixed children (text + element +
 /// comment), and documents with prologues (comments/PIs before root).
 #[allow(clippy::too_many_lines)]
-pub(crate) fn arb_object_dag() -> impl Strategy<Value = (Vec<(ContentHash, Object)>, ContentHash)> {
+pub fn arb_object_dag() -> impl Strategy<Value = (Vec<(ContentHash, Object)>, ContentHash)> {
     (
         // Leaf objects: text, comments, PIs
         pvec(
@@ -854,7 +854,7 @@ pub(crate) fn arb_object_dag() -> impl Strategy<Value = (Vec<(ContentHash, Objec
 
 /// A commit graph shape for varied topology testing.
 #[derive(Debug, Clone, Copy)]
-pub(crate) enum CommitShape {
+pub enum CommitShape {
     /// Single root commit with no parents.
     Single,
     /// Linear chain of N commits (2-6).
@@ -869,7 +869,7 @@ pub(crate) enum CommitShape {
     Octopus,
 }
 
-pub(crate) fn arb_commit_shape() -> impl Strategy<Value = CommitShape> {
+pub fn arb_commit_shape() -> impl Strategy<Value = CommitShape> {
     prop_oneof![
         Just(CommitShape::Single),
         Just(CommitShape::Linear),
@@ -885,7 +885,7 @@ pub(crate) fn arb_commit_shape() -> impl Strategy<Value = CommitShape> {
 /// Returns `(objects, tip_commit_hash, all_commit_hashes_in_ancestor_order)`.
 /// The third element is useful for verifying history traversal properties.
 #[allow(clippy::too_many_lines)]
-pub(crate) fn arb_commit_dag()
+pub fn arb_commit_dag()
     -> impl Strategy<Value = (Vec<(ContentHash, Object)>, ContentHash, Vec<ContentHash>)>
 {
     (
@@ -1154,7 +1154,7 @@ pub(crate) fn arb_commit_dag()
 
 /// A single store operation for sequential testing.
 #[derive(Debug, Clone)]
-pub(crate) enum StoreOp {
+pub enum StoreOp {
     Put(ContentHash, Object),
     CommitTx,
     RollbackTx,
@@ -1166,7 +1166,7 @@ pub(crate) enum StoreOp {
 }
 
 /// Arbitrary single store operation.
-pub(crate) fn arb_store_op() -> BoxedStrategy<StoreOp> {
+pub fn arb_store_op() -> BoxedStrategy<StoreOp> {
     prop_oneof![
         4 => arb_object().prop_map(|(h, o)| StoreOp::Put(h, o)),
         2 => Just(StoreOp::CommitTx),
@@ -1190,6 +1190,6 @@ pub(crate) fn arb_store_op() -> BoxedStrategy<StoreOp> {
 }
 
 /// Arbitrary sequence of 10..50 store operations.
-pub(crate) fn arb_op_sequence() -> impl Strategy<Value = Vec<StoreOp>> {
+pub fn arb_op_sequence() -> impl Strategy<Value = Vec<StoreOp>> {
     pvec(arb_store_op(), 10..50)
 }

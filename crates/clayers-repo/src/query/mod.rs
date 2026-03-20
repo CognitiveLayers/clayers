@@ -3,8 +3,9 @@
 //! Provides `QueryStore` trait, default `XPath` evaluation via xee-xpath,
 //! revision resolution, and cross-ref search.
 
-#[cfg(test)]
-pub(crate) mod tests;
+#[cfg(any(test, feature = "compliance"))]
+#[allow(clippy::missing_panics_doc)]
+pub mod tests;
 
 use std::collections::HashMap;
 use std::pin::pin;

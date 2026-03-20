@@ -1049,6 +1049,7 @@ impl<S: ObjectStore + RefStore + QueryStore> QueryTester<S> {
 }
 
 /// Generate test functions for query operations.
+#[cfg(test)]
 macro_rules! query_tests {
     ($create:expr) => {
         use crate::query::tests::QueryTester;
@@ -1150,4 +1151,5 @@ macro_rules! query_tests {
     };
 }
 
+#[cfg(test)]
 pub(crate) use query_tests;
