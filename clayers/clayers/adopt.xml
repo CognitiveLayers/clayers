@@ -41,6 +41,20 @@
     project name substitution.</trm:definition>
   </trm:term>
 
+  <trm:term id="term-review-artifacts-skill">
+    <trm:name>Review artifacts skill</trm:name>
+    <trm:definition>A Claude Code skill file generated alongside the
+    <trm:ref term="term-onboarding-skill">onboarding skill</trm:ref>
+    by the <pr:code>--skills</pr:code> flag. This skill provides
+    guidance for reviewing and improving existing artifact mappings,
+    ensuring end-to-end coverage between specification and code in both
+    directions. It covers drift resolution with root-cause analysis,
+    exemption auditing, mapping quality improvement (favoring precise
+    over broad mappings), and revision comparison. Written to
+    <pr:code>.claude/skills/clayers-review-artifacts/SKILL.md</pr:code>
+    with project name substitution.</trm:definition>
+  </trm:term>
+
   <!-- Content -->
 
   <pr:section id="adopt-command">
@@ -114,52 +128,37 @@
   </pr:section>
 
   <pr:section id="adopt-skills">
-    <pr:title>Onboarding skill generation</pr:title>
-    <pr:shortdesc>The --skills flag generates a Claude Code skill for
-    comprehensive codebase onboarding.</pr:shortdesc>
+    <pr:title>Skill generation</pr:title>
+    <pr:shortdesc>The --skills flag generates Claude Code skills for
+    codebase onboarding and artifact review.</pr:shortdesc>
 
     <pr:p>The <pr:code>--skills</pr:code> flag on the adopt command
-    generates a Claude Code skill file at
-    <pr:code>.claude/skills/clayers-onboard/SKILL.md</pr:code> in the
-    target project. This skill provides an exhaustive, phase-by-phase
-    guide for an AI agent to create a complete clayers specification
-    from scratch.</pr:p>
+    generates Claude Code skill files in
+    <pr:code>.claude/skills/</pr:code> in the target project. All skill
+    templates are embedded in the binary as an array via
+    <pr:code>include_str!</pr:code>, with
+    <pr:code>{{PROJECT_NAME}}</pr:code> placeholders replaced at write
+    time. Skills participate in the freshness tracking system and can
+    be refreshed via <pr:code>--update</pr:code>.</pr:p>
 
     <pr:p>In interactive mode (when stdin is a TTY), the adopt command
-    suggests generating skills by default with the prompt
-    <pr:code>Generate onboarding skill for Claude Code? [Y/n]</pr:code>,
-    defaulting to yes. In non-interactive mode (piped input, CI), skill
-    generation is skipped unless <pr:code>--skills</pr:code> is
-    explicitly passed.</pr:p>
+    suggests generating skills by default. In non-interactive mode
+    (piped input, CI), skill generation is skipped unless
+    <pr:code>--skills</pr:code> is explicitly passed.</pr:p>
 
-    <pr:p>The skill template is embedded in the binary via
-    <pr:code>include_str!</pr:code> and contains
-    <pr:code>{{PROJECT_NAME}}</pr:code> placeholders that are replaced
-    with the actual project directory name at write time. The skill file
-    participates in the freshness tracking system, so
-    <pr:code>--update</pr:code> can refresh an outdated skill. The
-    <pr:code>--skills</pr:code> flag also works on already-adopted
-    projects to add or regenerate the skill without requiring
-    <pr:code>--update</pr:code>.</pr:p>
-
-    <pr:p>The generated skill guides agents through six phases:</pr:p>
+    <pr:p>Two skills are generated:</pr:p>
     <pr:ol>
-      <pr:li><pr:b>Codebase discovery.</pr:b> Scan all source
-      directories, catalog modules and components, identify domain
-      concepts and their relationships.</pr:li>
-      <pr:li><pr:b>Terminology extraction.</pr:b> Create
-      <pr:code>trm:term</pr:code> elements for each domain concept
-      with precise definitions.</pr:li>
-      <pr:li><pr:b>Spec file creation.</pr:b> Create spec files
-      organized by topic, each containing prose, organization, relations,
-      and LLM descriptions for its topic.</pr:li>
-      <pr:li><pr:b>Artifact mapping.</pr:b> Create
-      <pr:code>art:mapping</pr:code> elements linking every spec node
-      to its implementing code with precise line ranges.</pr:li>
-      <pr:li><pr:b>Quality iteration.</pr:b> Drive coverage to 100%,
-      fix isolated nodes in connectivity, resolve all drift.</pr:li>
-      <pr:li><pr:b>Final validation.</pr:b> Verify all quality metrics
-      are clean.</pr:li>
+      <pr:li><pr:b>clayers-onboard.</pr:b> Comprehensive codebase
+      onboarding: discovery, terminology extraction, spec creation,
+      artifact mapping, quality iteration, and final validation.
+      Guides agents from an empty spec to 100% coverage.</pr:li>
+      <pr:li><pr:b>clayers-review-artifacts.</pr:b> Artifact mapping
+      review and improvement: bidirectional coverage analysis
+      (spec-to-code and code-to-spec), drift resolution with
+      root-cause analysis, exemption auditing, mapping quality
+      improvement (favoring precise over broad), and revision
+      comparison. Ensures end-to-end traceability is maintained
+      as code evolves.</pr:li>
     </pr:ol>
   </pr:section>
 
@@ -214,9 +213,15 @@
   </rel:relation>
 
   <rel:relation type="refines" from="adopt-skills" to="adopt-workflow">
-    <rel:note>The onboarding skill provides detailed, agent-executable
+    <rel:note>The generated skills provide detailed, agent-executable
     guidance that refines the general spec-first workflow into concrete
     phases with success criteria.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="term-review-artifacts-skill" to="term-onboarding-skill">
+    <rel:note>The review-artifacts skill assumes the onboarding skill
+    has been used first (or artifact mappings already exist) and focuses
+    on maintaining and improving existing coverage.</rel:note>
   </rel:relation>
 
   <!-- Artifact mappings -->
@@ -228,7 +233,7 @@
     <art:artifact repo="clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
-      <art:range hash="sha256:64568341661fec350bb259ae3bb06627461b62217eed3bf24bae21b4829dbd5a"/>
+      <art:range hash="sha256:a8c9b7ad0a6ded97fd13ebb3ced8d589eab6cfa2e1277406c4922eab7dcb5e6f"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>The adopt module implements all adopt command logic:
@@ -243,7 +248,7 @@
     <art:artifact repo="clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/embedded.rs">
-      <art:range hash="sha256:8eb3cb9d87069165a536c967de93d6fb60df0879587140a0c4f516e57bcf29f4"/>
+      <art:range hash="sha256:2e1c0dbe34d876d5f7b097325caffc1a7b202b34985a8a6cfdb217ea95a67df5"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>The embedded module provides build-time schema embedding
@@ -257,7 +262,7 @@
     <art:artifact repo="clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
-      <art:range hash="sha256:64568341661fec350bb259ae3bb06627461b62217eed3bf24bae21b4829dbd5a"/>
+      <art:range hash="sha256:a8c9b7ad0a6ded97fd13ebb3ced8d589eab6cfa2e1277406c4922eab7dcb5e6f"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>The adopt module is the canonical implementation of the
@@ -342,11 +347,11 @@
   <art:mapping id="map-adopt-skill-functions">
     <art:spec-ref node="adopt-skills"
               revision="draft-1"
-              node-hash="sha256:4ee8f7da2292c4d3916dc38941bf4ab32364a3520306ab8734dedeb9edb7af5a"/>
+              node-hash="sha256:d2c3ffbf286e6b143c0eeb3021ed66d3e930d680d9c45bbe08e1c6ce1b5bcdef"/>
     <art:artifact repo="clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
-      <art:range hash="sha256:f5d5f377e3734e3b064e74aa6d233842c3cb6971697ce7120dc7faf2995c19ad"
+      <art:range hash="sha256:dca6deaa3b2cdda100cb1c7a8205102b92b5f316e2435b38cb6f9eb611f2d12f"
                  start-line="193" end-line="262"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -362,7 +367,7 @@
     <art:artifact repo="clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
-      <art:range hash="sha256:d4ec619911f0a647d95c3231ed849dbcf7490b4804e2902481ec2d6dd221b561"
+      <art:range hash="sha256:89bda5c1c75ce73e0c4802a57dc16872316b2e4b7c631eee9767baaf31df1c92"
                  start-line="264" end-line="280"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -377,7 +382,7 @@
     <art:artifact repo="clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
-      <art:range hash="sha256:59e4294495095b725376423e73197d975aeb000bb905614e2d082af5b7afe323"
+      <art:range hash="sha256:809569962bc2500836b10072f88a00439f36bbbb33f2963acbcf35ce6ea28ba1"
                  start-line="282" end-line="339"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -392,7 +397,7 @@
     <art:artifact repo="clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
-      <art:range hash="sha256:dfd2b825e2695d218f167fdeef7b6d87e460ee006ffa43495f227191818e008e"
+      <art:range hash="sha256:34477ef58586c1e908f721a0b6a73de55f2ebceb49bcc84dbc95c2c788d305c6"
                  start-line="341" end-line="422"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -408,7 +413,7 @@
     <art:artifact repo="clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
-      <art:range hash="sha256:5614408fae7f503ffef7f9282deb17a5b8c20e82ce6b59516f6f8000a6eec115"
+      <art:range hash="sha256:43c94b064064927c26f6d483a2d12164fddb50f404a5472a413a50b1e5c09e68"
                  start-line="424" end-line="508"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -423,7 +428,7 @@
     <art:artifact repo="clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
-      <art:range hash="sha256:62ac8f3e57396adb5864d01b7575929cd59212cab917af2823ced1645601a6ad"
+      <art:range hash="sha256:3aa7895a71e91674826cd35c3d3cf22fee1ee255221903bf13d597d6b915ae18"
                  start-line="510" end-line="583"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -438,7 +443,7 @@
     <art:artifact repo="clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
-      <art:range hash="sha256:b7d2fa92d58f346f8443421e319b2885b7a1a5c52158ac3614d27f49aee5feb5"
+      <art:range hash="sha256:d5321992d35c69f74ff35c29015553906b786076cf7a3e338fc3ce779325d5f4"
                  start-line="585" end-line="747"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -469,30 +474,45 @@
   <art:mapping id="map-adopt-skill-embedded">
     <art:spec-ref node="adopt-skills"
               revision="draft-1"
-              node-hash="sha256:4ee8f7da2292c4d3916dc38941bf4ab32364a3520306ab8734dedeb9edb7af5a"/>
+              node-hash="sha256:d2c3ffbf286e6b143c0eeb3021ed66d3e930d680d9c45bbe08e1c6ce1b5bcdef"/>
     <art:artifact repo="clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/embedded.rs">
-      <art:range hash="sha256:8eb3cb9d87069165a536c967de93d6fb60df0879587140a0c4f516e57bcf29f4"/>
+      <art:range hash="sha256:2e1c0dbe34d876d5f7b097325caffc1a7b202b34985a8a6cfdb217ea95a67df5"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
-    <art:note>ONBOARD_SKILL constant: embedded skill template content
-    via include_str! for zero-dependency skill generation.</art:note>
+    <art:note>SKILLS array: embedded skill templates (onboard and
+    review-artifacts) via include_str! for zero-dependency generation.</art:note>
   </art:mapping>
 
-  <art:mapping id="map-adopt-skill-template">
+  <art:mapping id="map-adopt-skill-template-onboard">
     <art:spec-ref node="adopt-skills"
               revision="draft-1"
-              node-hash="sha256:4ee8f7da2292c4d3916dc38941bf4ab32364a3520306ab8734dedeb9edb7af5a"/>
+              node-hash="sha256:d2c3ffbf286e6b143c0eeb3021ed66d3e930d680d9c45bbe08e1c6ce1b5bcdef"/>
     <art:artifact repo="clayers"
               repo-revision="HEAD"
               path="skills/clayers-onboard.md">
       <art:range hash="sha256:f55153ec44564b30742c5ab2a0df45f1773a429366da894b789da1adb5dbe6f0"/>
     </art:artifact>
-    <art:coverage>full</art:coverage>
+    <art:coverage>partial</art:coverage>
     <art:note>The onboarding skill template: comprehensive phase-by-phase
     guide for AI agents to create complete clayers specifications,
     with XML patterns and clayers command references.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-adopt-skill-template-review">
+    <art:spec-ref node="adopt-skills"
+              revision="draft-1"
+              node-hash="sha256:d2c3ffbf286e6b143c0eeb3021ed66d3e930d680d9c45bbe08e1c6ce1b5bcdef"/>
+    <art:artifact repo="clayers"
+              repo-revision="HEAD"
+              path="skills/clayers-review-artifacts.md">
+      <art:range hash="sha256:f710a5a3cba398da7550c912bdc153243bc13fb4c2a0eaefac0ebfad4e10557a"/>
+    </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>The review-artifacts skill template: end-to-end coverage
+    review, drift resolution with root-cause analysis, exemption
+    auditing, mapping quality improvement, and revision comparison.</art:note>
   </art:mapping>
 
   <!-- Machine descriptions -->
@@ -541,15 +561,30 @@
     commands, and success criteria for each phase.
   </llm:node>
 
+  <llm:node ref="term-review-artifacts-skill">
+    A review-artifacts skill is a Claude Code skill file (.claude/skills/
+    clayers-review-artifacts/SKILL.md) generated alongside the onboarding
+    skill. It guides agents through reviewing and improving existing
+    artifact mappings for end-to-end coverage. Covers eight phases:
+    spec-to-code coverage (unmapped nodes), code-to-spec coverage
+    (uncovered ranges), drift resolution with root-cause analysis,
+    exemption auditing, mapping quality review (preferring precise over
+    broad), connectivity cross-check, optional revision comparison, and
+    final verification. Includes a decision framework for map-vs-exempt
+    choices with guidance to ask the user when uncertain.
+  </llm:node>
+
   <llm:node ref="adopt-skills">
-    The --skills flag on clayers adopt generates a comprehensive Claude
-    Code skill for codebase onboarding. In interactive mode (TTY), the
-    command prompts to generate skills by default. In non-interactive
-    mode, --skills must be explicit. The skill template is embedded via
-    include_str! and written to .claude/skills/clayers-onboard/SKILL.md
-    with project name substitution. It participates in freshness
-    tracking (--update can refresh it) and can be added to already-adopted
-    projects without requiring --update.
+    The --skills flag on clayers adopt generates Claude Code skills for
+    codebase work. Two skills are embedded: clayers-onboard (initial
+    onboarding from empty spec to 100% coverage) and clayers-review-
+    artifacts (maintaining and improving coverage as code evolves).
+    In interactive mode (TTY), prompts to generate by default. In
+    non-interactive mode, --skills must be explicit. Templates are
+    embedded as a SKILLS array via include_str!, written to .claude/
+    skills/{name}/SKILL.md with project name substitution. Skills
+    participate in freshness tracking and can be added to already-
+    adopted projects without requiring --update.
   </llm:node>
 
 </spec:clayers>

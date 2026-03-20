@@ -190,7 +190,7 @@ struct FreshnessItem {
     status: FreshnessStatus,
 }
 
-/// Determine whether to generate the onboarding skill.
+/// Determine whether to generate skills.
 ///
 /// Returns `true` if the `--skills` flag was passed, or if stdin is a TTY
 /// and the user accepts the interactive prompt (default: yes).
@@ -201,7 +201,7 @@ fn should_generate_skills(explicit_flag: bool) -> bool {
     if !std::io::stdin().is_terminal() {
         return false;
     }
-    eprint!("Generate onboarding skill for Claude Code? [Y/n] ");
+    eprint!("Generate Claude Code skills? [Y/n] ");
     std::io::stderr().flush().ok();
     let mut input = String::new();
     if std::io::stdin().read_line(&mut input).is_err() {
@@ -211,54 +211,59 @@ fn should_generate_skills(explicit_flag: bool) -> bool {
     trimmed.is_empty() || trimmed == "y" || trimmed == "yes"
 }
 
-/// Plant the onboarding skill into `<target>/.claude/skills/clayers-onboard/`.
-fn plant_skill(target: &Path) -> Result<()> {
+/// Plant all embedded skills into `<target>/.claude/skills/`.
+fn plant_skills(target: &Path) -> Result<()> {
     let project_name = target
         .file_name()
         .map_or_else(|| "project".into(), |n| n.to_string_lossy().into_owned());
 
-    let skill_dir = target
-        .join(".claude")
-        .join("skills")
-        .join("clayers-onboard");
-    fs::create_dir_all(&skill_dir).context("failed to create .claude/skills/clayers-onboard/")?;
+    for &(name, template) in embedded::SKILLS {
+        let skill_dir = target.join(".claude").join("skills").join(name);
+        fs::create_dir_all(&skill_dir)
+            .with_context(|| format!("failed to create .claude/skills/{name}/"))?;
 
-    let content = embedded::ONBOARD_SKILL.replace("{{PROJECT_NAME}}", &project_name);
-    fs::write(skill_dir.join("SKILL.md"), &content).context("failed to write SKILL.md")?;
+        let content = template.replace("{{PROJECT_NAME}}", &project_name);
+        fs::write(skill_dir.join("SKILL.md"), &content).context("failed to write SKILL.md")?;
 
-    println!("  created: .claude/skills/clayers-onboard/SKILL.md");
+        println!("  created: .claude/skills/{name}/SKILL.md");
+    }
     Ok(())
 }
 
-/// Check freshness of the onboarding skill file.
-fn check_skill_freshness(target: &Path) -> FreshnessItem {
+/// Check freshness of all embedded skill files.
+fn check_skills_freshness(target: &Path) -> Vec<FreshnessItem> {
     let project_name = target
         .file_name()
         .map_or_else(|| "project".into(), |n| n.to_string_lossy().into_owned());
-    let expected = embedded::ONBOARD_SKILL.replace("{{PROJECT_NAME}}", &project_name);
 
-    let skill_path = target
-        .join(".claude")
-        .join("skills")
-        .join("clayers-onboard")
-        .join("SKILL.md");
+    embedded::SKILLS
+        .iter()
+        .map(|&(name, template)| {
+            let expected = template.replace("{{PROJECT_NAME}}", &project_name);
+            let skill_path = target
+                .join(".claude")
+                .join("skills")
+                .join(name)
+                .join("SKILL.md");
 
-    let status = if !skill_path.exists() {
-        FreshnessStatus::Missing
-    } else if let Ok(existing) = fs::read_to_string(&skill_path) {
-        if existing == expected {
-            FreshnessStatus::Current
-        } else {
-            FreshnessStatus::Outdated
-        }
-    } else {
-        FreshnessStatus::Outdated
-    };
+            let status = if !skill_path.exists() {
+                FreshnessStatus::Missing
+            } else if let Ok(existing) = fs::read_to_string(&skill_path) {
+                if existing == expected {
+                    FreshnessStatus::Current
+                } else {
+                    FreshnessStatus::Outdated
+                }
+            } else {
+                FreshnessStatus::Outdated
+            };
 
-    FreshnessItem {
-        path: ".claude/skills/clayers-onboard/SKILL.md".into(),
-        status,
-    }
+            FreshnessItem {
+                path: format!(".claude/skills/{name}/SKILL.md"),
+                status,
+            }
+        })
+        .collect()
 }
 
 /// Plant all embedded schemas into `<target>/.clayers/schemas/`.
@@ -395,8 +400,8 @@ fn update_adopted(target: &Path, items: &[FreshnessItem]) -> Result<()> {
         }
         if item.path.ends_with("instructions") {
             amend_agent_file(target)?;
-        } else if item.path.contains("clayers-onboard") {
-            plant_skill(target)?;
+        } else if item.path.starts_with(".claude/skills/") {
+            plant_skills(target)?;
         } else if let Some(filename) = item.path.strip_prefix(".clayers/schemas/") {
             if filename == "catalog.xml" {
                 fs::write(schemas_dir.join("catalog.xml"), embedded::CATALOG)
@@ -429,7 +434,7 @@ pub fn adopt(target: &Path, update: bool, skills: bool) -> Result<()> {
     if is_adopted(&target) {
         println!("clayers: project already adopted, checking freshness...");
         let mut items = check_freshness(&target);
-        items.push(check_skill_freshness(&target));
+        items.extend(check_skills_freshness(&target));
 
         let any_outdated = items
             .iter()
@@ -445,15 +450,13 @@ pub fn adopt(target: &Path, update: bool, skills: bool) -> Result<()> {
         }
 
         // Handle explicit --skills on already-adopted project
-        let skill_item = items
-            .iter()
-            .find(|i| i.path.contains("clayers-onboard"));
-        let skill_needs_gen = skills
-            && skill_item
-                .is_some_and(|i| i.status != FreshnessStatus::Current);
+        let skills_need_gen = skills
+            && items
+                .iter()
+                .any(|i| i.path.starts_with(".claude/skills/") && i.status != FreshnessStatus::Current);
 
         if any_outdated {
-            if update || skill_needs_gen {
+            if update || skills_need_gen {
                 println!();
                 if update {
                     println!("clayers: updating outdated components...");
@@ -461,15 +464,15 @@ pub fn adopt(target: &Path, update: bool, skills: bool) -> Result<()> {
                     println!("clayers: update complete");
                 } else {
                     // Only --skills without --update: just generate the skill
-                    plant_skill(&target)?;
+                    plant_skills(&target)?;
                 }
             } else {
                 println!();
                 bail!("project already adopted; run with --update to update outdated components");
             }
-        } else if skill_needs_gen {
+        } else if skills_need_gen {
             println!();
-            plant_skill(&target)?;
+            plant_skills(&target)?;
         } else if update {
             println!();
             println!("clayers: everything is current");
@@ -498,7 +501,7 @@ pub fn adopt(target: &Path, update: bool, skills: bool) -> Result<()> {
 
     // 4. Optionally generate onboarding skill
     if should_generate_skills(skills) {
-        plant_skill(&target)?;
+        plant_skills(&target)?;
     }
 
     println!();
@@ -638,26 +641,29 @@ mod tests {
     }
 
     #[test]
-    fn test_fresh_adopt_with_skills_creates_skill_file() {
+    fn test_fresh_adopt_with_skills_creates_skill_files() {
         let dir = temp_dir();
         adopt(dir.path(), false, true).unwrap();
 
-        let skill = dir
-            .path()
-            .join(".claude")
-            .join("skills")
-            .join("clayers-onboard")
-            .join("SKILL.md");
-        assert!(skill.exists(), "SKILL.md should be created with --skills");
-        let content = fs::read_to_string(&skill).unwrap();
-        assert!(
-            content.contains("name: clayers-onboard"),
-            "should have skill name"
-        );
-        assert!(
-            !content.contains("{{PROJECT_NAME}}"),
-            "placeholders should be replaced"
-        );
+        // Check all embedded skills are created
+        for &(name, _) in embedded::SKILLS {
+            let skill = dir
+                .path()
+                .join(".claude")
+                .join("skills")
+                .join(name)
+                .join("SKILL.md");
+            assert!(skill.exists(), "{name}/SKILL.md should be created");
+            let content = fs::read_to_string(&skill).unwrap();
+            assert!(
+                content.contains(&format!("name: {name}")),
+                "{name} should have correct name"
+            );
+            assert!(
+                !content.contains("{{PROJECT_NAME}}"),
+                "{name} placeholders should be replaced"
+            );
+        }
     }
 
     #[test]
@@ -709,13 +715,15 @@ mod tests {
 
         // Second: add skills to already-adopted project
         adopt(dir.path(), false, true).unwrap();
-        let skill = dir
-            .path()
-            .join(".claude")
-            .join("skills")
-            .join("clayers-onboard")
-            .join("SKILL.md");
-        assert!(skill.exists(), "SKILL.md should be created with --skills");
+        for &(name, _) in embedded::SKILLS {
+            let skill = dir
+                .path()
+                .join(".claude")
+                .join("skills")
+                .join(name)
+                .join("SKILL.md");
+            assert!(skill.exists(), "{name}/SKILL.md should be created");
+        }
     }
 
     #[test]
