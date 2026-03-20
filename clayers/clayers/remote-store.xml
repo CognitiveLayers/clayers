@@ -1,0 +1,667 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Remote Store: Network-accessible repository storage.
+  Client/server protocol over pluggable transports with bidirectional messaging,
+  multi-repository dispatch, and WebSocket transport with configurable auth.
+-->
+<spec:clayers xmlns:spec="urn:clayers:spec"
+       xmlns:pr="urn:clayers:prose"
+       xmlns:trm="urn:clayers:terminology"
+       xmlns:org="urn:clayers:organization"
+       xmlns:rel="urn:clayers:relation"
+       xmlns:art="urn:clayers:artifact"
+       xmlns:llm="urn:clayers:llm"
+       spec:index="index.xml">
+
+  <!-- ================================================================== -->
+  <!-- Vocabulary                                                          -->
+  <!-- ================================================================== -->
+
+  <trm:term id="term-remote-store">
+    <trm:name>Remote Store</trm:name>
+    <trm:definition>A client-side store implementation that delegates
+    ObjectStore, RefStore, and QueryStore operations over a pluggable
+    <trm:ref term="term-transport">transport</trm:ref>. The client correlates
+    responses by MessageId and supports streaming for subtree operations.
+    Transactions are managed via server-assigned TxId values.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-transport">
+    <trm:name>Transport</trm:name>
+    <trm:definition>A bidirectional message channel between a remote store
+    client and server. Transports send ClientMessage values and receive
+    ServerMessage values. The abstraction is not request-response: server-initiated
+    notifications arrive through the same receive path with no matching
+    request. Concrete transports include WebSocket.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-protocol-message">
+    <trm:name>Protocol Message</trm:name>
+    <trm:definition>A typed envelope for client-server communication.
+    ClientMessage carries a MessageId, repository name, and operation-specific
+    payload. ServerMessage carries the matching MessageId in replies, or no ID
+    for server-initiated notifications like RefUpdated. Messages are serialized
+    via a <trm:ref term="term-codec">codec</trm:ref> for transmission.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-codec">
+    <trm:name>Codec</trm:name>
+    <trm:definition>A serialization strategy that converts typed protocol
+    messages to bytes and back. The codec is internal to a transport
+    implementation; the abstract Transport trait operates on typed messages.
+    The default codec is JSON via serde_json.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-repository-provider">
+    <trm:name>Repository Provider</trm:name>
+    <trm:definition>A server-side trait that maps repository names to store
+    instances. Each client message carries a repository name; the server
+    resolves it via the provider before dispatching the operation. The
+    StaticRepositories implementation holds a fixed HashMap of stores.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-store-supertrait">
+    <trm:name>Store Supertrait</trm:name>
+    <trm:definition>A combined trait (ObjectStore + RefStore + QueryStore)
+    that enables trait object usage. Rust does not support multi-trait trait
+    objects directly, so this supertrait provides a single dyn-compatible
+    type. All store backends auto-implement it via a blanket impl.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-ref-updated">
+    <trm:name>RefUpdated Notification</trm:name>
+    <trm:definition>A server-initiated message broadcast to all connected
+    clients except the originator when a ref mutation (SetRef, DeleteRef,
+    CasRef) succeeds. Carries the repository name, ref name, old value,
+    and new value. Enables live synchronization between clients.</trm:definition>
+  </trm:term>
+
+  <!-- ================================================================== -->
+  <!-- Content                                                             -->
+  <!-- ================================================================== -->
+
+  <pr:section id="remote-store-protocol">
+    <pr:title>Remote Store Protocol</pr:title>
+    <pr:shortdesc>A bidirectional messaging protocol for accessing repositories
+    over the network, with message correlation, transaction sessions, and
+    subtree streaming.</pr:shortdesc>
+
+    <pr:p>The remote store protocol defines two message enums: ClientMessage
+    (sent by the client) and ServerMessage (sent by the server). Every client
+    message carries a MessageId for correlation. The server echoes this ID in
+    its reply, allowing the client to match responses to pending requests.</pr:p>
+
+    <pr:p>Messages cover three domains: ObjectStore operations (get, contains,
+    get_by_inclusive_hash, subtree), RefStore operations (get_ref, set_ref,
+    delete_ref, list_refs, cas_ref), and transaction lifecycle (begin, put,
+    commit, rollback). Transaction messages after BeginTransaction use a
+    server-assigned TxId instead of a repository name, since the server
+    tracks which repository each transaction belongs to.</pr:p>
+
+    <pr:p>Subtree operations use multi-message streaming: the server sends
+    one SubtreeItem per object in the DAG walk, followed by a SubtreeEnd
+    sentinel. On error, the server sends an Error message and omits
+    SubtreeEnd, signaling the client to close the stream.</pr:p>
+  </pr:section>
+
+  <pr:section id="remote-store-client">
+    <pr:title>Remote Store Client</pr:title>
+    <pr:shortdesc>The client-side RemoteStore implements all store traits by
+    delegating over a Transport.</pr:shortdesc>
+
+    <pr:p>RemoteStore is generic over a Transport and holds shared state via
+    Arc: the transport, a pending-request map (MessageId to oneshot sender),
+    and a streams map (MessageId to unbounded sender for subtree items).
+    A background reader task receives all incoming messages and dispatches
+    them to the appropriate waiter.</pr:p>
+
+    <pr:p>For regular request-response operations, the client allocates a
+    MessageId, registers a oneshot channel in the pending map, sends the
+    request, and awaits the oneshot. For subtree streams, the client
+    registers an unbounded channel in the streams map and wraps the receiver
+    as a BoxStream. Error messages matching a stream ID are forwarded to
+    the stream channel and close it.</pr:p>
+
+    <pr:p>RemoteTransaction holds a TxId and a reference to the transport.
+    Its Drop implementation sends a fire-and-forget TxRollback if the
+    transaction was not explicitly committed or rolled back, preventing
+    server-side resource leaks.</pr:p>
+  </pr:section>
+
+  <pr:section id="remote-store-server">
+    <pr:title>Remote Store Server</pr:title>
+    <pr:shortdesc>The server dispatches client messages to store backends
+    via a RepositoryProvider and manages connection lifecycle.</pr:shortdesc>
+
+    <pr:p>The server is parameterized over a RepositoryProvider, not a single
+    store. Each incoming message carries a repository name that the server
+    resolves to a store instance. This enables a single server to host
+    multiple repositories.</pr:p>
+
+    <pr:p>Transaction state is tracked per-connection: a map from TxId to
+    the underlying Transaction plus the owning ConnectionId. On disconnect,
+    the server rolls back all transactions belonging to that connection.</pr:p>
+
+    <pr:p>For ref mutations, the server reads the current ref value before
+    applying the change, then broadcasts a RefUpdated notification to all
+    other connected clients. The originating connection receives only the
+    normal reply (RefSet, RefDeleted, or CasResult).</pr:p>
+  </pr:section>
+
+  <pr:section id="websocket-transport">
+    <pr:title>WebSocket Transport</pr:title>
+    <pr:shortdesc>A concrete transport using WebSocket with configurable
+    codec and HTTP handshake authentication.</pr:shortdesc>
+
+    <pr:p>The WebSocket transport uses internal channels to decouple from
+    the tokio runtime that created the TCP socket. Background tasks handle
+    actual WebSocket reads and writes; the Transport send/recv methods
+    operate on mpsc channels. This design allows the transport to be used
+    from any thread or runtime.</pr:p>
+
+    <pr:p>Authentication is configurable via two traits: WsRequestTransformer
+    (client-side, modifies the HTTP upgrade request) and WsRequestValidator
+    (server-side, accepts or rejects the request). BearerToken implements
+    both traits as a standard authentication mechanism.</pr:p>
+
+    <pr:p>The server function serve_ws binds a TCP listener, accepts
+    connections, completes the WebSocket handshake, and spawns a per-connection
+    handler with read and write tasks. The write task merges handler responses
+    and notification broadcasts via tokio::select.</pr:p>
+  </pr:section>
+
+  <!-- ================================================================== -->
+  <!-- Topic typing                                                        -->
+  <!-- ================================================================== -->
+
+  <org:concept ref="remote-store-protocol">
+    <org:purpose>Understanding the bidirectional messaging protocol for
+    network access to repositories.</org:purpose>
+  </org:concept>
+
+  <org:concept ref="remote-store-client">
+    <org:purpose>Understanding how the client delegates store operations
+    over a transport with message correlation and streaming.</org:purpose>
+  </org:concept>
+
+  <org:concept ref="remote-store-server">
+    <org:purpose>Understanding how the server dispatches messages to store
+    backends and manages multi-repository and multi-connection state.</org:purpose>
+  </org:concept>
+
+  <org:concept ref="websocket-transport">
+    <org:purpose>Understanding the WebSocket transport with channel-based
+    IO decoupling and configurable authentication.</org:purpose>
+  </org:concept>
+
+  <!-- ================================================================== -->
+  <!-- Relations                                                           -->
+  <!-- ================================================================== -->
+
+  <rel:relation type="depends-on" from="term-remote-store" to="term-transport">
+    <rel:note>RemoteStore delegates all operations through a Transport.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="term-remote-store" to="term-protocol-message">
+    <rel:note>The client constructs ClientMessage values and interprets
+    ServerMessage replies.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="term-protocol-message" to="term-codec">
+    <rel:note>Protocol messages are serialized to bytes via a Codec for
+    transmission over a concrete transport.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="remote-store-server" to="term-repository-provider">
+    <rel:note>The server resolves repository names to store instances via
+    the provider.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="remote-store-server" to="term-ref-updated">
+    <rel:note>The server broadcasts RefUpdated notifications on ref mutations.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="term-store-supertrait" to="term-remote-store">
+    <rel:note>The Store supertrait enables trait object usage in the server's
+    RepositoryProvider, which returns Arc&lt;dyn Store&gt;.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="websocket-transport" to="term-transport">
+    <rel:note>WsTransport is a concrete implementation of the Transport trait.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="websocket-transport" to="term-codec">
+    <rel:note>The WebSocket transport uses a Codec to serialize messages
+    to binary frames.</rel:note>
+  </rel:relation>
+
+  <!-- ================================================================== -->
+  <!-- Artifact mappings                                                   -->
+  <!-- ================================================================== -->
+
+  <art:mapping id="map-remote-store-protocol">
+    <art:spec-ref node="remote-store-protocol"
+              revision="draft-1"
+              node-hash="sha256:3ce066796bffe262507faf4647cd9534ec174d1995e54f77be68f63df0175a84"/>
+    <art:artifact repo="clayers"
+              repo-revision="1934036"
+              path="crates/clayers-repo/src/store/remote/mod.rs">
+      <art:range hash="sha256:1e9afed84b8feaf78edfd936dca3813ae56f91c747d1ecd36aa2deaff6100848"
+                 start-line="23" end-line="186"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>ClientMessage and ServerMessage enums with all variants,
+    MessageId type alias, TxId struct.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-term-transport">
+    <art:spec-ref node="term-transport"
+              revision="draft-1"
+              node-hash="sha256:906052ea78fad6622f6e91cef8d7e27797eaab3f4de8199186c597c84ed903c5"/>
+    <art:artifact repo="clayers"
+              repo-revision="1934036"
+              path="crates/clayers-repo/src/store/remote/transport.rs">
+      <art:range hash="sha256:e7c0593dbdd5ca2d97d4b9783b34744e6b77efdfcdd1b415309c88747223f075"
+                 start-line="13" end-line="20"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Transport trait with send() and recv() methods.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-term-codec">
+    <art:spec-ref node="term-codec"
+              revision="draft-1"
+              node-hash="sha256:321587db8879daa7225400d70f7267e96e423d4c0458dc33562026b3f9c221e6"/>
+    <art:artifact repo="clayers"
+              repo-revision="1934036"
+              path="crates/clayers-repo/src/store/remote/codec.rs">
+      <art:range hash="sha256:9f2e80d6e755da3492a5d4caf41731269264f4678ecbf403f4361212fed48287"
+                 start-line="12" end-line="27"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Codec trait with encode/decode, JsonCodec implementation.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-remote-store-client">
+    <art:spec-ref node="remote-store-client"
+              revision="draft-1"
+              node-hash="sha256:d11a2033f8a6300914a8e682001f16f7df2b57322ca9566acf878d6a64e51d0c"/>
+    <art:artifact repo="clayers"
+              repo-revision="1934036"
+              path="crates/clayers-repo/src/store/remote/client.rs">
+      <art:range hash="sha256:6ee650b6207017b118ab81ea9e8bfc044e071f83638e70b4ed4d34d429579707"
+                 start-line="1" end-line="473"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>RemoteStore struct with ObjectStore, RefStore, QueryStore impls.
+    RemoteTransaction with Transaction impl and Drop-based rollback.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-remote-store-server">
+    <art:spec-ref node="remote-store-server"
+              revision="draft-1"
+              node-hash="sha256:70cb9168204af68b8e05b8c1d7913d58c80bdf7be3723535969167ea992993f4"/>
+    <art:artifact repo="clayers"
+              repo-revision="1934036"
+              path="crates/clayers-repo/src/store/remote/server.rs">
+      <art:range hash="sha256:545a0a3c92f13967b53b9e1ed8db7df5588756b85eb870cc58b4dbd0bccd4b32"
+                 start-line="1" end-line="430"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Server struct with handle(), RepositoryProvider trait,
+    StaticRepositories, RefUpdated broadcasting, connection lifecycle.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-term-repository-provider">
+    <art:spec-ref node="term-repository-provider"
+              revision="draft-1"
+              node-hash="sha256:27891d5e240fc325f747e9ebfe06ae0fb4f5e10d33572e1f86c77d5228679219"/>
+    <art:artifact repo="clayers"
+              repo-revision="1934036"
+              path="crates/clayers-repo/src/store/remote/server.rs">
+      <art:range hash="sha256:87f84c1f075b8ec6c353f71362017d3c747f1566eb55542c6eb16648809ab159"
+                 start-line="20" end-line="61"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>RepositoryProvider trait and StaticRepositories implementation.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-term-store-supertrait">
+    <art:spec-ref node="term-store-supertrait"
+              revision="draft-1"
+              node-hash="sha256:681cd3a422c0f97d1b9339ff269dc0f16a3912295014355dc727a642b612895d"/>
+    <art:artifact repo="clayers"
+              repo-revision="1934036"
+              path="crates/clayers-repo/src/store/remote/transport.rs">
+      <art:range hash="sha256:f7cc561e422a7855db2ce73b250a07e8870655bfaf95a2b82c9ac9a8c71ad5c8"
+                 start-line="23" end-line="29"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Store supertrait with blanket impl.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-websocket-transport">
+    <art:spec-ref node="websocket-transport"
+              revision="draft-1"
+              node-hash="sha256:9542e38380bf3331ab22411f1ad46e69d2422eb937df3e194d0b6c0620e91fd9"/>
+    <art:artifact repo="clayers"
+              repo-revision="1934036"
+              path="crates/clayers-repo/src/store/remote/websocket.rs">
+      <art:range hash="sha256:fa328bfefc8c56a4d47ad7a94fdc517ae11e52ee5edb9dbbedd11c6992855109"
+                 start-line="1" end-line="255"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>WsTransport with channel-based IO, serve_ws server function,
+    BearerToken auth, WsRequestTransformer/Validator traits.</art:note>
+  </art:mapping>
+
+  <!-- ================================================================== -->
+  <!-- Machine descriptions                                                -->
+  <!-- ================================================================== -->
+
+  <llm:node ref="remote-store-protocol">
+    The remote store protocol defines ClientMessage and ServerMessage enums
+    for network communication. Each client message carries a MessageId for
+    correlation. Messages cover ObjectStore ops (get, contains, subtree),
+    RefStore ops (get_ref, set_ref, cas_ref), and transaction lifecycle
+    (begin, put, commit, rollback). Subtree uses multi-message streaming
+    with SubtreeItem/SubtreeEnd. Server-initiated RefUpdated notifications
+    have no MessageId.
+  </llm:node>
+
+  <llm:node ref="remote-store-client">
+    RemoteStore&lt;T: Transport&gt; implements ObjectStore + RefStore + QueryStore
+    by sending ClientMessages and awaiting ServerMessages. A background
+    reader task dispatches responses to pending oneshot channels (for
+    request-response) or unbounded channels (for subtree streams). Error
+    messages matching stream IDs are forwarded and close the stream.
+    RemoteTransaction fires a TxRollback on Drop if not committed.
+  </llm:node>
+
+  <llm:node ref="remote-store-server">
+    Server&lt;P: RepositoryProvider&gt; dispatches ClientMessages to store
+    backends. Each message carries a repo name resolved via the provider.
+    Transactions are tracked per-connection; abandoned ones roll back on
+    disconnect. Ref mutations broadcast RefUpdated to other connections.
+    The handle() method returns Vec&lt;ServerMessage&gt; for batched sending.
+  </llm:node>
+
+  <llm:node ref="websocket-transport">
+    WsTransport uses internal mpsc channels to decouple from the creating
+    runtime. Background tasks handle actual WS IO; send() and recv() are
+    channel operations. Authentication via WsRequestTransformer (client)
+    and WsRequestValidator (server). BearerToken implements both.
+    serve_ws() binds TCP, accepts connections, spawns per-connection
+    handlers with read/write task pairs merged via tokio::select.
+  </llm:node>
+
+  <llm:node ref="term-remote-store">
+    A client-side store that delegates ObjectStore/RefStore/QueryStore
+    operations over a pluggable Transport. Correlates responses by
+    MessageId. Supports streaming subtrees and server-assigned TxId
+    transaction sessions.
+  </llm:node>
+
+  <llm:node ref="term-transport">
+    Bidirectional message channel: send(ClientMessage), recv() -&gt;
+    ServerMessage. Not request-response; server-initiated messages
+    (RefUpdated) arrive through recv() with no matching request.
+  </llm:node>
+
+  <llm:node ref="term-protocol-message">
+    ClientMessage and ServerMessage enums. Client messages carry MessageId
+    + repo + operation. Server replies echo the MessageId. Notifications
+    (RefUpdated, TransactionTerminated) have no MessageId. Serialized
+    via a Codec for transport.
+  </llm:node>
+
+  <llm:node ref="term-codec">
+    Serialization abstraction: encode&lt;T: Serialize&gt;() -&gt; bytes,
+    decode&lt;T: DeserializeOwned&gt;(bytes) -&gt; T. Internal to transport
+    implementations. JsonCodec is the default using serde_json.
+  </llm:node>
+
+  <llm:node ref="term-repository-provider">
+    Server-side trait mapping repo names to Arc&lt;dyn Store&gt;.
+    list() returns available names. get(name) returns the store.
+    StaticRepositories holds a fixed HashMap.
+  </llm:node>
+
+  <llm:node ref="term-store-supertrait">
+    Combined trait: ObjectStore + RefStore + QueryStore. Enables
+    Arc&lt;dyn Store&gt; for the RepositoryProvider. Blanket impl
+    means all existing backends auto-implement it.
+  </llm:node>
+
+  <llm:node ref="term-ref-updated">
+    Server-initiated notification sent to all connected clients except
+    the originator when a ref mutation succeeds. Carries repo, ref name,
+    old value, new value. Enables live sync between clients.
+  </llm:node>
+
+  <!-- ================================================================== -->
+  <!-- CLI Server Integration                                              -->
+  <!-- ================================================================== -->
+
+  <!-- Vocabulary -->
+
+  <trm:term id="term-server-config">
+    <trm:name>Server Config</trm:name>
+    <trm:definition>A YAML file specifying the listen address, authorized users
+    (name + bearer token), and named repositories. Each repository has a path
+    that is either a local SQLite file or a ws:// URL to an upstream server
+    (enabling daisy-chaining). The server watches the config file for changes
+    and hot-reloads repos and users without restarting.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-config-hot-reload">
+    <trm:name>Config Hot-Reload</trm:name>
+    <trm:definition>The server watches its YAML config file using the notify
+    crate. On change, it debounces events (200ms), re-parses the file, rebuilds
+    the repository map and token set. If parsing fails, the old config is kept.
+    Existing connections stay alive; new requests see the updated state.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-daisy-chain">
+    <trm:name>Daisy-Chain</trm:name>
+    <trm:definition>A server configuration where a named repository's path is
+    a ws:// URL pointing to another server. The local server acts as a
+    transparent proxy: reads, writes, and ref operations pass through to the
+    upstream. There is no local persistence; if the upstream is unreachable,
+    operations fail.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-url-dispatch">
+    <trm:name>URL Dispatch</trm:name>
+    <trm:definition>The client-side mechanism that detects ws:// or wss://
+    URLs and routes clone, push, and pull operations through
+    <trm:ref term="term-transport">WsTransport</trm:ref> instead of local
+    SqliteStore. The URL path component identifies the repository name.
+    Anything without a scheme is treated as a local file path.</trm:definition>
+  </trm:term>
+
+  <!-- Content -->
+
+  <pr:section id="serve-command">
+    <pr:title>Serve Command</pr:title>
+    <pr:shortdesc>The CLI serve command starts a WebSocket server from a
+    YAML configuration file.</pr:shortdesc>
+
+    <pr:p>The <pr:code>clayers serve config.yaml</pr:code> command reads the
+    config, opens each repository backend (SQLite or upstream WebSocket),
+    builds a multi-token validator from the users list, and starts a WebSocket
+    server. The server dispatches incoming messages to the appropriate backend
+    via a DynamicProvider that supports hot-reload.</pr:p>
+
+    <pr:p>Authentication is connection-level: the bearer token is validated
+    during the HTTP upgrade handshake via MultiTokenValidator. Once a
+    connection is established, all messages on that connection are authorized.
+    The token set can be updated at runtime through config hot-reload.</pr:p>
+
+    <pr:p>The <pr:code>clayers serve init</pr:code> subcommand scaffolds a
+    starter config file. It accepts <pr:code>--repo name:path</pr:code> pairs
+    and auto-generates a cryptographic bearer token (32 bytes from the OS
+    CSPRNG via getrandom, base64url-encoded). Output goes to stdout or a file
+    via <pr:code>-o</pr:code>.</pr:p>
+  </pr:section>
+
+  <pr:section id="url-dispatch-section">
+    <pr:title>URL Dispatch</pr:title>
+    <pr:shortdesc>How the CLI detects and routes ws:// URLs for remote
+    repository operations.</pr:shortdesc>
+
+    <pr:p>The CLI parses remote URLs into a RemoteTarget enum: Local (file
+    path) or WebSocket (ws://host:port/repo). For WebSocket targets, it
+    connects via WsTransport with optional BearerToken auth and creates a
+    RemoteStore bound to the extracted repository name.</pr:p>
+
+    <pr:p>The URL path component is parsed client-side and passed to
+    RemoteStore as the repo name. The WebSocket connection itself is to
+    host:port with no path routing. The sync_refs infrastructure works
+    identically for both local and remote stores via trait upcasting.</pr:p>
+  </pr:section>
+
+  <pr:section id="daisy-chain-proxy">
+    <pr:title>Daisy-Chain Proxy</pr:title>
+    <pr:shortdesc>Server repos can proxy to upstream WebSocket servers
+    for transparent federation.</pr:shortdesc>
+
+    <pr:p>When a repository's config path starts with ws://, the server
+    opens it as a RemoteStore connected to the upstream. All operations on
+    that repo pass through transparently because RemoteStore implements the
+    same Store supertrait as SqliteStore. This enables multi-hop federation
+    where servers proxy to other servers.</pr:p>
+  </pr:section>
+
+  <!-- Topic typing -->
+
+  <org:concept ref="serve-command">
+    <org:purpose>Understanding the CLI serve command, its config format,
+    and how it starts a WebSocket server.</org:purpose>
+  </org:concept>
+
+  <org:concept ref="url-dispatch-section">
+    <org:purpose>Understanding how ws:// URLs are parsed and routed to
+    WebSocket transports for remote operations.</org:purpose>
+  </org:concept>
+
+  <org:concept ref="daisy-chain-proxy">
+    <org:purpose>Understanding transparent proxy federation between
+    servers.</org:purpose>
+  </org:concept>
+
+  <!-- Relations -->
+
+  <rel:relation type="depends-on" from="serve-command" to="term-server-config">
+    <rel:note>The serve command loads and uses the server config.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="serve-command" to="term-config-hot-reload">
+    <rel:note>The serve command uses hot-reload for live config updates.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="serve-command" to="websocket-transport">
+    <rel:note>The serve command starts the WebSocket server.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="url-dispatch-section" to="term-url-dispatch">
+    <rel:note>The URL dispatch section explains the URL dispatch concept.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="daisy-chain-proxy" to="term-daisy-chain">
+    <rel:note>The daisy-chain section explains the proxy concept.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="term-daisy-chain" to="term-remote-store">
+    <rel:note>Daisy-chaining uses RemoteStore as the backend for upstream repos.</rel:note>
+  </rel:relation>
+
+  <!-- Artifact mappings for CLI code -->
+
+  <art:mapping id="map-serve-command">
+    <art:spec-ref node="serve-command"
+              revision="draft-1"
+              node-hash="sha256:36c4b69cb4d781e63aec065a23ad4df07cd3fba7c4b1f27405496253c8683956"/>
+    <art:artifact repo="clayers"
+              repo-revision="1934036"
+              path="crates/clayers/src/serve.rs">
+      <art:range hash="sha256:c75577a8d4303f4031ca5ac1b5c36842f6912ae20218da386f25ac084aac04ef"
+                 start-line="1" end-line="295"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>cmd_serve, DynamicProvider, config types, hot-reload watcher.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-url-dispatch">
+    <art:spec-ref node="url-dispatch-section"
+              revision="draft-1"
+              node-hash="sha256:d37cbb7183e7e86bd83f1dee2a6746f1771c1608ed149f4c48f3432ec2637673"/>
+    <art:artifact repo="clayers"
+              repo-revision="1934036"
+              path="crates/clayers/src/repo/remote.rs">
+      <art:range hash="sha256:91d0664ef64068c73640c6d0c4cc7c535202fd2040b4e6217581f985d7af131d"
+                 start-line="15" end-line="76"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>RemoteTarget enum, parse_remote_url, open_remote functions.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-term-multi-token-validator">
+    <art:spec-ref node="term-server-config"
+              revision="draft-1"
+              node-hash="sha256:393faa8724d94b2399f209e35591af7cc91aeb4103d8260aaff97c3213a21fa3"/>
+    <art:artifact repo="clayers"
+              repo-revision="1934036"
+              path="crates/clayers-repo/src/store/remote/websocket.rs">
+      <art:range hash="sha256:a3caea742a34d0d0d07f6c9e99a31e3c5c920976267038828cdc6d87acce047a"
+                 start-line="302" end-line="355"/>
+    </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>MultiTokenValidator: multi-user auth with hot-reloadable token set.</art:note>
+  </art:mapping>
+
+  <!-- Machine descriptions for new terms -->
+
+  <llm:node ref="term-server-config">
+    YAML config with listen address, users (name + bearer token), and named
+    repos. Each repo path is either a local .db file or ws:// URL to upstream
+    (daisy-chaining). The server watches the file and hot-reloads on change.
+  </llm:node>
+
+  <llm:node ref="term-config-hot-reload">
+    File watching via notify crate with 200ms debounce. On config change:
+    re-parse YAML, rebuild repo map and token set. Parse failures keep old
+    config. Existing connections stay alive. New requests see updated state.
+  </llm:node>
+
+  <llm:node ref="term-daisy-chain">
+    A server repo whose path is ws:// proxies to another server. No local
+    persistence. RemoteStore implements the same Store supertrait, so all
+    operations pass through transparently. Upstream down = operations fail.
+  </llm:node>
+
+  <llm:node ref="term-url-dispatch">
+    Client-side URL parsing: ws:// or wss:// routes through WsTransport +
+    RemoteStore. Path component = repo name. No scheme = local file path.
+    Trait upcasting lets sync_refs work identically for both backends.
+  </llm:node>
+
+  <llm:node ref="serve-command">
+    CLI serve command: reads YAML config, opens backends (SQLite or upstream WS),
+    starts serve_ws with MultiTokenValidator, watches config file for hot-reload.
+    DynamicProvider wraps Arc&lt;RwLock&lt;HashMap&gt;&gt; for live repo map updates.
+  </llm:node>
+
+  <llm:node ref="url-dispatch-section">
+    RemoteTarget enum (Local/WebSocket) parsed from URL string. open_remote()
+    returns Box&lt;dyn Store&gt; for either backend. Push/pull/clone use the
+    same sync_refs infrastructure regardless of backend type.
+  </llm:node>
+
+  <llm:node ref="daisy-chain-proxy">
+    Server config path starting with ws:// opens as RemoteStore to upstream.
+    Transparent proxy: same Store trait, same operations. Multi-hop federation
+    possible. No caching or store-and-forward.
+  </llm:node>
+
+</spec:clayers>

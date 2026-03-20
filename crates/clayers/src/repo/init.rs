@@ -7,6 +7,7 @@ use clayers_repo::SqliteStore;
 use clayers_repo::refs::HEADS_PREFIX;
 use clayers_repo::sync::{FastForwardOnly, sync_refs};
 
+use super::remote::{RemoteTarget, open_remote, parse_remote_url};
 use super::schema::init_cli_schema;
 use clayers_repo::{ObjectStore, RefStore};
 
@@ -77,19 +78,28 @@ pub fn cmd_init_bare(db_path: &Path) -> Result<()> {
     Ok(())
 }
 
-/// Clone a repository from `source` (a `.db` file) into `target` directory.
+/// Clone a repository from `source` into `target` directory.
+///
+/// The source can be a local path (to a `.db` file or directory) or a `ws://`
+/// URL pointing at a remote server.
 ///
 /// 1. Create and initialize the target directory.
-/// 2. Sync all refs from source → target (fast-forward only).
+/// 2. Sync all refs from source to target (fast-forward only).
 /// 3. Add `origin` remote pointing to source.
 /// 4. Check out the `main` branch (or first available branch).
 ///
 /// # Errors
 ///
-/// Returns an error if source doesn't exist or cloning fails.
-pub fn cmd_clone(source: &Path, target: &PathBuf) -> Result<()> {
-    if !source.exists() {
-        bail!("source not found: {}", source.display());
+/// Returns an error if source doesn't exist (for local paths), the connection
+/// fails (for ws:// URLs), or cloning fails.
+pub fn cmd_clone(source: &str, target: &PathBuf, token: Option<&str>) -> Result<()> {
+    let remote_target = parse_remote_url(source, token.map(String::from))?;
+
+    // For local sources, verify the path exists.
+    if let RemoteTarget::Local(ref path) = remote_target
+        && !path.exists()
+    {
+        bail!("source not found: {}", path.display());
     }
 
     if target.exists() {
@@ -103,15 +113,16 @@ pub fn cmd_clone(source: &Path, target: &PathBuf) -> Result<()> {
     let dst_db = target.join(".clayers.db");
 
     block_on(async {
-        let src_store = SqliteStore::open(source)
-            .with_context(|| format!("failed to open source {}", source.display()))?;
+        let src_store = open_remote(&remote_target)
+            .await
+            .context("failed to open source")?;
         let dst_store = SqliteStore::open(&dst_db)
             .with_context(|| format!("failed to create clone at {}", dst_db.display()))?;
 
         // Sync all branch refs.
         sync_refs(
-            &src_store,
-            &src_store,
+            src_store.as_ref(),
+            src_store.as_ref(),
             &dst_store,
             &dst_store,
             HEADS_PREFIX,
@@ -127,10 +138,14 @@ pub fn cmd_clone(source: &Path, target: &PathBuf) -> Result<()> {
     let conn = open_cli_db(&dst_db)?;
     init_cli_schema(&conn, false)?;
 
-    // Add origin remote.
+    // Add origin remote (include token for ws:// URLs).
+    let origin_token: Option<&str> = match remote_target {
+        RemoteTarget::WebSocket { ref token, .. } => token.as_deref(),
+        RemoteTarget::Local(_) => None,
+    };
     conn.execute(
-        "INSERT OR REPLACE INTO remotes (name, url) VALUES ('origin', ?1)",
-        rusqlite::params![source.to_string_lossy().as_ref()],
+        "INSERT OR REPLACE INTO remotes (name, url, token) VALUES ('origin', ?1, ?2)",
+        rusqlite::params![source, origin_token],
     )
     .context("failed to add origin remote")?;
 

@@ -3,6 +3,8 @@
 //! Three independent async traits. Each backend implements what it supports.
 
 pub mod memory;
+#[cfg(feature = "remote")]
+pub mod remote;
 #[cfg(feature = "sqlite")]
 pub mod sqlite;
 #[cfg(test)]

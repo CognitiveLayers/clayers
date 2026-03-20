@@ -70,6 +70,28 @@ cd my-copy
 clayers query '//trm:term/trm:name' --text
 ```
 
+### Remote Server Workflow
+
+```bash
+# Generate a server config with auto-generated token
+clayers serve init --repo myspec:/path/to/myspec.db -o server.yaml
+
+# Start the server
+clayers serve run server.yaml
+# => clayers server listening on ws://0.0.0.0:9100
+
+# Clone from the server (use the token from server.yaml)
+clayers clone ws://server:9100/myspec --token <token>
+
+# Push/pull over WebSocket
+clayers remote add origin ws://server:9100/myspec --token <token>
+clayers push
+clayers pull
+
+# List available repos on a server
+clayers remote list-repos ws://server:9100 --token <token>
+```
+
 ## Spec Commands
 
 | Command | Description |
@@ -91,7 +113,7 @@ clayers query '//trm:term/trm:name' --text
 |---------|-------------|
 | `init [path]` | Create a new repository (`.clayers.db`) |
 | `init --bare <file.db>` | Create a bare repository (no working copy) |
-| `clone <source> [target]` | Clone a bare repository |
+| `clone <source> [target]` | Clone a repository (local path or `ws://` URL) |
 | `add <files...>` | Stage files for commit (`.` for all XML) |
 | `rm <files...>` | Stage deletion (or `--cached` to unstage) |
 | `status` | Show staged, modified, and untracked files |
@@ -102,13 +124,16 @@ clayers query '//trm:term/trm:name' --text
 | `checkout <branch>` | Switch branches (updates files on disk) |
 | `checkout -b <branch>` | Create and switch to a new branch |
 | `checkout --orphan <branch>` | Create a branch with no history |
-| `remote add <name> <url>` | Add a remote |
+| `remote add <name> <url> [--token T]` | Add a remote (local path or `ws://` URL) |
 | `remote remove <name>` | Remove a remote |
 | `remote list` | List remotes |
-| `push [remote]` | Push to a remote |
-| `pull [remote]` | Pull from a remote |
+| `remote list-repos <url> [--token T]` | List repos on a remote server |
+| `push [remote]` | Push to a remote (local or WebSocket) |
+| `pull [remote]` | Pull from a remote (local or WebSocket) |
 | `revert <files...>` | Restore files to committed state |
 | `query <xpath>` | XPath query against committed repository |
+| `serve run <config.yaml>` | Start a WebSocket repository server |
+| `serve init [--repo name:path]` | Generate a server config file |
 
 ### Author Resolution
 
@@ -180,6 +205,36 @@ Repositories use a single `.clayers.db` SQLite file containing:
 - **Object store**: content-addressed blobs (clayers-repo)
 - **Ref store**: branch and tag pointers (clayers-repo)
 - **CLI tables**: `cli_meta`, `working_copy`, `staging`, `remotes`
+
+### Server
+
+`clayers serve run` starts a WebSocket server from a YAML config:
+
+```yaml
+listen: '0.0.0.0:9100'
+users:
+- name: alice
+  token: <generated-by-serve-init>
+repos:
+  myspec:
+    path: /data/myspec.db              # local SQLite backend
+  upstream:
+    path: ws://other:9100/original     # proxy to another server (daisy-chain)
+    token: upstream-server-token       # auth for the upstream connection
+```
+
+Use `clayers serve init` to generate a config with cryptographic tokens:
+
+```bash
+clayers serve init --repo myspec:/path/to/myspec.db -o server.yaml
+# Resolves paths to absolute, generates a 32-byte CSPRNG token
+```
+
+Features:
+- **Multi-repo**: one server hosts multiple named repositories
+- **Per-user auth**: bearer tokens validated during WebSocket handshake
+- **Hot-reload**: config file changes are picked up automatically (debounced)
+- **Daisy-chaining**: repos can proxy to upstream servers via `ws://` paths
 
 ## Development
 

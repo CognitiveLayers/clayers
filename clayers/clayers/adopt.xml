@@ -461,9 +461,9 @@
               path="crates/clayers/src/cli.rs">
       <art:range hash="sha256:5357d1d21527db2dab86c47989cd838e58691cc2c05be583b7d94ee1d2b3ab32"
                  start-line="100" end-line="111"/>
-      <art:range hash="sha256:a37e41625d1a1db4bbce4fb8a86d6c22d2da9cb32a1b1edb8272b6528336eff8"
+      <art:range hash="sha256:4d6c0403c782d25b523d40f095cdae20f758e00480821d09cf24d58435569de2"
                  start-line="291" end-line="295"/>
-      <art:range hash="sha256:6da135958327a17b6dfcbf66e334babb86bc709b064b71786130e46bab0060f9"
+      <art:range hash="sha256:b0c53cf8e85024647c5f1f8540cc16a0e89bf52acc6b9a028afecc1b3ea06f6b"
                  start-line="657" end-line="659"/>
     </art:artifact>
     <art:coverage>full</art:coverage>

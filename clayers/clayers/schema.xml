@@ -581,7 +581,7 @@
     <art:artifact repo="clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/cli.rs">
-      <art:range hash="sha256:d2b8b58e6e5fa8a47154345c83d99d651774df6788ec057a9769001f52908a2c"
+      <art:range hash="sha256:4bed39900820c77222f1582f366800b9a649db76c47a78317ed596b5a90ccd28"
                  start-line="628" end-line="648"/>
     </art:artifact>
     <art:coverage>full</art:coverage>

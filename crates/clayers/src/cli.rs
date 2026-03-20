@@ -157,10 +157,13 @@ enum Command {
     },
     /// Clone a repository.
     Clone {
-        /// Source bare .db file or repository directory.
-        source: PathBuf,
+        /// Source bare .db file, repository directory, or ws:// URL.
+        source: String,
         /// Target directory (defaults to derived from source name).
         target: Option<PathBuf>,
+        /// Bearer token for ws:// authentication.
+        #[arg(long)]
+        token: Option<String>,
     },
     /// Push local refs to a remote.
     Push {
@@ -211,6 +214,32 @@ enum Command {
         #[arg(long)]
         json: bool,
     },
+    /// Manage and run a WebSocket repository server.
+    Serve {
+        #[command(subcommand)]
+        action: ServeAction,
+    },
+}
+
+#[derive(Subcommand)]
+enum ServeAction {
+    /// Start the server from a YAML config file.
+    Run {
+        /// Path to the YAML configuration file.
+        config: PathBuf,
+    },
+    /// Generate a starter YAML config file.
+    Init {
+        /// Repository entries as `name:path` pairs.
+        #[arg(long = "repo", value_name = "NAME:PATH")]
+        repos: Vec<String>,
+        /// Listen address (default: 0.0.0.0:9100).
+        #[arg(long, default_value = "0.0.0.0:9100")]
+        listen: String,
+        /// Output file (default: stdout).
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
 }
 
 #[derive(Subcommand)]
@@ -219,8 +248,11 @@ enum RemoteAction {
     Add {
         /// Remote name.
         name: String,
-        /// Remote URL (path to .db file).
+        /// Remote URL (path to .db file or ws:// URL).
         url: String,
+        /// Bearer token for ws:// authentication.
+        #[arg(long)]
+        token: Option<String>,
     },
     /// Remove a remote.
     Remove {
@@ -229,6 +261,14 @@ enum RemoteAction {
     },
     /// List all remotes.
     List,
+    /// List repositories available on a remote server.
+    ListRepos {
+        /// WebSocket URL of the server.
+        url: String,
+        /// Bearer token for authentication.
+        #[arg(long)]
+        token: Option<String>,
+    },
 }
 
 pub fn cli_main() {
@@ -312,16 +352,25 @@ fn run(cli: &Cli) -> Result<()> {
             email,
         } => crate::repo::commit::cmd_commit(message, author.as_deref(), email.as_deref()),
         Command::Log { n } => crate::repo::history::cmd_log(*n),
-        Command::Clone { source, target } => {
+        Command::Clone { source, target, token } => {
             let default_target;
             let target = if let Some(t) = target { t } else {
-                // Derive from source file stem.
-                let stem = source
-                    .file_stem().map_or_else(|| "cloned-repo".into(), |s| s.to_string_lossy().into_owned());
+                // Derive name from URL (last path segment for ws://) or file stem.
+                let stem = if source.starts_with("ws://") || source.starts_with("wss://") {
+                    source
+                        .rsplit('/')
+                        .find(|s| !s.is_empty())
+                        .unwrap_or("cloned-repo")
+                        .to_string()
+                } else {
+                    Path::new(source.as_str())
+                        .file_stem()
+                        .map_or_else(|| "cloned-repo".into(), |s| s.to_string_lossy().into_owned())
+                };
                 default_target = PathBuf::from(stem);
                 &default_target
             };
-            crate::repo::init::cmd_clone(source, target)
+            crate::repo::init::cmd_clone(source, target, token.as_deref())
         }
         Command::Push { remote } => crate::repo::remote::cmd_push(remote.as_deref()),
         Command::Pull { remote } => crate::repo::remote::cmd_pull(remote.as_deref()),
@@ -332,22 +381,40 @@ fn run(cli: &Cli) -> Result<()> {
             crate::repo::branch::cmd_checkout(branch, *b, *orphan)
         }
         Command::Remote { action } => {
-            let remote_action = match action {
-                RemoteAction::Add { name, url } => crate::repo::remote::RemoteAction::Add {
-                    name: name.clone(),
-                    url: url.clone(),
-                },
-                RemoteAction::Remove { name } => {
-                    crate::repo::remote::RemoteAction::Remove { name: name.clone() }
+            match action {
+                RemoteAction::Add { name, url, token } => {
+                    let remote_action = crate::repo::remote::RemoteAction::Add {
+                        name: name.clone(),
+                        url: url.clone(),
+                        token: token.clone(),
+                    };
+                    crate::repo::remote::cmd_remote(remote_action)
                 }
-                RemoteAction::List => crate::repo::remote::RemoteAction::List,
-            };
-            crate::repo::remote::cmd_remote(remote_action)
+                RemoteAction::Remove { name } => {
+                    let remote_action =
+                        crate::repo::remote::RemoteAction::Remove { name: name.clone() };
+                    crate::repo::remote::cmd_remote(remote_action)
+                }
+                RemoteAction::List => {
+                    crate::repo::remote::cmd_remote(crate::repo::remote::RemoteAction::List)
+                }
+                RemoteAction::ListRepos { url, token } => {
+                    crate::repo::remote::cmd_list_repos(url, token.as_deref())
+                }
+            }
         }
         Command::Revert { files } => crate::repo::revert::cmd_revert(files),
         Command::Diff { rev_a, rev_b, json } => {
             crate::repo::diff::cmd_diff(rev_a.as_deref(), rev_b.as_deref(), *json)
         }
+        Command::Serve { action } => match action {
+            ServeAction::Run { config } => crate::serve::cmd_serve(config),
+            ServeAction::Init {
+                repos,
+                listen,
+                output,
+            } => crate::serve::cmd_serve_init(repos, listen, output.as_deref()),
+        },
     }
 }
 

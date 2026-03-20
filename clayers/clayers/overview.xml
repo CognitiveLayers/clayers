@@ -167,7 +167,7 @@
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="README.md">
-        <art:range hash="sha256:e063504b4b6c257b4222c8aeeba36cba0aa6d4aa037790908a9ba897b7027ab1"/>
+        <art:range hash="sha256:f36d6461ab14e0bd9c3b9fe981fe89a1903a6263321303cb56463604dba60aa6"/>
       </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>README.md captures the full motivation, thesis, and overview

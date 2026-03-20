@@ -7,12 +7,14 @@ edition = "2024"
 default = []
 serde = ["dep:serde", "clayers-xml/serde", "chrono/serde"]
 sqlite = ["serde", "dep:rusqlite", "dep:serde_json"]
+remote = ["serde"]
+websocket = ["remote", "dep:serde_json", "dep:tokio-tungstenite", "dep:futures-util", "dep:http"]
 
 [dependencies]
 clayers-xml = { path = "../clayers-xml" }
 xot = "0.31"
 async-trait = "0.1"
-tokio = { version = "1", features = ["sync"] }
+tokio = { version = "1", features = ["sync", "rt", "macros"] }
 futures-core = "0.3"
 async-stream = "0.3"
 thiserror = "2"
@@ -20,6 +22,9 @@ chrono = { version = "0.4", features = ["serde"] }
 serde = { version = "1", features = ["derive"], optional = true }
 rusqlite = { version = "0.39", features = ["bundled"], optional = true }
 serde_json = { version = "1", optional = true }
+tokio-tungstenite = { version = "0.29", optional = true }
+futures-util = { version = "0.3", optional = true }
+http = { version = "1", optional = true }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }

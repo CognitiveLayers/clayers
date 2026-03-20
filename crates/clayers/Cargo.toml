@@ -13,20 +13,26 @@ base64 = "0.22"
 reqwest = { version = "0.13", features = ["blocking"] }
 clap = { version = "4", features = ["derive"] }
 clayers-spec = { path = "../clayers-spec" }
-clayers-repo = { path = "../clayers-repo", features = ["sqlite"] }
+clayers-repo = { path = "../clayers-repo", features = ["sqlite", "websocket"] }
 clayers-xml = { path = "../clayers-xml" }
-tokio = { version = "1", features = ["rt", "rt-multi-thread"] }
+tokio = { version = "1", features = ["rt", "rt-multi-thread", "net", "signal"] }
 rusqlite = { version = "0.39", features = ["bundled"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+serde_yml = "0.0.12"
+notify = { version = "8", features = ["macos_fsevent"] }
+async-trait = "0.1"
+getrandom = "0.4"
 
 [dev-dependencies]
 assert_cmd = "2"
+chrono = "0.4"
 predicates = "3"
 rayon = "1.11.0"
 regex = "1.12.3"
 serde_json = "1"
 tempfile = "3"
+tokio = { version = "1", features = ["full"] }
 xot = "0.31"
 
 [lints]

@@ -50,8 +50,10 @@ pub fn discover_repo(start_dir: &Path) -> Result<(PathBuf, PathBuf)> {
 ///
 /// Returns an error if the database cannot be opened.
 pub fn open_cli_db(db_path: &Path) -> Result<Connection> {
-    Connection::open(db_path)
-        .with_context(|| format!("failed to open {}", db_path.display()))
+    let conn = Connection::open(db_path)
+        .with_context(|| format!("failed to open {}", db_path.display()))?;
+    schema::migrate_schema(&conn)?;
+    Ok(conn)
 }
 
 /// Bridge sync code to async `clayers-repo` operations using a tokio runtime.
