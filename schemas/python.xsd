@@ -1,0 +1,505 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:py="urn:clayers:python"
+           xmlns:llm="urn:clayers:llm"
+           xmlns:spec="urn:clayers:spec"
+           targetNamespace="urn:clayers:python"
+           elementFormDefault="qualified"
+           version="1.1">
+
+  <xs:annotation>
+    <xs:documentation>
+      Python API Surface Layer Schema.
+      Describes Python API surfaces as structured metadata: modules, classes,
+      functions, methods, exceptions, properties, and constants. Each element
+      captures the signature shape (parameters, return types, raised exceptions)
+      without duplicating runtime introspection. The "of" attribute on member
+      and container elements references the spec node that the API element
+      implements, enabling cross-layer traceability.
+    </xs:documentation>
+    <xs:appinfo>
+      <llm:describe>
+        The Python layer describes Python API surfaces as structured metadata.
+        Modules contain classes, functions, exceptions, and constants. Classes
+        contain methods, properties, and constants. Functions and methods carry
+        parameter lists, return types, and raised exceptions. Every element
+        with an id is a spec node. The "of" attribute links API elements to
+        the spec concepts they implement, enabling traceability between the
+        Python API surface and the specification. Member elements (property,
+        constant, method) describe class-level API. Container elements (module,
+        class, function, exception) describe top-level and nested API structure.
+      </llm:describe>
+      <spec:keyref name="python-of-refs" selector=".//py:*[@of]" field="@of"/>
+    </xs:appinfo>
+  </xs:annotation>
+
+  <!-- ================================================================== -->
+  <!-- Simple types                                                        -->
+  <!-- ================================================================== -->
+
+  <xs:simpleType name="VariadicKind">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          Classifies a parameter as variadic. "args" means *args (positional
+          variadic), "kwargs" means **kwargs (keyword variadic).
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="args">
+        <xs:annotation>
+          <xs:documentation>Positional variadic parameter (*args).</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="kwargs">
+        <xs:annotation>
+          <xs:documentation>Keyword variadic parameter (**kwargs).</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="MethodKind">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          Classifies a method's binding: "method" is a regular instance method
+          (receives self), "staticmethod" has no implicit first argument,
+          "classmethod" receives the class as its first argument.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="method">
+        <xs:annotation>
+          <xs:documentation>Regular instance method (receives self).</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="staticmethod">
+        <xs:annotation>
+          <xs:documentation>Static method (no implicit first argument).</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="classmethod">
+        <xs:annotation>
+          <xs:documentation>Class method (receives the class as first argument).</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- ================================================================== -->
+  <!-- Leaf elements (no id)                                               -->
+  <!-- ================================================================== -->
+
+  <xs:element name="param">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          A single parameter in a function or method signature. Captures the
+          parameter name, optional type annotation, default value, and whether
+          the parameter is keyword-only, positional-only, or variadic.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:complexType>
+      <xs:attribute name="name" type="xs:string" use="required">
+        <xs:annotation>
+          <xs:documentation>Parameter name as it appears in the signature.</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="type" type="xs:string" use="optional">
+        <xs:annotation>
+          <xs:documentation>Type annotation (e.g., "str", "list[int]", "Optional[str]").</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="default" type="xs:string" use="optional">
+        <xs:annotation>
+          <xs:documentation>Default value expression (e.g., "None", "42", "[]").</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="keyword" type="xs:boolean" use="optional">
+        <xs:annotation>
+          <xs:documentation>True if this is a keyword-only parameter (after * in signature).</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="positional" type="xs:boolean" use="optional">
+        <xs:annotation>
+          <xs:documentation>True if this is a positional-only parameter (before / in signature).</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="variadic" type="py:VariadicKind" use="optional">
+        <xs:annotation>
+          <xs:documentation>If present, marks this as a variadic parameter (*args or **kwargs).</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="returns">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          The return type annotation of a function or method. Empty element
+          whose type attribute holds the annotation string.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:complexType>
+      <xs:attribute name="type" type="xs:string" use="required">
+        <xs:annotation>
+          <xs:documentation>Return type annotation (e.g., "bool", "list[str]", "None").</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="raises">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          An exception that a function or method may raise. The type attribute
+          names the exception class, and the text content optionally describes
+          the condition under which it is raised.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:complexType>
+      <xs:simpleContent>
+        <xs:extension base="xs:string">
+          <xs:attribute name="type" type="xs:string" use="required">
+            <xs:annotation>
+              <xs:documentation>Exception class name (e.g., "ValueError", "KeyError").</xs:documentation>
+            </xs:annotation>
+          </xs:attribute>
+        </xs:extension>
+      </xs:simpleContent>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="doc" type="py:DocType">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          Documentation content for an API element. Supports mixed content
+          from other namespaces (e.g., prose layer elements) via xs:any for
+          rich documentation embedding.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+  </xs:element>
+
+  <xs:complexType name="DocType">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          Documentation container that accepts any elements from other
+          namespaces for rich content embedding (prose elements, term
+          references, source citations, etc.).
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:any namespace="##other" processContents="lax"
+              minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- ================================================================== -->
+  <!-- Member elements (have id, carry spec:content-element)               -->
+  <!-- ================================================================== -->
+
+  <xs:element name="property" type="py:PropertyType">
+    <xs:annotation><xs:appinfo><spec:content-element/></xs:appinfo></xs:annotation>
+  </xs:element>
+
+  <xs:complexType name="PropertyType">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          A Python property on a class. Captures the property name, optional
+          type annotation, and optional "of" reference to the spec concept it
+          implements. May contain a doc child for documentation.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element ref="py:doc" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID" use="required">
+      <xs:annotation>
+        <xs:documentation>Unique identifier for this property node.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="name" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>Property name as it appears in the class.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="type" type="xs:string" use="optional">
+      <xs:annotation>
+        <xs:documentation>Type annotation of the property value.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="of" type="xs:string" use="optional">
+      <xs:annotation>
+        <xs:documentation>Spec node ID that this property implements. Uses xs:string
+        for cross-document reference resolution.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <xs:element name="constant" type="py:ConstantType">
+    <xs:annotation><xs:appinfo><spec:content-element/></xs:appinfo></xs:annotation>
+  </xs:element>
+
+  <xs:complexType name="ConstantType">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          A Python constant (module-level or class-level). Captures the
+          constant name, optional type annotation, and optional "of" reference
+          to the spec concept it implements. May contain a doc child.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element ref="py:doc" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID" use="required">
+      <xs:annotation>
+        <xs:documentation>Unique identifier for this constant node.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="name" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>Constant name.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="type" type="xs:string" use="optional">
+      <xs:annotation>
+        <xs:documentation>Type annotation of the constant value.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="of" type="xs:string" use="optional">
+      <xs:annotation>
+        <xs:documentation>Spec node ID that this constant implements. Uses xs:string
+        for cross-document reference resolution.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <xs:element name="method" type="py:MethodType">
+    <xs:annotation><xs:appinfo><spec:content-element/></xs:appinfo></xs:annotation>
+  </xs:element>
+
+  <xs:complexType name="MethodType">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          A Python method on a class. Captures the method name, optional "of"
+          reference, and method kind (regular, static, or class method).
+          Children describe the full signature: parameter list, optional return
+          type, raised exceptions, and documentation.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element ref="py:param" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element ref="py:returns" minOccurs="0"/>
+      <xs:element ref="py:raises" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element ref="py:doc" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID" use="required">
+      <xs:annotation>
+        <xs:documentation>Unique identifier for this method node.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="name" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>Method name as it appears in the class.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="of" type="xs:string" use="optional">
+      <xs:annotation>
+        <xs:documentation>Spec node ID that this method implements. Uses xs:string
+        for cross-document reference resolution.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="kind" type="py:MethodKind" use="optional">
+      <xs:annotation>
+        <xs:documentation>Method binding kind. Defaults to regular instance method
+        when omitted.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <!-- ================================================================== -->
+  <!-- Container elements (have id, carry spec:content-element)            -->
+  <!-- ================================================================== -->
+
+  <xs:element name="function" type="py:FunctionType">
+    <xs:annotation><xs:appinfo><spec:content-element/></xs:appinfo></xs:annotation>
+  </xs:element>
+
+  <xs:complexType name="FunctionType">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          A Python function (module-level). Captures the function name,
+          optional "of" reference to a spec concept, and the full signature:
+          parameter list, optional return type, raised exceptions, and
+          documentation.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element ref="py:param" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element ref="py:returns" minOccurs="0"/>
+      <xs:element ref="py:raises" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element ref="py:doc" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID" use="required">
+      <xs:annotation>
+        <xs:documentation>Unique identifier for this function node.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="name" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>Function name.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="of" type="xs:string" use="optional">
+      <xs:annotation>
+        <xs:documentation>Spec node ID that this function implements. Uses xs:string
+        for cross-document reference resolution.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <xs:element name="exception" type="py:ExceptionType">
+    <xs:annotation><xs:appinfo><spec:content-element/></xs:appinfo></xs:annotation>
+  </xs:element>
+
+  <xs:complexType name="ExceptionType">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          A Python exception class. Captures the exception name, optional base
+          classes, optional "of" reference, and documentation. Exceptions are
+          typically simple classes that inherit from Exception or a more
+          specific base.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element ref="py:doc" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID" use="required">
+      <xs:annotation>
+        <xs:documentation>Unique identifier for this exception node.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="name" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>Exception class name.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="bases" type="xs:string" use="optional">
+      <xs:annotation>
+        <xs:documentation>Comma-separated base class names (e.g., "ValueError", "Exception").</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="of" type="xs:string" use="optional">
+      <xs:annotation>
+        <xs:documentation>Spec node ID that this exception implements. Uses xs:string
+        for cross-document reference resolution.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <xs:element name="class" type="py:ClassType">
+    <xs:annotation><xs:appinfo><spec:content-element/></xs:appinfo></xs:annotation>
+  </xs:element>
+
+  <xs:complexType name="ClassType">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          A Python class. Captures the class name, optional base classes,
+          optional "of" reference, constructor parameters, documentation,
+          and class members (properties, constants, methods) as children.
+          The param children describe __init__ parameters.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element ref="py:param" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element ref="py:doc" minOccurs="0"/>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element ref="py:property"/>
+        <xs:element ref="py:constant"/>
+        <xs:element ref="py:method"/>
+      </xs:choice>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID" use="required">
+      <xs:annotation>
+        <xs:documentation>Unique identifier for this class node.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="name" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>Class name.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="bases" type="xs:string" use="optional">
+      <xs:annotation>
+        <xs:documentation>Comma-separated base class names (e.g., "ABC", "BaseModel").</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="of" type="xs:string" use="optional">
+      <xs:annotation>
+        <xs:documentation>Spec node ID that this class implements. Uses xs:string
+        for cross-document reference resolution.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <xs:element name="module" type="py:ModuleType">
+    <xs:annotation><xs:appinfo><spec:content-element/></xs:appinfo></xs:annotation>
+  </xs:element>
+
+  <xs:complexType name="ModuleType">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          A Python module. The top-level container for API surface description.
+          Contains documentation, classes, functions, exceptions, and constants
+          as children. The name attribute is the fully qualified module name
+          (e.g., "mypackage.submodule").
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element ref="py:doc" minOccurs="0"/>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element ref="py:class"/>
+        <xs:element ref="py:function"/>
+        <xs:element ref="py:exception"/>
+        <xs:element ref="py:constant"/>
+      </xs:choice>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID" use="required">
+      <xs:annotation>
+        <xs:documentation>Unique identifier for this module node.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="name" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>Fully qualified module name (e.g., "mypackage.submodule").</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+</xs:schema>

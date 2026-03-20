@@ -13,10 +13,11 @@
     xmlns:pln="urn:clayers:plan"
     xmlns:art="urn:clayers:artifact"
     xmlns:llm="urn:clayers:llm"
+    xmlns:py="urn:clayers:python"
     xmlns:rev="urn:clayers:revision"
     xmlns:idx="urn:clayers:index"
     xmlns:doc="urn:clayers:doc"
-    exclude-result-prefixes="xs cmb spec pr trm org rel dec src pln art llm rev idx doc">
+    exclude-result-prefixes="xs cmb spec pr trm org rel dec src pln art llm py rev idx doc">
 
   <xsl:import href="catchall.xslt"/>
   <xsl:import href="prose.xslt"/>
@@ -28,6 +29,7 @@
   <xsl:import href="plan.xslt"/>
   <xsl:import href="artifact.xslt"/>
   <xsl:import href="llm.xslt"/>
+  <xsl:import href="python.xslt"/>
   <xsl:import href="revision.xslt"/>
 
   <xsl:output method="html" encoding="UTF-8" indent="yes"/>

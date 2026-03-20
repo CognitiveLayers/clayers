@@ -132,6 +132,10 @@
           <pr:td>LLM</pr:td>
           <pr:td>Machine-readable descriptions for language model consumption</pr:td>
         </pr:tr>
+        <pr:tr>
+          <pr:td>Python</pr:td>
+          <pr:td>Python API surface descriptions with structured signatures</pr:td>
+        </pr:tr>
       </pr:tbody>
     </pr:table>
 
@@ -159,7 +163,7 @@
   <art:mapping id="map-overview-readme">
     <art:spec-ref node="overview"
               revision="draft-1"
-              node-hash="sha256:6cb324650acdffc5e9a6420f89bb370b4d3b51358787bd9c2d78da1276f2d6de"/>
+              node-hash="sha256:a67d6b449cd50f42254ac88c77f722fab7f5a9ef76759b108294cae464b1c27c"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="README.md">
@@ -173,7 +177,7 @@
   <art:mapping id="map-layered-architecture">
     <art:spec-ref node="layered-architecture"
               revision="draft-1"
-              node-hash="sha256:4eaddb7fb3ccd0de1e3286ff4a16bacf949688925394c37ba879365f936c3c4f"/>
+              node-hash="sha256:a1afc4749ee3a7b3045c01f74c75aad838f2c74651006d1a625090e793adf20c"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="schemas/index.xsd">
@@ -187,7 +191,7 @@
   <art:mapping id="map-term-node">
     <art:spec-ref node="term-node"
               revision="draft-1"
-              node-hash="sha256:fc47d8dc2005d03e3893222237492aa13870e61bbe3887dde8c1d9868706dae3"/>
+              node-hash="sha256:2eb3792eb2b83db7792c2d4616320584ed19b4d7ea22c129c5606a2c5558b7f6"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/validate.rs">
@@ -202,7 +206,7 @@
   <art:mapping id="map-term-index">
     <art:spec-ref node="term-index"
               revision="draft-1"
-              node-hash="sha256:d85b0e7440b7c8210fba2fff1f137df89f00201b247baf421715a3b05b7251d0"/>
+              node-hash="sha256:f245e6a30026640b766950b3fb5f91d0c596410c9dad38ea62f607541ffd4661"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/discovery.rs">
@@ -217,11 +221,11 @@
   <art:mapping id="map-term-namespace">
     <art:spec-ref node="term-namespace"
               revision="draft-1"
-              node-hash="sha256:f25e4ab2c6bbabf06032924fd295f0ec76d713b7a545511f1be5fb7dac1fdffe"/>
+              node-hash="sha256:c24a90723da4d166ea7aaf24b47f3b8eee0f4f49709133b43fa6cb772c680bfa"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/namespace.rs">
-        <art:range hash="sha256:47bfa21ef37f9a897e6002f64af1b57bbd69b2f62d00efe9da4f5a8a6652460f"
+        <art:range hash="sha256:7987fac8ec0e5280e1ec18776c35c7f314ba6e899f5d61f181d6cfe6c1be2b0c"
                    start-line="1" end-line="63"/>
       </art:artifact>
     <art:coverage>full</art:coverage>
@@ -232,11 +236,11 @@
   <art:mapping id="map-term-layer">
     <art:spec-ref node="term-layer"
               revision="draft-1"
-              node-hash="sha256:0b05c395d3de989d473979fe9efd13216104f10cb6ffee5f538efd98c898e4aa"/>
+              node-hash="sha256:6e14226c3659010c9afbd625842c337c2424c755a0b0538d13f5486bc1de5795"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/namespace.rs">
-        <art:range hash="sha256:2eb0103cd4672fcfdd8d4505bd4e8e5a79396b367208cbc5adf25a772767de8a"
+        <art:range hash="sha256:90015d2c1ec5358ca89b61e1f36254b0c18af34ff1d63441696c6c5a951e5b16"
                    start-line="17" end-line="31"/>
       </art:artifact>
     <art:coverage>partial</art:coverage>

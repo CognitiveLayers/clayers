@@ -62,6 +62,10 @@ pub const DOC_XSLT_FILES: &[(&str, &str)] = &[
     ),
     ("llm.xslt", include_str!("../../../schemas/doc/llm.xslt")),
     (
+        "python.xslt",
+        include_str!("../../../schemas/doc/python.xslt"),
+    ),
+    (
         "markdown.xslt",
         include_str!("../../../schemas/doc/markdown.xslt"),
     ),

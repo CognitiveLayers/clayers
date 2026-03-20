@@ -17,6 +17,7 @@
   <uri name="urn:clayers:plan"          uri="plan.xsd"/>
   <uri name="urn:clayers:artifact"      uri="artifact.xsd"/>
   <uri name="urn:clayers:llm"           uri="llm.xsd"/>
+  <uri name="urn:clayers:python"       uri="python.xsd"/>
   <uri name="urn:clayers:repository"   uri="repository.xsd"/>
 
   <!-- External standard schemas: XMI and UML model integration -->

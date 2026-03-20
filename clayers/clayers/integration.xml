@@ -11,6 +11,7 @@
        xmlns:rel="urn:clayers:relation"
        xmlns:art="urn:clayers:artifact"
        xmlns:llm="urn:clayers:llm"
+       xmlns:py="urn:clayers:python"
        spec:index="index.xml">
 
   <!-- ═══════════════ Vocabulary ═══════════════ -->
@@ -143,86 +144,55 @@
     mirrors the corresponding Rust struct with read-only Python attributes.
     Errors are raised as SpecError exceptions.</pr:p>
 
-    <pr:p><pr:b>Constructor:</pr:b> <pr:code>KnowledgeModel(path, repo_root=None)</pr:code></pr:p>
+    <py:class id="py-km" name="KnowledgeModel">
+      <py:param name="path" type="str"/>
+      <py:param name="repo_root" type="str | None" default="None"/>
 
-    <pr:table>
-      <pr:thead>
-        <pr:tr>
-          <pr:th>Property</pr:th>
-          <pr:th>Type</pr:th>
-          <pr:th>Description</pr:th>
-        </pr:tr>
-      </pr:thead>
-      <pr:tbody>
-        <pr:tr>
-          <pr:td>name</pr:td>
-          <pr:td>str</pr:td>
-          <pr:td>Spec name (directory basename)</pr:td>
-        </pr:tr>
-        <pr:tr>
-          <pr:td>files</pr:td>
-          <pr:td>list[str]</pr:td>
-          <pr:td>Discovered file paths</pr:td>
-        </pr:tr>
-        <pr:tr>
-          <pr:td>combined_xml</pr:td>
-          <pr:td>str</pr:td>
-          <pr:td>Assembled combined document</pr:td>
-        </pr:tr>
-        <pr:tr>
-          <pr:td>schema_dir</pr:td>
-          <pr:td>str | None</pr:td>
-          <pr:td>Path to schemas/ if found</pr:td>
-        </pr:tr>
-      </pr:tbody>
-    </pr:table>
+      <py:property id="py-km-name" name="name" type="str">
+        <py:doc><pr:p>Spec name (directory basename).</pr:p></py:doc>
+      </py:property>
+      <py:property id="py-km-files" name="files" type="list[str]">
+        <py:doc><pr:p>Discovered file paths.</pr:p></py:doc>
+      </py:property>
+      <py:property id="py-km-combined-xml" name="combined_xml" type="str">
+        <py:doc><pr:p>Assembled combined document.</pr:p></py:doc>
+      </py:property>
+      <py:property id="py-km-schema-dir" name="schema_dir" type="str | None">
+        <py:doc><pr:p>Path to schemas/ if found.</pr:p></py:doc>
+      </py:property>
 
-    <pr:table>
-      <pr:thead>
-        <pr:tr>
-          <pr:th>Method</pr:th>
-          <pr:th>Returns</pr:th>
-          <pr:th>Description</pr:th>
-        </pr:tr>
-      </pr:thead>
-      <pr:tbody>
-        <pr:tr>
-          <pr:td>validate()</pr:td>
-          <pr:td>ValidationResult</pr:td>
-          <pr:td>Well-formedness, ID uniqueness, cross-layer keyrefs</pr:td>
-        </pr:tr>
-        <pr:tr>
-          <pr:td>check_drift()</pr:td>
-          <pr:td>DriftReport</pr:td>
-          <pr:td>Compare stored hashes against current content</pr:td>
-        </pr:tr>
-        <pr:tr>
-          <pr:td>coverage(code_path=None)</pr:td>
-          <pr:td>CoverageReport</pr:td>
-          <pr:td>Spec-to-code and code-to-spec coverage analysis</pr:td>
-        </pr:tr>
-        <pr:tr>
-          <pr:td>connectivity()</pr:td>
-          <pr:td>ConnectivityReport</pr:td>
-          <pr:td>Graph metrics: components, hubs, bridges, cycles</pr:td>
-        </pr:tr>
-        <pr:tr>
-          <pr:td>query(xpath, *, mode="xml")</pr:td>
-          <pr:td>QueryResult</pr:td>
-          <pr:td>XPath query; mode is "count", "text", or "xml"</pr:td>
-        </pr:tr>
-        <pr:tr>
-          <pr:td>fix_node_hashes()</pr:td>
-          <pr:td>FixReport</pr:td>
-          <pr:td>Recompute spec-side hashes in artifact mappings</pr:td>
-        </pr:tr>
-        <pr:tr>
-          <pr:td>fix_artifact_hashes()</pr:td>
-          <pr:td>FixReport</pr:td>
-          <pr:td>Recompute code-side hashes in artifact mappings</pr:td>
-        </pr:tr>
-      </pr:tbody>
-    </pr:table>
+      <py:method id="py-km-validate" name="validate">
+        <py:returns type="ValidationResult"/>
+        <py:doc><pr:p>Well-formedness, ID uniqueness, cross-layer keyrefs.</pr:p></py:doc>
+      </py:method>
+      <py:method id="py-km-check-drift" name="check_drift">
+        <py:returns type="DriftReport"/>
+        <py:doc><pr:p>Compare stored hashes against current content.</pr:p></py:doc>
+      </py:method>
+      <py:method id="py-km-coverage" name="coverage">
+        <py:param name="code_path" type="str | None" default="None" keyword="true"/>
+        <py:returns type="CoverageReport"/>
+        <py:doc><pr:p>Spec-to-code and code-to-spec coverage analysis.</pr:p></py:doc>
+      </py:method>
+      <py:method id="py-km-connectivity" name="connectivity">
+        <py:returns type="ConnectivityReport"/>
+        <py:doc><pr:p>Graph metrics: components, hubs, bridges, cycles.</pr:p></py:doc>
+      </py:method>
+      <py:method id="py-km-query" name="query">
+        <py:param name="xpath" type="str"/>
+        <py:param name="mode" type="str" default="'xml'" keyword="true"/>
+        <py:returns type="QueryResult"/>
+        <py:doc><pr:p>XPath query; mode is "count", "text", or "xml".</pr:p></py:doc>
+      </py:method>
+      <py:method id="py-km-fix-node-hashes" name="fix_node_hashes">
+        <py:returns type="FixReport"/>
+        <py:doc><pr:p>Recompute spec-side hashes in artifact mappings.</pr:p></py:doc>
+      </py:method>
+      <py:method id="py-km-fix-artifact-hashes" name="fix_artifact_hashes">
+        <py:returns type="FixReport"/>
+        <py:doc><pr:p>Recompute code-side hashes in artifact mappings.</pr:p></py:doc>
+      </py:method>
+    </py:class>
 
     <pr:p>A CI gate that validates a spec and checks drift on every
     commit:</pr:p>
@@ -287,108 +257,108 @@ for node_id in conn.isolated_nodes[:5]:
     block_on() after releasing the GIL. The async class returns Python
     awaitables via future_into_py().</pr:p>
 
-    <pr:p><pr:b>Constructor:</pr:b> <pr:code>Repo(store)</pr:code> where store
-    is MemoryStore() or SqliteStore.open(path) / SqliteStore.open_in_memory()</pr:p>
+    <py:class id="py-repo" name="Repo">
+      <py:param name="store" type="MemoryStore | SqliteStore"/>
 
-    <pr:table>
-      <pr:thead>
-        <pr:tr>
-          <pr:th>Method</pr:th>
-          <pr:th>Returns</pr:th>
-          <pr:th>Description</pr:th>
-        </pr:tr>
-      </pr:thead>
-      <pr:tbody>
-        <pr:tr>
-          <pr:td>import_xml(xml)</pr:td>
-          <pr:td>ContentHash</pr:td>
-          <pr:td>Decompose XML into the Merkle DAG, return document hash</pr:td>
-        </pr:tr>
-        <pr:tr>
-          <pr:td>export_xml(hash)</pr:td>
-          <pr:td>str</pr:td>
-          <pr:td>Reconstruct XML from its content hash</pr:td>
-        </pr:tr>
-        <pr:tr>
-          <pr:td>build_tree(entries)</pr:td>
-          <pr:td>ContentHash</pr:td>
-          <pr:td>Build tree from [(path, doc_hash)] pairs</pr:td>
-        </pr:tr>
-        <pr:tr>
-          <pr:td>commit(branch, tree, author, message)</pr:td>
-          <pr:td>ContentHash</pr:td>
-          <pr:td>Create commit on branch pointing to tree</pr:td>
-        </pr:tr>
-        <pr:tr>
-          <pr:td>create_branch(name, target)</pr:td>
-          <pr:td>None</pr:td>
-          <pr:td>Create branch pointing to commit hash</pr:td>
-        </pr:tr>
-        <pr:tr>
-          <pr:td>delete_branch(name)</pr:td>
-          <pr:td>None</pr:td>
-          <pr:td>Delete a branch</pr:td>
-        </pr:tr>
-        <pr:tr>
-          <pr:td>list_branches()</pr:td>
-          <pr:td>list[(str, ContentHash)]</pr:td>
-          <pr:td>All branches with their tip hashes</pr:td>
-        </pr:tr>
-        <pr:tr>
-          <pr:td>create_tag(name, target, tagger, message)</pr:td>
-          <pr:td>None</pr:td>
-          <pr:td>Create annotated tag</pr:td>
-        </pr:tr>
-        <pr:tr>
-          <pr:td>list_tags()</pr:td>
-          <pr:td>list[(str, ContentHash)]</pr:td>
-          <pr:td>All tags with their target hashes</pr:td>
-        </pr:tr>
-        <pr:tr>
-          <pr:td>log(from_hash, limit=None)</pr:td>
-          <pr:td>list[CommitObject]</pr:td>
-          <pr:td>Walk commit history</pr:td>
-        </pr:tr>
-        <pr:tr>
-          <pr:td>diff_trees(a, b)</pr:td>
-          <pr:td>list[FileChange]</pr:td>
-          <pr:td>File-level diff between two trees</pr:td>
-        </pr:tr>
-        <pr:tr>
-          <pr:td>query(xpath, *, mode="xml")</pr:td>
-          <pr:td>QueryResult</pr:td>
-          <pr:td>XPath query against HEAD</pr:td>
-        </pr:tr>
-      </pr:tbody>
-    </pr:table>
+      <py:method id="py-repo-import-xml" name="import_xml">
+        <py:param name="xml" type="str"/>
+        <py:returns type="ContentHash"/>
+        <py:doc><pr:p>Decompose XML into the Merkle DAG, return document hash.</pr:p></py:doc>
+      </py:method>
+      <py:method id="py-repo-export-xml" name="export_xml">
+        <py:param name="hash" type="ContentHash"/>
+        <py:returns type="str"/>
+        <py:doc><pr:p>Reconstruct XML from its content hash.</pr:p></py:doc>
+      </py:method>
+      <py:method id="py-repo-build-tree" name="build_tree">
+        <py:param name="entries" type="list[tuple[str, ContentHash]]"/>
+        <py:returns type="ContentHash"/>
+        <py:doc><pr:p>Build tree from (path, doc_hash) pairs.</pr:p></py:doc>
+      </py:method>
+      <py:method id="py-repo-commit" name="commit">
+        <py:param name="branch" type="str"/>
+        <py:param name="tree" type="ContentHash"/>
+        <py:param name="author" type="Author"/>
+        <py:param name="message" type="str"/>
+        <py:returns type="ContentHash"/>
+        <py:doc><pr:p>Create commit on branch pointing to tree.</pr:p></py:doc>
+      </py:method>
+      <py:method id="py-repo-create-branch" name="create_branch">
+        <py:param name="name" type="str"/>
+        <py:param name="target" type="ContentHash"/>
+      </py:method>
+      <py:method id="py-repo-delete-branch" name="delete_branch">
+        <py:param name="name" type="str"/>
+      </py:method>
+      <py:method id="py-repo-list-branches" name="list_branches">
+        <py:returns type="list[tuple[str, ContentHash]]"/>
+      </py:method>
+      <py:method id="py-repo-create-tag" name="create_tag">
+        <py:param name="name" type="str"/>
+        <py:param name="target" type="ContentHash"/>
+        <py:param name="tagger" type="Author"/>
+        <py:param name="message" type="str"/>
+      </py:method>
+      <py:method id="py-repo-list-tags" name="list_tags">
+        <py:returns type="list[tuple[str, ContentHash]]"/>
+      </py:method>
+      <py:method id="py-repo-log" name="log">
+        <py:param name="from_hash" type="ContentHash"/>
+        <py:param name="limit" type="int | None" default="None"/>
+        <py:returns type="list[CommitObject]"/>
+      </py:method>
+      <py:method id="py-repo-diff-trees" name="diff_trees">
+        <py:param name="a" type="ContentHash"/>
+        <py:param name="b" type="ContentHash"/>
+        <py:returns type="list[FileChange]"/>
+      </py:method>
+      <py:method id="py-repo-query" name="query">
+        <py:param name="xpath" type="str"/>
+        <py:param name="mode" type="str" default="'xml'" keyword="true"/>
+        <py:returns type="QueryResult"/>
+      </py:method>
+    </py:class>
 
-    <pr:p><pr:b>Supporting types:</pr:b></pr:p>
-    <pr:table>
-      <pr:thead>
-        <pr:tr>
-          <pr:th>Class</pr:th>
-          <pr:th>Key Attributes</pr:th>
-        </pr:tr>
-      </pr:thead>
-      <pr:tbody>
-        <pr:tr>
-          <pr:td>Author(name, email)</pr:td>
-          <pr:td>name: str, email: str</pr:td>
-        </pr:tr>
-        <pr:tr>
-          <pr:td>CommitObject</pr:td>
-          <pr:td>tree, parents, author, timestamp, message</pr:td>
-        </pr:tr>
-        <pr:tr>
-          <pr:td>FileChange</pr:td>
-          <pr:td>kind ("added"/"removed"/"modified"), path, old_hash, new_hash</pr:td>
-        </pr:tr>
-        <pr:tr>
-          <pr:td>ContentHash</pr:td>
-          <pr:td>hex, prefixed; from_canonical(), from_hex(), from_bytes()</pr:td>
-        </pr:tr>
-      </pr:tbody>
-    </pr:table>
+    <py:class id="py-author" name="Author">
+      <py:param name="name" type="str"/>
+      <py:param name="email" type="str"/>
+      <py:property id="py-author-name" name="name" type="str"/>
+      <py:property id="py-author-email" name="email" type="str"/>
+    </py:class>
+
+    <py:class id="py-commit-object" name="CommitObject">
+      <py:property id="py-commit-tree" name="tree" type="ContentHash"/>
+      <py:property id="py-commit-parents" name="parents" type="list[ContentHash]"/>
+      <py:property id="py-commit-author" name="author" type="Author"/>
+      <py:property id="py-commit-timestamp" name="timestamp" type="str"/>
+      <py:property id="py-commit-message" name="message" type="str"/>
+    </py:class>
+
+    <py:class id="py-file-change" name="FileChange">
+      <py:property id="py-fc-kind" name="kind" type="str">
+        <py:doc><pr:p>"added", "removed", or "modified".</pr:p></py:doc>
+      </py:property>
+      <py:property id="py-fc-path" name="path" type="str"/>
+      <py:property id="py-fc-old-hash" name="old_hash" type="ContentHash | None"/>
+      <py:property id="py-fc-new-hash" name="new_hash" type="ContentHash | None"/>
+    </py:class>
+
+    <py:class id="py-content-hash" name="ContentHash">
+      <py:property id="py-ch-hex" name="hex" type="str"/>
+      <py:property id="py-ch-prefixed" name="prefixed" type="str"/>
+      <py:method id="py-ch-from-canonical" name="from_canonical" kind="staticmethod">
+        <py:param name="data" type="bytes"/>
+        <py:returns type="ContentHash"/>
+      </py:method>
+      <py:method id="py-ch-from-hex" name="from_hex" kind="staticmethod">
+        <py:param name="s" type="str"/>
+        <py:returns type="ContentHash"/>
+      </py:method>
+      <py:method id="py-ch-from-bytes" name="from_bytes" kind="staticmethod">
+        <py:param name="data" type="bytes"/>
+        <py:returns type="ContentHash"/>
+      </py:method>
+    </py:class>
 
     <pr:p>A version-controlled XML editing workflow using the sync API:</pr:p>
     <pr:codeblock language="python">from clayers.repo import Repo, MemoryStore, Author
@@ -440,37 +410,18 @@ repo = Repo(SqliteStore.open("my-project.db"))
     <pr:p>A base ClayersError exception inherits from Python's Exception.
     Three subclasses map to the Rust crate error types:</pr:p>
 
-    <pr:table>
-      <pr:thead>
-        <pr:tr>
-          <pr:th>Python Exception</pr:th>
-          <pr:th>Rust Source</pr:th>
-          <pr:th>Raised By</pr:th>
-        </pr:tr>
-      </pr:thead>
-      <pr:tbody>
-        <pr:tr>
-          <pr:td>ClayersError</pr:td>
-          <pr:td>(base class)</pr:td>
-          <pr:td>Catch-all for any clayers error</pr:td>
-        </pr:tr>
-        <pr:tr>
-          <pr:td>XmlError</pr:td>
-          <pr:td>clayers_xml::Error</pr:td>
-          <pr:td>ContentHash.from_hex(), canonicalization</pr:td>
-        </pr:tr>
-        <pr:tr>
-          <pr:td>SpecError</pr:td>
-          <pr:td>clayers_spec::Error</pr:td>
-          <pr:td>KnowledgeModel constructor and all methods</pr:td>
-        </pr:tr>
-        <pr:tr>
-          <pr:td>RepoError</pr:td>
-          <pr:td>clayers_repo::Error</pr:td>
-          <pr:td>Repo constructor and all methods</pr:td>
-        </pr:tr>
-      </pr:tbody>
-    </pr:table>
+    <py:exception id="py-clayers-error" name="ClayersError" bases="Exception">
+      <py:doc><pr:p>Base exception for all clayers errors.</pr:p></py:doc>
+    </py:exception>
+    <py:exception id="py-xml-error" name="XmlError" bases="ClayersError">
+      <py:doc><pr:p>Raised by ContentHash.from_hex(), canonicalization.</pr:p></py:doc>
+    </py:exception>
+    <py:exception id="py-spec-error" name="SpecError" bases="ClayersError">
+      <py:doc><pr:p>Raised by KnowledgeModel constructor and all methods.</pr:p></py:doc>
+    </py:exception>
+    <py:exception id="py-repo-error" name="RepoError" bases="ClayersError">
+      <py:doc><pr:p>Raised by Repo constructor and all methods.</pr:p></py:doc>
+    </py:exception>
 
     <pr:p>Catching errors at different levels of specificity:</pr:p>
     <pr:codeblock language="python">from clayers import ClayersError, SpecError, KnowledgeModel
@@ -493,34 +444,17 @@ except ClayersError as e:
     a runtime-checkable typing.Protocol. This enables generic Python code
     to accept either as a query target.</pr:p>
 
-    <pr:p><pr:b>Protocol method:</pr:b> <pr:code>query(xpath: str, *, mode: str = "xml") -&gt; QueryResult</pr:code></pr:p>
-
-    <pr:table>
-      <pr:thead>
-        <pr:tr>
-          <pr:th>QueryResult Attribute</pr:th>
-          <pr:th>Type</pr:th>
-          <pr:th>Description</pr:th>
-        </pr:tr>
-      </pr:thead>
-      <pr:tbody>
-        <pr:tr>
-          <pr:td>kind</pr:td>
-          <pr:td>str</pr:td>
-          <pr:td>"count", "text", or "xml"</pr:td>
-        </pr:tr>
-        <pr:tr>
-          <pr:td>count</pr:td>
-          <pr:td>int | None</pr:td>
-          <pr:td>Set when kind == "count"</pr:td>
-        </pr:tr>
-        <pr:tr>
-          <pr:td>values</pr:td>
-          <pr:td>list[str] | None</pr:td>
-          <pr:td>Set when kind == "text" or "xml"</pr:td>
-        </pr:tr>
-      </pr:tbody>
-    </pr:table>
+    <py:class id="py-query-result" name="QueryResult">
+      <py:property id="py-qr-kind" name="kind" type="str">
+        <py:doc><pr:p>"count", "text", or "xml".</pr:p></py:doc>
+      </py:property>
+      <py:property id="py-qr-count" name="count" type="int | None">
+        <py:doc><pr:p>Set when kind == "count".</pr:p></py:doc>
+      </py:property>
+      <py:property id="py-qr-values" name="values" type="list[str] | None">
+        <py:doc><pr:p>Set when kind == "text" or "xml".</pr:p></py:doc>
+      </py:property>
+    </py:class>
 
     <pr:p>Writing a function that works with both filesystem specs and
     versioned repositories:</pr:p>
@@ -676,7 +610,7 @@ print(count_terms(repo))</pr:codeblock>
   <art:mapping id="map-py-module-root">
     <art:spec-ref node="python-integration"
               revision="draft-1"
-              node-hash="sha256:4223ff2d7912cbca40b7036c87eb18862f500ed27723d1183b13bf476367194c"/>
+              node-hash="sha256:9634e906264747d112c5cac6878d2e13ce845e987fd7c18f907998e3df0b77cd"/>
     <art:artifact repo="clayers"
               repo-revision="69ddfa1"
               path="crates/clayers-py/src/lib.rs">
@@ -688,108 +622,500 @@ print(count_terms(repo))</pr:codeblock>
     errors, query, spec types, KnowledgeModel, xml, repo.</art:note>
   </art:mapping>
 
-  <!-- Error hierarchy -->
-  <art:mapping id="map-py-errors">
-    <art:spec-ref node="python-error-hierarchy"
-              revision="draft-1"
-              node-hash="sha256:e8cd9c2a9982c9143c6815106f9d05270fc54ae0d92b21ae26e4c1886f38bda7"/>
-    <art:artifact repo="clayers"
-              repo-revision="69ddfa1"
-              path="crates/clayers-py/src/errors.rs">
-      <art:range hash="sha256:74fb1f9f2ca8c492b922c302632009009925d8c20cdad786336e56214f4a1aa1"
-                 start-line="1" end-line="23"/>
-    </art:artifact>
-    <art:coverage>full</art:coverage>
-    <art:note>Defines ClayersError, XmlError, SpecError, RepoError exception
-    hierarchy and helper conversion functions.</art:note>
-  </art:mapping>
+  <!-- ── KnowledgeModel class and members ── -->
 
-  <!-- KnowledgeModel class -->
-  <art:mapping id="map-py-knowledge-model">
-    <art:spec-ref node="python-knowledge-model-api"
-              revision="draft-1"
-              node-hash="sha256:7e1409ee37a91d0d90c2bd2b81e555e10e7f16f971af3f3f9883088be0e19665"/>
-    <art:artifact repo="clayers"
-              repo-revision="69ddfa1"
+  <art:mapping id="map-py-km">
+    <art:spec-ref node="py-km" revision="draft-1" node-hash="sha256:45348f636e4f648564e49d3d9885dbc85bad70953f54182042789e2a1ecfc70a"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/knowledge_model.rs">
-      <art:range hash="sha256:fd3e3c86e361e86452f6e3303060765a6d03bec37f7c77e26b184fa527afac85"
-                 start-line="1" end-line="148"/>
+      <art:range hash="sha256:0cc54dabf5652187bd28781812dfe93649e2886fbc46e27b649856438e63a99d" start-line="9" end-line="143"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
-    <art:note>KnowledgeModel pyclass: constructor, properties (name, files,
-    combined_xml, schema_dir), and methods (validate, check_drift, coverage,
-    connectivity, fix_node_hashes, fix_artifact_hashes, query).</art:note>
   </art:mapping>
 
-  <!-- Spec result types -->
-  <art:mapping id="map-py-spec-types">
-    <art:spec-ref node="python-knowledge-model-api"
-              revision="draft-1"
-              node-hash="sha256:7e1409ee37a91d0d90c2bd2b81e555e10e7f16f971af3f3f9883088be0e19665"/>
-    <art:artifact repo="clayers"
-              repo-revision="69ddfa1"
-              path="crates/clayers-py/src/spec/types.rs">
-      <art:range hash="sha256:3770be58396ca5d9953a17d164ee38a0291b32b2042456d1f6b6423e3a269849"
-                 start-line="1" end-line="400"/>
+  <art:mapping id="map-py-km-name">
+    <art:spec-ref node="py-km-name" revision="draft-1" node-hash="sha256:611a69092e9f8350036d967ce3a2dc2e75c749606f4379e126c1236342f47096"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/knowledge_model.rs">
+      <art:range hash="sha256:fb8b6225f98045cf56a769122fe256b658e4958c7f6318d586d0e36c3c5833df" start-line="63" end-line="66"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
-    <art:note>All spec result pyclasses: ValidationResult, DriftReport,
-    CoverageReport, ConnectivityReport, FixReport, and their subtypes.
-    Each mirrors the corresponding Rust struct with From conversions.</art:note>
   </art:mapping>
 
-  <!-- QueryResult and Queryable -->
-  <art:mapping id="map-py-query">
-    <art:spec-ref node="python-queryable"
-              revision="draft-1"
-              node-hash="sha256:9d911196246f9344dd3cfc69adefc30984850b95bc2cec82e01dbd3755b169c1"/>
-    <art:artifact repo="clayers"
-              repo-revision="69ddfa1"
-              path="crates/clayers-py/src/query.rs">
-      <art:range hash="sha256:3735832a0923a2ff9e7f7469ac892acbc014aca3ed9ee646f483b4c9e104e4cc"
-                 start-line="1" end-line="97"/>
+  <art:mapping id="map-py-km-files">
+    <art:spec-ref node="py-km-files" revision="draft-1" node-hash="sha256:ac87fc35a9464faf078a8b594aaa653bc50d128984a4d656d4e08e19a53e0f4a"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/knowledge_model.rs">
+      <art:range hash="sha256:12a264db376aa562064083dd2e49030e8c48f4badd8a613fe860d15f280bed86" start-line="68" end-line="71"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
-    <art:note>Shared QueryResult pyclass with kind/count/values, and
-    query mode parsers for both spec and repo variants.</art:note>
   </art:mapping>
 
-  <art:mapping id="map-py-queryable-protocol">
-    <art:spec-ref node="python-queryable"
-              revision="draft-1"
-              node-hash="sha256:9d911196246f9344dd3cfc69adefc30984850b95bc2cec82e01dbd3755b169c1"/>
-    <art:artifact repo="clayers"
-              repo-revision="69ddfa1"
-              path="crates/clayers-py/python/clayers/protocols.py">
-      <art:range hash="sha256:42b46aae70a52472b6bd082a535065be2759aa78bb6a0b2721b3bdfa1131d19e"
-                 start-line="1" end-line="6"/>
+  <art:mapping id="map-py-km-combined-xml">
+    <art:spec-ref node="py-km-combined-xml" revision="draft-1" node-hash="sha256:fea7df0851bc3504725469655b7d7de8fac80b32b8289c352f8c9a8141ef6f79"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/knowledge_model.rs">
+      <art:range hash="sha256:a0d306da1e91928575cda7eb4ef0d0426f68fd7a075b2e2daf94faee019667cc" start-line="78" end-line="91"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
-    <art:note>The runtime-checkable Queryable Protocol definition in
-    pure Python.</art:note>
   </art:mapping>
 
-  <!-- ContentHash wrapper -->
+  <art:mapping id="map-py-km-schema-dir">
+    <art:spec-ref node="py-km-schema-dir" revision="draft-1" node-hash="sha256:426a79bf7a39c01080aa302a05711e11e2cfc6c98343e8c7b29a72e849c39275"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/knowledge_model.rs">
+      <art:range hash="sha256:a7b5cf0b6082fd175cf6f53f1e8a90e79dd27d56adbb06eaf105e705ba485bcb" start-line="73" end-line="76"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <art:mapping id="map-py-km-validate">
+    <art:spec-ref node="py-km-validate" revision="draft-1" node-hash="sha256:4e9a81647dfeec27496b58abcf5ba54043e094e4e631a26a61894bb2b56b4860"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/knowledge_model.rs">
+      <art:range hash="sha256:659a45c169f20cdc7448adff9c2b8c16e7749b0ac28bf5bafa0fb4d5aec6c9e8" start-line="93" end-line="96"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <art:mapping id="map-py-km-check-drift">
+    <art:spec-ref node="py-km-check-drift" revision="draft-1" node-hash="sha256:62443c79b68534daf98cd2a238e1d07003b176657117ca35501a02790d2950a7"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/knowledge_model.rs">
+      <art:range hash="sha256:ed0d1def91caf322c55e877bcd3efc2ffe8d0a11b0ce642e04722d9697a410c4" start-line="98" end-line="105"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <art:mapping id="map-py-km-coverage">
+    <art:spec-ref node="py-km-coverage" revision="draft-1" node-hash="sha256:87c1e545ae8fe497f3ae5796d372565346b8aa3c67581558fadcb08ff1ef8387"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/knowledge_model.rs">
+      <art:range hash="sha256:9e3fa0303e6aef4e91aa42eb3b48f3e162b835b15af352e3f1b881c0d353da6e" start-line="107" end-line="112"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <art:mapping id="map-py-km-connectivity">
+    <art:spec-ref node="py-km-connectivity" revision="draft-1" node-hash="sha256:8d5d4c8d0d62ee54323dca6d97e1fd6f99f8a84156503e7e019e60b3064109a3"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/knowledge_model.rs">
+      <art:range hash="sha256:ff7617ca512f8c31328b1b95085aaebd321b563458117d65f73193c4b177cda9" start-line="114" end-line="118"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <art:mapping id="map-py-km-query">
+    <art:spec-ref node="py-km-query" revision="draft-1" node-hash="sha256:7e1fc64e15cd2669fa179909bd08fba527e0f2a757a7edea77344aa4e85b3d63"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/knowledge_model.rs">
+      <art:range hash="sha256:0095eff04aa719a3a1a091061bab6be8be32202b5d0f6a5c5ec57eaaeeba1d84" start-line="132" end-line="138"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <art:mapping id="map-py-km-fix-node-hashes">
+    <art:spec-ref node="py-km-fix-node-hashes" revision="draft-1" node-hash="sha256:d462aba8bad1f311f1ee77f29eb799a67cd72b2f0cc209eb22e9c2fcfad0920b"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/knowledge_model.rs">
+      <art:range hash="sha256:7d1c4f968d79f2c5071877a145c77ea910cd743ef26ac80db5a7c8a91a154897" start-line="120" end-line="124"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <art:mapping id="map-py-km-fix-artifact-hashes">
+    <art:spec-ref node="py-km-fix-artifact-hashes" revision="draft-1" node-hash="sha256:d6d77d482fa25f12aec6eb29cabe96651ffa567347b1563656d1474908a4f6f5"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/knowledge_model.rs">
+      <art:range hash="sha256:f0d608804be9cfcd4aafa488c26e062fe6b425ba2383e8196efe5bd18a6c88a5" start-line="126" end-line="130"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <!-- ── Sync Repo class and members ── -->
+
+  <art:mapping id="map-py-repo">
+    <art:spec-ref node="py-repo" revision="draft-1" node-hash="sha256:a87e531a6f6a59bf948853bcd91792368c6a09ad331ee76cd2bbb3a57a0ab57b"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/repo/repo_sync.rs">
+      <art:range hash="sha256:9b739b3b300eea6e9f850737d248dfc795e450dd9d0f6cc374f15320d03d1167" start-line="25" end-line="250"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <art:mapping id="map-py-repo-import-xml">
+    <art:spec-ref node="py-repo-import-xml" revision="draft-1" node-hash="sha256:53151ef91a22e9fe637e3cec95fa3086c3ddc3582fbda2d185ea463dd01e0282"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/repo/repo_sync.rs">
+      <art:range hash="sha256:3deb54e639eaaf922fd2d074d4e97373a567cbdceecbcc09955d86e364fd10b9" start-line="39" end-line="47"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <art:mapping id="map-py-repo-export-xml">
+    <art:spec-ref node="py-repo-export-xml" revision="draft-1" node-hash="sha256:1253c7d5601736c34a9f7f9931d3f1e2756aa0a34ea3140afeca7c434ff4f2a3"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/repo/repo_sync.rs">
+      <art:range hash="sha256:a8ce60bc8556a17e6ff4c1796e42378d269c744c1fd7f25bda9cb36e017bb532" start-line="49" end-line="57"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <art:mapping id="map-py-repo-build-tree">
+    <art:spec-ref node="py-repo-build-tree" revision="draft-1" node-hash="sha256:51d2c4d7bf404d684fc627d67bfc4a9233b0c93eb9ef3f01599bea6a51f38bbc"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/repo/repo_sync.rs">
+      <art:range hash="sha256:d578ffbc2532ecd40d4bf5f17816a58c458db851934e271ce251d3c4e659e376" start-line="59" end-line="77"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <art:mapping id="map-py-repo-commit">
+    <art:spec-ref node="py-repo-commit" revision="draft-1" node-hash="sha256:68ae102d48a5e985fe3d9eba489d5ccb5d930cb58803cad8906d4154838c5205"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/repo/repo_sync.rs">
+      <art:range hash="sha256:84a271711cc2a8c98eefae7cc23a3f1954d55bf50a756da45c7e3e7fcc1cebcf" start-line="79" end-line="105"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <art:mapping id="map-py-repo-create-branch">
+    <art:spec-ref node="py-repo-create-branch" revision="draft-1" node-hash="sha256:f8131648b59670e600b6a68ad0c02f4e8b487c65d0278285e27e248c82f48fe0"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/repo/repo_sync.rs">
+      <art:range hash="sha256:9893ad73149fa3ffa4de08e083a2b6c001ee31ef850aa56fd115690b035b8518" start-line="107" end-line="123"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <art:mapping id="map-py-repo-delete-branch">
+    <art:spec-ref node="py-repo-delete-branch" revision="draft-1" node-hash="sha256:8592b3377935f327841b070de02043febf10e52d98b2e25af00dc7a36aca6576"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/repo/repo_sync.rs">
+      <art:range hash="sha256:d8b7fcc83bf40bb57bdda75ed779a107352ff16a8db993f54bd7bf2954302164" start-line="125" end-line="135"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <art:mapping id="map-py-repo-list-branches">
+    <art:spec-ref node="py-repo-list-branches" revision="draft-1" node-hash="sha256:10744d3d146a12e011ac3b67531e0c2439e640c91c9e5c377c750e09d88e6ab6"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/repo/repo_sync.rs">
+      <art:range hash="sha256:9250e821df97f0e24cb3b6453eb0d59ca37e33668f8325a2a38f105644d50659" start-line="137" end-line="150"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <art:mapping id="map-py-repo-create-tag">
+    <art:spec-ref node="py-repo-create-tag" revision="draft-1" node-hash="sha256:721b36967e2f18fe082b39f4bc005c28ce779a7766ae98c9d4d965ed32380253"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/repo/repo_sync.rs">
+      <art:range hash="sha256:af4fa428a710d716762ed0c162cec22151b6d980df90d8ec98331f8ba3b5e10b" start-line="152" end-line="176"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <art:mapping id="map-py-repo-list-tags">
+    <art:spec-ref node="py-repo-list-tags" revision="draft-1" node-hash="sha256:4b4e73e2d5b7c97f5832a4b63f20c32b48acce0fcb195170616db17cf2ee9dac"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/repo/repo_sync.rs">
+      <art:range hash="sha256:66d781533354d6a2f739806b33e08afd6110e7720744e1212e1a85e491ee0b98" start-line="178" end-line="189"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <art:mapping id="map-py-repo-log">
+    <art:spec-ref node="py-repo-log" revision="draft-1" node-hash="sha256:aba28ee345bc163dc5c974c2416276165de6ce0787ccdead52b588b329dad2f5"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/repo/repo_sync.rs">
+      <art:range hash="sha256:e081a88cef46f9137dcae13ce74893709259bdad230a62d9c5d647171e5ad69c" start-line="191" end-line="206"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <art:mapping id="map-py-repo-diff-trees">
+    <art:spec-ref node="py-repo-diff-trees" revision="draft-1" node-hash="sha256:7abbb591e4c5a3c266978aa6d99ee593fb6613df52b130aef16140d630b30747"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/repo/repo_sync.rs">
+      <art:range hash="sha256:ccfa121bf350cb14284ceeb662b6f86f44ca83a77e4a1d20634bb4500db17ec8" start-line="208" end-line="225"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <art:mapping id="map-py-repo-query">
+    <art:spec-ref node="py-repo-query" revision="draft-1" node-hash="sha256:57dc6eb319a11f770acf4a7fcb5e7d1576a33c07f16e11e660134a37a6610da2"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/repo/repo_sync.rs">
+      <art:range hash="sha256:4608a5e3925ea40ee0729156ab5148a51388a233a95a18d84cddcaad0ed6da63" start-line="227" end-line="245"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <!-- ── Author, CommitObject, FileChange ── -->
+
+  <art:mapping id="map-py-author">
+    <art:spec-ref node="py-author" revision="draft-1" node-hash="sha256:f9f376d39ce5feb74c7b9f2d6aba9e458943489de5bf64fd0e7251e76c7f40b4"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/repo/objects.rs">
+      <art:range hash="sha256:0a4d3aba28931648ebcf4916d3c2f984738063e78e2f88529da6937f3079256a" start-line="5" end-line="33"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <art:mapping id="map-py-author-name">
+    <art:spec-ref node="py-author-name" revision="draft-1" node-hash="sha256:4b33f9609e46a486fde9a91bb3e15dd671c07fbd2d3925a35e683620c0c9db59"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/repo/objects.rs">
+      <art:range hash="sha256:e91068e84ebd3b21d6f727aeae8a09f494838762ac42a3863912c67a2f7a731c" start-line="20" end-line="23"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <art:mapping id="map-py-author-email">
+    <art:spec-ref node="py-author-email" revision="draft-1" node-hash="sha256:8e8272e4d62b11c9506244adb716c74e889269a735600b2108c197fe5b3effdf"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/repo/objects.rs">
+      <art:range hash="sha256:78a730880a67f33d7035cf2928968ba426b576681bcea1213245bda0babc5640" start-line="25" end-line="28"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <art:mapping id="map-py-commit-object">
+    <art:spec-ref node="py-commit-object" revision="draft-1" node-hash="sha256:26eaa047554e99e1f6367b1c8dc8008b99c05d22d9f75760ebaea1f2612f1cf7"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/repo/objects.rs">
+      <art:range hash="sha256:b8b87d3b5740d241da9a72619ed604d1d3c0147f805408282113c02d35e5da9d" start-line="35" end-line="60"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <art:mapping id="map-py-commit-tree">
+    <art:spec-ref node="py-commit-tree" revision="draft-1" node-hash="sha256:77bef7bc422664782a658a78ec97eb5b246832fb78aa6305516632117eec799d"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/repo/objects.rs">
+      <art:range hash="sha256:20aeb4a51a858373d225bdb07e65a13810c6f7c24b01bfcacf73f6dfa7ebc92b" start-line="38" end-line="39"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <art:mapping id="map-py-commit-parents">
+    <art:spec-ref node="py-commit-parents" revision="draft-1" node-hash="sha256:a4e9c655d28736096ee402a97f611a547762ba4ab8a865fcef00f423dc4aa6fa"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/repo/objects.rs">
+      <art:range hash="sha256:e208d46b151206d8ef718a9efc8296650c7b8f208c121aae39944e348f0e56e2" start-line="40" end-line="41"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <art:mapping id="map-py-commit-author">
+    <art:spec-ref node="py-commit-author" revision="draft-1" node-hash="sha256:fb54e5940ba7af6a829074c24f4140d087375c40251bb00d1877ce64c709c000"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/repo/objects.rs">
+      <art:range hash="sha256:d13463c6734ce94f84c2ddc7a827a03cb2c95e3bea7d565528a9f0ee3ce57a23" start-line="42" end-line="43"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <art:mapping id="map-py-commit-timestamp">
+    <art:spec-ref node="py-commit-timestamp" revision="draft-1" node-hash="sha256:dd2e2acb597cfd781b07d4a58be9db245d6c76ab33f439cf88c653dec0d18954"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/repo/objects.rs">
+      <art:range hash="sha256:f9e229cd1528efc2c5014f0ca45291c6fd4ca231af96b3403489cf0424ca2cae" start-line="44" end-line="45"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <art:mapping id="map-py-commit-message">
+    <art:spec-ref node="py-commit-message" revision="draft-1" node-hash="sha256:e6f5f8e0542b2ab2fb637ccecd61e2c1c09a9205dfbc02cfabc77025ef12933b"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/repo/objects.rs">
+      <art:range hash="sha256:2e84c3551c14da92a2f69b2f4451890e8924eeac76abc5df53b4f16802d35198" start-line="46" end-line="47"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <art:mapping id="map-py-file-change">
+    <art:spec-ref node="py-file-change" revision="draft-1" node-hash="sha256:2311e1a73e748bb6d3e6f6560638ddb3b53bbb15ae196ed92b03540bc965b045"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/repo/objects.rs">
+      <art:range hash="sha256:8e12b0d4e5af6baf534068dd6ab56bb8ccdf02884eb0e8bbb4a72cd45cf8161f" start-line="71" end-line="111"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <art:mapping id="map-py-fc-kind">
+    <art:spec-ref node="py-fc-kind" revision="draft-1" node-hash="sha256:058a7bed0b56aa7e132c81b8680d4a61551833caebc5083ad1bca74fe8fceff3"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/repo/objects.rs">
+      <art:range hash="sha256:d9f06ddff155dd9f48aeba3717e592ef176b029f129163cd8320286bb17a2619" start-line="74" end-line="75"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <art:mapping id="map-py-fc-path">
+    <art:spec-ref node="py-fc-path" revision="draft-1" node-hash="sha256:fc33e6dd5c4775653f8141c8c83559bfa62de8ed4ded948844ef69905df05a4b"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/repo/objects.rs">
+      <art:range hash="sha256:5d9bfa462ac79cb6844c6155ea9ff5d51da330610320bbef35f4c1270b9a6977" start-line="76" end-line="77"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <art:mapping id="map-py-fc-old-hash">
+    <art:spec-ref node="py-fc-old-hash" revision="draft-1" node-hash="sha256:3fbc0f145931f2529dc52d9f308bb8678ea02fb0cb5dcf69bed0b64fa209e2d3"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/repo/objects.rs">
+      <art:range hash="sha256:ffc613a5c1c4dfb8059c28ca10f5dd92ec2bac99a005813d03b0ddf746afaf17" start-line="78" end-line="79"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <art:mapping id="map-py-fc-new-hash">
+    <art:spec-ref node="py-fc-new-hash" revision="draft-1" node-hash="sha256:4c53fcd4698ac2e20cfd5f96a6569f24454fedb08748382230d57005d265b858"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/repo/objects.rs">
+      <art:range hash="sha256:931329b8cc10dce6c0c7a372cbb598646b63c61d0bf0d0bb7f1b5d936c8c369b" start-line="80" end-line="81"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <!-- ── ContentHash ── -->
+
   <art:mapping id="map-py-content-hash">
-    <art:spec-ref node="python-module-structure"
-              revision="draft-1"
-              node-hash="sha256:b27ad6aee64ad263b3e1519020182f73fd2a2121076fb35649978d90d3e9b82b"/>
-    <art:artifact repo="clayers"
-              repo-revision="69ddfa1"
+    <art:spec-ref node="py-content-hash" revision="draft-1" node-hash="sha256:46e4ddad80a7f4ba61bf53fe6361c702431101a5da8c7e77c49cc7cf90dd6911"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/xml/hash.rs">
-      <art:range hash="sha256:94f96c0ac5829f3a2fe553466374e283d5bcbc0568b5a4924f518395115431ea"
-                 start-line="1" end-line="78"/>
+      <art:range hash="sha256:1635e4ae48d59b4c3840dfa86137640f1871ebd85e85201838e8e7ce2440d2e9" start-line="3" end-line="78"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
-    <art:note>ContentHash pyclass wrapping clayers_xml::ContentHash with
-    from_bytes, from_canonical, from_hex, hex, prefixed, __eq__, __hash__.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-py-ch-hex">
+    <art:spec-ref node="py-ch-hex" revision="draft-1" node-hash="sha256:688d7ba0e0721cbff402e0c4053126135cf847251af8d79dd4b48076ae233340"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/xml/hash.rs">
+      <art:range hash="sha256:a83431bbb93818ac7366d15dac3919e7fd744f9da818a182596e1d1c666da768" start-line="50" end-line="53"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <art:mapping id="map-py-ch-prefixed">
+    <art:spec-ref node="py-ch-prefixed" revision="draft-1" node-hash="sha256:e17b514c11de6030a5a6c22e04fc686f99f127cfcaa768a146d62edc70d13496"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/xml/hash.rs">
+      <art:range hash="sha256:9e28b94cb0c2f2311dd73cefc2d925fa206663a803b6369612caac04a1e9f05c" start-line="55" end-line="58"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <art:mapping id="map-py-ch-from-canonical">
+    <art:spec-ref node="py-ch-from-canonical" revision="draft-1" node-hash="sha256:da23b59f801f10e60aeebd020e47542d01784f6c9323be7f019f5e51410e6802"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/xml/hash.rs">
+      <art:range hash="sha256:42e3da122fd6758e2d3415266c6b0bccea24dd6483e3bcf3371277b1f1f3ba8f" start-line="35" end-line="40"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <art:mapping id="map-py-ch-from-hex">
+    <art:spec-ref node="py-ch-from-hex" revision="draft-1" node-hash="sha256:3ef3603a89c4a3b0bd0ebc8879c20548409645fb18c59ad5f70f364fcc7649dd"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/xml/hash.rs">
+      <art:range hash="sha256:8d7c19cc08a88b6c3d797769366f70cf0ec12c151a32b3baeb613b2df710de92" start-line="42" end-line="48"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <art:mapping id="map-py-ch-from-bytes">
+    <art:spec-ref node="py-ch-from-bytes" revision="draft-1" node-hash="sha256:a9926c2aee992262a480cc9222e77ba284fb1c2c218101d283b1a6ec1751e8a5"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/xml/hash.rs">
+      <art:range hash="sha256:565b15a1326fef274112a49db3f95362dab2b7494a823145d37b77316fca1d04" start-line="21" end-line="33"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <!-- ── QueryResult ── -->
+
+  <art:mapping id="map-py-query-result">
+    <art:spec-ref node="py-query-result" revision="draft-1" node-hash="sha256:4bbc4955ad35f3bbd922a473d3ad1cf39c9d79753a956b24a76db012a0b3ea8c"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/query.rs">
+      <art:range hash="sha256:954397f8f81f0660cd37595455b6252194a60334b748bdfd096903a5f998c5fa" start-line="3" end-line="26"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <art:mapping id="map-py-qr-kind">
+    <art:spec-ref node="py-qr-kind" revision="draft-1" node-hash="sha256:ab66b8602eba67524ab75041e27430f279423bfb7747b767b74f36c698c04c34"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/query.rs">
+      <art:range hash="sha256:d9f06ddff155dd9f48aeba3717e592ef176b029f129163cd8320286bb17a2619" start-line="6" end-line="7"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <art:mapping id="map-py-qr-count">
+    <art:spec-ref node="py-qr-count" revision="draft-1" node-hash="sha256:f3ac03120e7ce7b920305c9f3d06278ae19a9f371f53c68af4bbe4c7c360dc24"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/query.rs">
+      <art:range hash="sha256:cb5b9adcd5535d18240e1056ddc0c0eb18d6195ddcc5af3fb071f8fa722150a9" start-line="8" end-line="9"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <art:mapping id="map-py-qr-values">
+    <art:spec-ref node="py-qr-values" revision="draft-1" node-hash="sha256:0618bdabd64f3127c1394f03187538901de13c776e7b4766b09808ec4039497e"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/query.rs">
+      <art:range hash="sha256:9537b4c0ddf9acfdd894c54852f77ab299bca33cbcee748071ae4ce6fef264b7" start-line="10" end-line="11"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <!-- ── Error hierarchy exceptions ── -->
+
+  <art:mapping id="map-py-clayers-error">
+    <art:spec-ref node="py-clayers-error" revision="draft-1" node-hash="sha256:97a2e91bcba0fcf16e0de41518c0fec97a0a341cfaa378ef0a4c51ee189e53f9"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/errors.rs">
+      <art:range hash="sha256:bbb891530f41820baeac098b7d2a470ba5a438e1970136e3d4b458841790bcb7" start-line="4" end-line="4"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <art:mapping id="map-py-xml-error">
+    <art:spec-ref node="py-xml-error" revision="draft-1" node-hash="sha256:7a99a3d56c7bf30b941197da9dc0fe7e1cc0f70a1301e9ce539eeb47902ce802"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/errors.rs">
+      <art:range hash="sha256:1c2546c47c68ed8bb00f4fe267ede7d500f05ee8d97d300465b80be7c3b0769c" start-line="5" end-line="5"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <art:mapping id="map-py-spec-error">
+    <art:spec-ref node="py-spec-error" revision="draft-1" node-hash="sha256:8dd03e72961e760998cf7829c04a9ea184e818611015a1db0b0be2a8daa53c3b"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/errors.rs">
+      <art:range hash="sha256:f22981978f34f79ab2daa1d89353785b88f141de90148f8978a7cc8728ba9d7a" start-line="6" end-line="6"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+
+  <art:mapping id="map-py-repo-error">
+    <art:spec-ref node="py-repo-error" revision="draft-1" node-hash="sha256:83e663f746a745ba95a64467e9ec982257e2da22cf88f68723c55f18d7dec314"/>
+    <art:artifact repo="clayers" repo-revision="e3ff14a"
+              path="crates/clayers-py/src/errors.rs">
+      <art:range hash="sha256:03972640baef9476a4ee4d9ca58af089d051c116aa416912bcde96bd3c632bc0" start-line="7" end-line="7"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
   </art:mapping>
 
   <!-- RepoInner enum dispatch -->
   <art:mapping id="map-py-repo-inner">
     <art:spec-ref node="term-repo-inner"
               revision="draft-1"
-              node-hash="sha256:3606578b91e906962f39b788593f1647f6abcf9dbec84cfd8b6b747ff7c0d234"/>
+              node-hash="sha256:f094f389611a05248a8cf575fdf45df761256062ea62ee8dde9f36cdf84e309f"/>
     <art:artifact repo="clayers"
               repo-revision="69ddfa1"
               path="crates/clayers-py/src/repo/inner.rs">
@@ -801,85 +1127,17 @@ print(count_terms(repo))</pr:codeblock>
     global tokio runtime via OnceLock, and SharedRepo type alias.</art:note>
   </art:mapping>
 
-  <!-- Sync Repo class -->
-  <art:mapping id="map-py-repo-sync">
-    <art:spec-ref node="python-repo-api"
-              revision="draft-1"
-              node-hash="sha256:faa2a77d587dd3267a0b227ce0e963268f1ca678e36b5699ebce6396e920ef1b"/>
-    <art:artifact repo="clayers"
-              repo-revision="69ddfa1"
-              path="crates/clayers-py/src/repo/repo_sync.rs">
-      <art:range hash="sha256:ffb5c32a7e2c5e4635f31f8e6e619dc1c77ed140ff9da3f3fcbbadcbdbe5b84c"
-                 start-line="1" end-line="250"/>
-    </art:artifact>
-    <art:coverage>full</art:coverage>
-    <art:note>Sync Repo pyclass using py.detach() + get_runtime().block_on()
-    for all async repo methods. Store type detection via Bound::cast.</art:note>
-  </art:mapping>
+  <!-- ── Self-referential documentation mappings ── -->
 
-  <!-- Async Repo class -->
-  <art:mapping id="map-py-repo-async">
-    <art:spec-ref node="python-repo-api"
-              revision="draft-1"
-              node-hash="sha256:faa2a77d587dd3267a0b227ce0e963268f1ca678e36b5699ebce6396e920ef1b"/>
-    <art:artifact repo="clayers"
-              repo-revision="69ddfa1"
-              path="crates/clayers-py/src/repo/repo_async.rs">
-      <art:range hash="sha256:c770f57da55cfd27edc63d1dddbd034e29205263ac635930f1802388072b2335"
-                 start-line="1" end-line="230"/>
-    </art:artifact>
-    <art:coverage>full</art:coverage>
-    <art:note>Async Repo pyclass (exposed as "Repo" in clayers.repo.aio)
-    using pyo3_async_runtimes::tokio::future_into_py for all methods.</art:note>
-  </art:mapping>
+  <art:exempt node="python-error-hierarchy">Documentation section containing
+  py:exception elements. Individual exceptions are artifact-mapped.</art:exempt>
 
-  <!-- Store wrappers -->
-  <art:mapping id="map-py-stores">
-    <art:spec-ref node="python-repo-api"
-              revision="draft-1"
-              node-hash="sha256:faa2a77d587dd3267a0b227ce0e963268f1ca678e36b5699ebce6396e920ef1b"/>
-    <art:artifact repo="clayers"
-              repo-revision="69ddfa1"
-              path="crates/clayers-py/src/repo/store.rs">
-      <art:range hash="sha256:1367ccc130c7d4e4984b2906e9cc19e5104349437de94e544c19816d0b00db7a"
-                 start-line="1" end-line="65"/>
-    </art:artifact>
-    <art:coverage>full</art:coverage>
-    <art:note>MemoryStore and SqliteStore pyclasses that create RepoInner
-    instances on demand.</art:note>
-  </art:mapping>
+  <art:exempt node="python-queryable">Documentation section describing the
+  Queryable protocol. The QueryResult py:class is artifact-mapped.</art:exempt>
 
-  <!-- Object model types -->
-  <art:mapping id="map-py-objects">
-    <art:spec-ref node="python-repo-api"
-              revision="draft-1"
-              node-hash="sha256:faa2a77d587dd3267a0b227ce0e963268f1ca678e36b5699ebce6396e920ef1b"/>
-    <art:artifact repo="clayers"
-              repo-revision="69ddfa1"
-              path="crates/clayers-py/src/repo/objects.rs">
-      <art:range hash="sha256:5ca4a5530e1e91841cfd3c13a4037b3838a3ca99d4530b1d100a8a899553ca93"
-                 start-line="1" end-line="111"/>
-    </art:artifact>
-    <art:coverage>full</art:coverage>
-    <art:note>Author, CommitObject, TreeEntry, FileChange pyclasses with
-    From conversions from Rust types.</art:note>
-  </art:mapping>
-
-  <!-- Python package re-exports -->
-  <art:mapping id="map-py-package-init">
-    <art:spec-ref node="python-module-structure"
-              revision="draft-1"
-              node-hash="sha256:b27ad6aee64ad263b3e1519020182f73fd2a2121076fb35649978d90d3e9b82b"/>
-    <art:artifact repo="clayers"
-              repo-revision="69ddfa1"
-              path="crates/clayers-py/python/clayers/__init__.py">
-      <art:range hash="sha256:211ff1f8ef42e306a50821901c6df8f67c6a37f6ec749df805f1d3080359c70b"
-                 start-line="1" end-line="25"/>
-    </art:artifact>
-    <art:coverage>full</art:coverage>
-    <art:note>Top-level __init__.py re-exporting KnowledgeModel, ContentHash,
-    Repo, MemoryStore, Author, exceptions, and Queryable.</art:note>
-  </art:mapping>
+  <art:exempt node="term-queryable-protocol">Vocabulary term defining the
+  Queryable protocol concept. The implementing code is mapped via py:class
+  and py:method nodes.</art:exempt>
 
   <!-- ═══════════════ LLM Descriptions ═══════════════ -->
 
@@ -902,34 +1160,32 @@ print(count_terms(repo))</pr:codeblock>
   </llm:node>
 
   <llm:node ref="python-knowledge-model-api">
-    KnowledgeModel wraps all clayers-spec operations: validate(),
-    check_drift(), coverage(code_path=None), connectivity(),
-    fix_node_hashes(), fix_artifact_hashes(), query(xpath, mode).
-    Properties: name, files, combined_xml, schema_dir. Returns typed
-    result objects (ValidationResult, DriftReport, etc.).
+    Describes the KnowledgeModel class using structured py: elements.
+    py:class with py:property (name, files, combined_xml, schema_dir)
+    and py:method (validate, check_drift, coverage, connectivity, query,
+    fix_node_hashes, fix_artifact_hashes). Each method has typed params
+    and return types. Prose examples show CI gates, queries, coverage
+    thresholds, and connectivity exploration.
   </llm:node>
 
   <llm:node ref="python-repo-api">
-    Sync and async Repo classes wrapping clayers-repo. Both hold
-    Arc&lt;RepoInner&gt; (enum dispatch over store types). Sync uses
-    py.detach() + block_on(). Async uses future_into_py(). Methods:
-    import_xml, export_xml, build_tree, commit, create_branch,
-    delete_branch, list_branches, create_tag, list_tags, log,
-    diff_trees, query.
+    Describes the Repo API using structured py: elements. py:class for
+    Repo (12 methods: import/export, trees, commits, branches, tags,
+    log, diff, query) plus supporting py:class elements for Author,
+    CommitObject, FileChange, ContentHash. Sync and async share the
+    same signatures; switching is import-path only.
   </llm:node>
 
   <llm:node ref="python-error-hierarchy">
-    Exception hierarchy: ClayersError (base, extends Exception) with
-    XmlError, SpecError, RepoError subclasses mapping to the three
-    Rust crate error types. Helper functions (spec_err, repo_err)
-    convert errors without orphan-rule issues.
+    Describes the exception hierarchy using py:exception elements.
+    ClayersError (base, extends Exception) with XmlError, SpecError,
+    RepoError subclasses. Each maps to a Rust crate error type.
   </llm:node>
 
   <llm:node ref="python-queryable">
-    Queryable is a runtime-checkable typing.Protocol with
-    query(xpath, mode="xml") -&gt; QueryResult. Both KnowledgeModel
-    and Repo implement it. QueryResult has kind ("count"/"text"/"xml"),
-    count (int or None), values (list or None).
+    Describes the Queryable protocol and QueryResult using py: elements.
+    py:class QueryResult with properties kind, count, values. The
+    Queryable typing.Protocol unifies KnowledgeModel and Repo query APIs.
   </llm:node>
 
   <llm:node ref="term-python-binding">

@@ -12,6 +12,7 @@ pub const SOURCE: &str = "urn:clayers:source";
 pub const PLAN: &str = "urn:clayers:plan";
 pub const ARTIFACT: &str = "urn:clayers:artifact";
 pub const LLM: &str = "urn:clayers:llm";
+pub const PYTHON: &str = "urn:clayers:python";
 pub const COMBINED: &str = "urn:clayers:combined";
 
 // External standard namespaces (non-layer, used for XMI/UML model integration)
@@ -20,7 +21,7 @@ pub const UML: &str = "http://www.omg.org/spec/UML/20131001";
 pub const XML: &str = "http://www.w3.org/XML/1998/namespace";
 pub const XSI: &str = "http://www.w3.org/2001/XMLSchema-instance";
 
-/// All 12 layer URN constants (excluding combined).
+/// All 13 layer URN constants (excluding combined).
 pub const ALL_LAYERS: &[&str] = &[
     SPEC,
     INDEX,
@@ -34,9 +35,10 @@ pub const ALL_LAYERS: &[&str] = &[
     PLAN,
     ARTIFACT,
     LLM,
+    PYTHON,
 ];
 
-/// Prefix-to-URI mapping for all namespaces (17 total: 12 layers + combined + 4 external).
+/// Prefix-to-URI mapping for all namespaces (18 total: 13 layers + combined + 4 external).
 pub const PREFIX_MAP: &[(&str, &str)] = &[
     ("spec", SPEC),
     ("idx", INDEX),
@@ -50,6 +52,7 @@ pub const PREFIX_MAP: &[(&str, &str)] = &[
     ("pln", PLAN),
     ("art", ARTIFACT),
     ("llm", LLM),
+    ("py", PYTHON),
     ("cmb", COMBINED),
     ("xmi", XMI),
     ("uml", UML),
@@ -94,7 +97,7 @@ mod tests {
             assert!(map_uris.contains(urn), "prefix map missing {urn}");
         }
         assert!(map_uris.contains(COMBINED));
-        assert_eq!(PREFIX_MAP.len(), 17);
+        assert_eq!(PREFIX_MAP.len(), 18);
     }
 
     #[test]
