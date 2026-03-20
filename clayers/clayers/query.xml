@@ -96,7 +96,7 @@
   <art:mapping id="map-xpath-query-tooling">
     <art:spec-ref node="xpath-query-tooling"
               revision="draft-1"
-              node-hash="sha256:52b2bd5a1539200002f4d8c4b8cc2e1879f653b32f6ac692b31837a13e1b0cdf"/>
+              node-hash="sha256:5fab35d8d1987ae4bd15a0ad3061039ae18093d024ffeffd0aac514babbe17bc"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/query.rs">
@@ -111,7 +111,7 @@
   <art:mapping id="map-term-xpath-query">
     <art:spec-ref node="term-xpath-query"
               revision="draft-1"
-              node-hash="sha256:ce6af2d9ac11fafc3b78ed2d05c002b3ce3f4958f8fdefcd55e8f5bcc78648c4"/>
+              node-hash="sha256:b8d3e83abeedf5695a3b15044ccfa238c9b0c9f7541ff63b191d87b46f6bf21b"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/query.rs">

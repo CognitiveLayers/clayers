@@ -230,7 +230,7 @@
   <!-- Artifact mappings -->
 
   <art:mapping id="map-artifact-drift-overview">
-    <art:spec-ref node="artifact-drift" revision="draft-1" node-hash="sha256:ac887dfc117adf6915d00bcb87aeab2871854dfc4e50ec68592892a61fecc034"/>
+    <art:spec-ref node="artifact-drift" revision="draft-1" node-hash="sha256:cb0b74de74ad64b5929d71b390ad744ee1f462762d5c0be2f9f1d5badcfec27b"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/drift.rs">
       <art:range hash="sha256:60670a6a01bb40307bce1ec3894ebac75c0fff71d7b8f4cd2863ce777c1eb059" start-line="49" end-line="88"/>
     </art:artifact>
@@ -239,7 +239,7 @@
   </art:mapping>
 
   <art:mapping id="map-artifact-drift-single">
-    <art:spec-ref node="artifact-drift" revision="draft-1" node-hash="sha256:ac887dfc117adf6915d00bcb87aeab2871854dfc4e50ec68592892a61fecc034"/>
+    <art:spec-ref node="artifact-drift" revision="draft-1" node-hash="sha256:cb0b74de74ad64b5929d71b390ad744ee1f462762d5c0be2f9f1d5badcfec27b"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/drift.rs">
       <art:range hash="sha256:d9244caed515eb94ff4c38025bdb47c3021d675838af46cfd82879e8b98bd446" start-line="90" end-line="164"/>
     </art:artifact>
@@ -250,7 +250,7 @@
   <art:mapping id="map-artifact-hash-structs">
     <art:spec-ref node="artifact-hash-tooling"
               revision="draft-1"
-              node-hash="sha256:2b77d9ecc6f61267f350133743e0c02ce166308549bd274d42225fb9ec983dd4"/>
+              node-hash="sha256:597058960f26c0f7c84ac7d8c047292432d76defa0381dac61b22d1a3fbdd3a7"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/artifact.rs">
@@ -264,7 +264,7 @@
   <art:mapping id="map-artifact-hash-utils">
     <art:spec-ref node="artifact-hash-tooling"
               revision="draft-1"
-              node-hash="sha256:2b77d9ecc6f61267f350133743e0c02ce166308549bd274d42225fb9ec983dd4"/>
+              node-hash="sha256:597058960f26c0f7c84ac7d8c047292432d76defa0381dac61b22d1a3fbdd3a7"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/artifact.rs">
@@ -278,7 +278,7 @@
   <art:mapping id="map-term-c14n">
     <art:spec-ref node="term-c14n"
               revision="draft-1"
-              node-hash="sha256:bb2a9bb440b10bd79ab665b6a058b02b072a081260b8c35462f097a6baf26964"/>
+              node-hash="sha256:8dcd84d05571e4e006805a5207d322bf02419111c7462524a1a90d86c92f2481"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="crates/clayers-xml/src/c14n.rs">
@@ -293,7 +293,7 @@
   <art:mapping id="map-term-node-hash">
     <art:spec-ref node="term-node-hash"
               revision="draft-1"
-              node-hash="sha256:2fce9dfea2c8c93db88696c58099ef408677815e16d32ee5cbe482fe5f7a53d2"/>
+              node-hash="sha256:762f3d15701b155b671a2c1d9d50405184c85f602ab80d1e221b316e3103ba81"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="crates/clayers-xml/src/hash.rs">
@@ -308,7 +308,7 @@
   <art:mapping id="map-term-drift">
     <art:spec-ref node="term-drift"
               revision="draft-1"
-              node-hash="sha256:2be6e7eb1e9755878caf198dcb8a7912d9342c483be3aa09dc5a3938a3525371"/>
+              node-hash="sha256:e428d17bdb0f93d81cecfdcec44a896620ec914e6dd5e5b14d83a4365c35c798"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/drift.rs">
@@ -322,7 +322,7 @@
   </art:mapping>
 
   <art:mapping id="map-artifact-mapping-structs">
-    <art:spec-ref node="term-artifact-mapping" revision="draft-1" node-hash="sha256:eec8d61857f1384cf372c6c5bd28cc3de4a8306d9208e56dcf5e54938ca0a3df"/>
+    <art:spec-ref node="term-artifact-mapping" revision="draft-1" node-hash="sha256:79ed188148e100b14050a191b71070ca08541ce4a2dd428dea72ac41d8169db7"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/artifact.rs">
       <art:range hash="sha256:e57cec46a9ce83d1ed0c709818dc0e6a8bc4eb50c53053ef8d3b37afab6558d5" start-line="8" end-line="79"/>
     </art:artifact>
@@ -331,7 +331,7 @@
   </art:mapping>
 
   <art:mapping id="map-artifact-mapping-names">
-    <art:spec-ref node="term-artifact-mapping" revision="draft-1" node-hash="sha256:eec8d61857f1384cf372c6c5bd28cc3de4a8306d9208e56dcf5e54938ca0a3df"/>
+    <art:spec-ref node="term-artifact-mapping" revision="draft-1" node-hash="sha256:79ed188148e100b14050a191b71070ca08541ce4a2dd428dea72ac41d8169db7"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/artifact.rs">
       <art:range hash="sha256:f6d8ef0c2488784da55ee4da4f04cb2bfa71079f956ddd69e6083c6d28b9e6f0" start-line="82" end-line="118"/>
     </art:artifact>
@@ -340,7 +340,7 @@
   </art:mapping>
 
   <art:mapping id="map-artifact-mapping-parse-impl">
-    <art:spec-ref node="term-artifact-mapping" revision="draft-1" node-hash="sha256:eec8d61857f1384cf372c6c5bd28cc3de4a8306d9208e56dcf5e54938ca0a3df"/>
+    <art:spec-ref node="term-artifact-mapping" revision="draft-1" node-hash="sha256:79ed188148e100b14050a191b71070ca08541ce4a2dd428dea72ac41d8169db7"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/artifact.rs">
       <art:range hash="sha256:c9fee9dbb2d167de9c7f175611c6136e9d3198a8aee62aa3c7fef3952ca05a53" start-line="120" end-line="190"/>
     </art:artifact>
@@ -351,7 +351,7 @@
   <art:mapping id="map-artifact-schema-mapping-type">
     <art:spec-ref node="term-artifact-mapping"
               revision="draft-1"
-              node-hash="sha256:eec8d61857f1384cf372c6c5bd28cc3de4a8306d9208e56dcf5e54938ca0a3df"/>
+              node-hash="sha256:79ed188148e100b14050a191b71070ca08541ce4a2dd428dea72ac41d8169db7"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="schemas/artifact.xsd">
@@ -367,7 +367,7 @@
   <art:mapping id="map-artifact-schema-spec-ref-type">
     <art:spec-ref node="term-node-hash"
               revision="draft-1"
-              node-hash="sha256:2fce9dfea2c8c93db88696c58099ef408677815e16d32ee5cbe482fe5f7a53d2"/>
+              node-hash="sha256:762f3d15701b155b671a2c1d9d50405184c85f602ab80d1e221b316e3103ba81"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="schemas/artifact.xsd">
@@ -383,7 +383,7 @@
   <art:mapping id="map-artifact-schema-ref-and-range">
     <art:spec-ref node="artifact-drift"
               revision="draft-1"
-              node-hash="sha256:ac887dfc117adf6915d00bcb87aeab2871854dfc4e50ec68592892a61fecc034"/>
+              node-hash="sha256:cb0b74de74ad64b5929d71b390ad744ee1f462762d5c0be2f9f1d5badcfec27b"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="schemas/artifact.xsd">
@@ -400,7 +400,7 @@
   <art:mapping id="map-artifact-schema-hash-type">
     <art:spec-ref node="term-node-hash"
               revision="draft-1"
-              node-hash="sha256:2fce9dfea2c8c93db88696c58099ef408677815e16d32ee5cbe482fe5f7a53d2"/>
+              node-hash="sha256:762f3d15701b155b671a2c1d9d50405184c85f602ab80d1e221b316e3103ba81"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="schemas/artifact.xsd">
@@ -415,7 +415,7 @@
   <art:mapping id="map-term-coverage">
     <art:spec-ref node="term-coverage"
               revision="draft-1"
-              node-hash="sha256:692dd6fb58445852b69974a1c29cfae3efa0ff983d02ca4126e172ba62692971"/>
+              node-hash="sha256:b2b80819a3c4203b6115cb9c85e0463961401b7ab6c21ac06cb7ce63399cfa7e"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="schemas/artifact.xsd">
@@ -428,7 +428,7 @@
   </art:mapping>
 
   <art:mapping id="map-drift-types">
-    <art:spec-ref node="drift-detection-tooling" revision="draft-1" node-hash="sha256:c6601cbd1fd0d814eb2bbbf749adf98f415bef2d51fbcb28f428bd732d600162"/>
+    <art:spec-ref node="drift-detection-tooling" revision="draft-1" node-hash="sha256:c1b2f2070e157cc9b8f575e2ac5760b3f4a9a9fe67669231b705f5c94d9cc694"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/drift.rs">
       <art:range hash="sha256:8b9feb7abfe57b9ee9d30057c1be3ae45f2db665699ea5f643a7be4afbb8367b" start-line="1" end-line="47"/>
     </art:artifact>
@@ -437,7 +437,7 @@
   </art:mapping>
 
   <art:mapping id="map-drift-check-impl">
-    <art:spec-ref node="drift-detection-tooling" revision="draft-1" node-hash="sha256:c6601cbd1fd0d814eb2bbbf749adf98f415bef2d51fbcb28f428bd732d600162"/>
+    <art:spec-ref node="drift-detection-tooling" revision="draft-1" node-hash="sha256:c1b2f2070e157cc9b8f575e2ac5760b3f4a9a9fe67669231b705f5c94d9cc694"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/drift.rs">
       <art:range hash="sha256:60670a6a01bb40307bce1ec3894ebac75c0fff71d7b8f4cd2863ce777c1eb059" start-line="49" end-line="88"/>
     </art:artifact>
@@ -446,7 +446,7 @@
   </art:mapping>
 
   <art:mapping id="map-drift-single-mapping">
-    <art:spec-ref node="drift-detection-tooling" revision="draft-1" node-hash="sha256:c6601cbd1fd0d814eb2bbbf749adf98f415bef2d51fbcb28f428bd732d600162"/>
+    <art:spec-ref node="drift-detection-tooling" revision="draft-1" node-hash="sha256:c1b2f2070e157cc9b8f575e2ac5760b3f4a9a9fe67669231b705f5c94d9cc694"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/drift.rs">
       <art:range hash="sha256:d9244caed515eb94ff4c38025bdb47c3021d675838af46cfd82879e8b98bd446" start-line="90" end-line="164"/>
     </art:artifact>
@@ -455,7 +455,7 @@
   </art:mapping>
 
   <art:mapping id="map-drift-helpers">
-    <art:spec-ref node="drift-detection-tooling" revision="draft-1" node-hash="sha256:c6601cbd1fd0d814eb2bbbf749adf98f415bef2d51fbcb28f428bd732d600162"/>
+    <art:spec-ref node="drift-detection-tooling" revision="draft-1" node-hash="sha256:c1b2f2070e157cc9b8f575e2ac5760b3f4a9a9fe67669231b705f5c94d9cc694"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/drift.rs">
       <art:range hash="sha256:8a40d8865d7b45bdd850ace63b3d7b9bb517e0d7304b6d4fd4d8e48cc0ff26bf" start-line="166" end-line="203"/>
     </art:artifact>
@@ -468,7 +468,7 @@
   <art:mapping id="map-artifact-hash-step-discover">
     <art:spec-ref node="artifact-hash-step-discover"
               revision="draft-1"
-              node-hash="sha256:431959ed5c3d26c41584b3aca1bdf1a6a04fdfc42e7b4fb182f3a8d3fa79156e"/>
+              node-hash="sha256:1619c0b4a38a92eb13cbca2912d7bf1917fa83238e693884e4a77661a10cf0bf"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/artifact.rs">
@@ -483,7 +483,7 @@
   <art:mapping id="map-artifact-hash-step-find-revision">
     <art:spec-ref node="artifact-hash-step-find-revision"
               revision="draft-1"
-              node-hash="sha256:008be777b0ce42613871819dade2c918b2eb7ca4dad704b26635488f53b24c1c"/>
+              node-hash="sha256:40e805c1d501f19f856b8b140503b6616eb068f467af215a9a7577c15fe67b2d"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/artifact.rs">
@@ -496,7 +496,7 @@
   </art:mapping>
 
   <art:mapping id="map-artifact-hash-collect-names">
-    <art:spec-ref node="artifact-hash-step-collect-nodes" revision="draft-1" node-hash="sha256:d12525e2f6420c5a7a5698bc56eaf9071ec1abb0af8b0c71fb90577745b0a1a1"/>
+    <art:spec-ref node="artifact-hash-step-collect-nodes" revision="draft-1" node-hash="sha256:c78c28db140f22975767f50b9c156d50318f8c106d37284d8051801ddf6d2326"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/artifact.rs">
       <art:range hash="sha256:f6d8ef0c2488784da55ee4da4f04cb2bfa71079f956ddd69e6083c6d28b9e6f0" start-line="82" end-line="118"/>
     </art:artifact>
@@ -505,7 +505,7 @@
   </art:mapping>
 
   <art:mapping id="map-artifact-hash-parse-mapping">
-    <art:spec-ref node="artifact-hash-step-collect-nodes" revision="draft-1" node-hash="sha256:d12525e2f6420c5a7a5698bc56eaf9071ec1abb0af8b0c71fb90577745b0a1a1"/>
+    <art:spec-ref node="artifact-hash-step-collect-nodes" revision="draft-1" node-hash="sha256:c78c28db140f22975767f50b9c156d50318f8c106d37284d8051801ddf6d2326"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/artifact.rs">
       <art:range hash="sha256:a241bc4dd3366f1b1b1588ebef8d259e2d82d474b36d7ff80ce506cbb651dadd" start-line="120" end-line="205"/>
     </art:artifact>
@@ -516,7 +516,7 @@
   <art:mapping id="map-artifact-hash-step-check-revision">
     <art:spec-ref node="artifact-hash-step-check-revision"
               revision="draft-1"
-              node-hash="sha256:46eb46568f3a1bd35e11f712bea50829d6053413a77d757610e6b3c4f861fb6c"/>
+              node-hash="sha256:c2cc5ab9ab0843bb9f8f209ff75d6175315a1b6aa9ba31d70d75237be16bccf3"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/drift.rs">
@@ -531,7 +531,7 @@
   <art:mapping id="map-artifact-hash-step-compute-hash">
     <art:spec-ref node="artifact-hash-step-compute-hash"
               revision="draft-1"
-              node-hash="sha256:bfadb3e6b46b049bf5d63c9fdc0ad5ee63f4f97c2bdff7561f960a9ea1e56728"/>
+              node-hash="sha256:84311b0d5a3c3e9b46d2666442939f5abd7cfd9e4b0207552e7b991b26f13fc8"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/artifact.rs">
@@ -546,7 +546,7 @@
   <art:mapping id="map-artifact-hash-step-update">
     <art:spec-ref node="artifact-hash-step-update"
               revision="draft-1"
-              node-hash="sha256:5fe3df325ca45735eb0b8ea0f31fab8785b9e3d71297c90695bcd780285caa1a"/>
+              node-hash="sha256:47f8a85c0cff11b54ec32f4716aa002262d1923ca4b8a05b0f12d28010db3591"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/fix.rs">
@@ -563,7 +563,7 @@
   <art:mapping id="map-fix-node-hash-impl">
     <art:spec-ref node="artifact-hash-tooling"
               revision="draft-1"
-              node-hash="sha256:2b77d9ecc6f61267f350133743e0c02ce166308549bd274d42225fb9ec983dd4"/>
+              node-hash="sha256:597058960f26c0f7c84ac7d8c047292432d76defa0381dac61b22d1a3fbdd3a7"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/fix.rs">
@@ -579,7 +579,7 @@
   <art:mapping id="map-fix-artifact-hash-impl">
     <art:spec-ref node="artifact-hash-tooling"
               revision="draft-1"
-              node-hash="sha256:2b77d9ecc6f61267f350133743e0c02ce166308549bd274d42225fb9ec983dd4"/>
+              node-hash="sha256:597058960f26c0f7c84ac7d8c047292432d76defa0381dac61b22d1a3fbdd3a7"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/fix.rs">
@@ -595,7 +595,7 @@
   <art:mapping id="map-fix-hash-replacement">
     <art:spec-ref node="artifact-hash-tooling"
               revision="draft-1"
-              node-hash="sha256:2b77d9ecc6f61267f350133743e0c02ce166308549bd274d42225fb9ec983dd4"/>
+              node-hash="sha256:597058960f26c0f7c84ac7d8c047292432d76defa0381dac61b22d1a3fbdd3a7"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/fix.rs">
@@ -611,7 +611,7 @@
   <art:mapping id="map-fix-cli-command">
     <art:spec-ref node="artifact-hash-tooling"
               revision="draft-1"
-              node-hash="sha256:2b77d9ecc6f61267f350133743e0c02ce166308549bd274d42225fb9ec983dd4"/>
+              node-hash="sha256:597058960f26c0f7c84ac7d8c047292432d76defa0381dac61b22d1a3fbdd3a7"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="crates/clayers/src/cli.rs">
@@ -626,7 +626,7 @@
   <art:mapping id="map-fix-path-resolution">
     <art:spec-ref node="artifact-drift"
               revision="draft-1"
-              node-hash="sha256:ac887dfc117adf6915d00bcb87aeab2871854dfc4e50ec68592892a61fecc034"/>
+              node-hash="sha256:cb0b74de74ad64b5929d71b390ad744ee1f462762d5c0be2f9f1d5badcfec27b"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/artifact.rs">
@@ -644,7 +644,7 @@
   <art:mapping id="map-drift-detection-step-discover">
     <art:spec-ref node="drift-detection-step-discover"
               revision="draft-1"
-              node-hash="sha256:ba1d545e7421f65cdb6c73f9ed19b8799ebfcbe47835e99bafacd1d777c3fe03"/>
+              node-hash="sha256:d027b32fd809c1e664ae98175b5e72fd70bd100f74e1909db4865793d334d2ba"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/drift.rs">
@@ -658,7 +658,7 @@
   <art:mapping id="map-drift-detection-step-check-spec">
     <art:spec-ref node="drift-detection-step-check-spec"
               revision="draft-1"
-              node-hash="sha256:c00fe6e119669abe9b5037c63b7033b346c66592357ae290d75d1747ca7c3cce"/>
+              node-hash="sha256:c6641cb9d1b973d0a0e2a63db4587ec5230547ec6f00d56b572cdc3768cb9104"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/drift.rs">
@@ -673,7 +673,7 @@
   <art:mapping id="map-drift-detection-step-check-artifact">
     <art:spec-ref node="drift-detection-step-check-artifact"
               revision="draft-1"
-              node-hash="sha256:9efbfead921584ae1c56e358fcb2481cba76de4e937a16af4bc2bdd8e9d0c145"/>
+              node-hash="sha256:03f285ae11f77d7689cc9a0889c432391fd981c9b0b71fe2b35905fe0c13d638"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/drift.rs">
@@ -688,7 +688,7 @@
   <art:mapping id="map-drift-detection-step-git-log">
     <art:spec-ref node="drift-detection-step-git-log"
               revision="draft-1"
-              node-hash="sha256:8d698ab89b81c83bff8c494409922e65ef3c18f6014d09fe5236ac456a2bc80b"/>
+              node-hash="sha256:f96575925570efe08ede56fc40ccbf1aae7a98f19e3118ae4bbf7d1bccfaba40"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/drift.rs">
@@ -703,7 +703,7 @@
   <art:mapping id="map-drift-detection-step-report">
     <art:spec-ref node="drift-detection-step-report"
               revision="draft-1"
-              node-hash="sha256:358a02a9411b4cd422b5a1ba9300167584791437d6fd977844024bbd4483ef4f"/>
+              node-hash="sha256:3a1dbad1fa02ff4967c4bd01d72f1541fa0809dc776e57f96d0df0b22d57cf0e"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="crates/clayers/src/cli.rs">
@@ -925,7 +925,7 @@
   <art:mapping id="map-coverage-exemption-schema">
     <art:spec-ref node="term-coverage-exemption"
               revision="draft-1"
-              node-hash="sha256:733f4f479015f99d8aacda66f7a00390d3c26477382507040d5082b243f0e23b"/>
+              node-hash="sha256:c30322830f0f1ee30fd36ff82d5ae42b3ab436b8a31936cfd1a4145ee324bcb6"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="schemas/artifact.xsd">
@@ -940,7 +940,7 @@
   <art:mapping id="map-coverage-exemption-tooling">
     <art:spec-ref node="term-coverage-exemption"
               revision="draft-1"
-              node-hash="sha256:733f4f479015f99d8aacda66f7a00390d3c26477382507040d5082b243f0e23b"/>
+              node-hash="sha256:c30322830f0f1ee30fd36ff82d5ae42b3ab436b8a31936cfd1a4145ee324bcb6"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/coverage.rs">
@@ -953,7 +953,7 @@
   </art:mapping>
 
   <art:mapping id="map-coverage-analysis-types">
-    <art:spec-ref node="coverage-analysis-tooling" revision="draft-1" node-hash="sha256:5c817544ff82bbf032f9a99b214db47d016a9ffe7b39744daeeee2f0186612b6"/>
+    <art:spec-ref node="coverage-analysis-tooling" revision="draft-1" node-hash="sha256:f600bb6f5a03ba8b4053bd058f12f654d3ae685e14a0fc9d9cedf9075b73f9f4"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/coverage.rs">
       <art:range hash="sha256:2b5aa2933b834571b6414a7123fbf6ee29e0b2d8cae697eaecaea9c14c3ac29e" start-line="1" end-line="100"/>
     </art:artifact>
@@ -962,7 +962,7 @@
   </art:mapping>
 
   <art:mapping id="map-coverage-analysis-main">
-    <art:spec-ref node="coverage-analysis-tooling" revision="draft-1" node-hash="sha256:5c817544ff82bbf032f9a99b214db47d016a9ffe7b39744daeeee2f0186612b6"/>
+    <art:spec-ref node="coverage-analysis-tooling" revision="draft-1" node-hash="sha256:f600bb6f5a03ba8b4053bd058f12f654d3ae685e14a0fc9d9cedf9075b73f9f4"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/coverage.rs">
       <art:range hash="sha256:5142f13359a5291e6ef54654a3f14d43d279c061be1e5fb277e769fc92892767" start-line="102" end-line="155"/>
     </art:artifact>
@@ -973,7 +973,7 @@
   <art:mapping id="map-term-artifact-coverage">
     <art:spec-ref node="term-artifact-coverage"
               revision="draft-1"
-              node-hash="sha256:7a4985dae66bcf84580f2a0f983e955871c14ca3642f375096135b7d72cbdee0"/>
+              node-hash="sha256:71f390cb20232b668e429a5a6bd4c0f6d5fdf3a7e4e38539124e10cfc8810729"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/coverage.rs">
@@ -1082,7 +1082,7 @@
   <art:mapping id="map-coverage-strength-analysis">
     <art:spec-ref node="coverage-strength-analysis"
               revision="draft-1"
-              node-hash="sha256:ee67087b4eafbb1477c2285ff14d9cc4bcf7c8965be91e7a82fb6aac039e6adf"/>
+              node-hash="sha256:13229e3c608488b99514eaa54b89ae991bbee8c2c70af63692c96629ec5f9749"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/coverage.rs">
@@ -1099,7 +1099,7 @@
   <art:mapping id="map-term-coverage-strength">
     <art:spec-ref node="term-coverage-strength"
               revision="draft-1"
-              node-hash="sha256:ba63a2b6682f04fa2aab23e29ac26ea7c6b14dd05c2d0d3b9161e153874a299d"/>
+              node-hash="sha256:33127c558d82f85d46241ef7e1a680471db1565fefe7d952e121c1ec3da32777"/>
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/coverage.rs">
@@ -1131,7 +1131,7 @@
   <!-- Extended code→spec coverage mappings -->
 
   <art:mapping id="map-code-coverage-maps">
-    <art:spec-ref node="coverage-analysis-tooling" revision="draft-1" node-hash="sha256:5c817544ff82bbf032f9a99b214db47d016a9ffe7b39744daeeee2f0186612b6"/>
+    <art:spec-ref node="coverage-analysis-tooling" revision="draft-1" node-hash="sha256:f600bb6f5a03ba8b4053bd058f12f654d3ae685e14a0fc9d9cedf9075b73f9f4"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/coverage.rs">
       <art:range hash="sha256:417e5bdfebe73d899dbb4a0609cd7636599c260dcaea7d8b21f8a12911fd4d1c" start-line="156" end-line="254"/>
     </art:artifact>
@@ -1140,7 +1140,7 @@
   </art:mapping>
 
   <art:mapping id="map-coverage-single-file">
-    <art:spec-ref node="coverage-analysis-tooling" revision="draft-1" node-hash="sha256:5c817544ff82bbf032f9a99b214db47d016a9ffe7b39744daeeee2f0186612b6"/>
+    <art:spec-ref node="coverage-analysis-tooling" revision="draft-1" node-hash="sha256:f600bb6f5a03ba8b4053bd058f12f654d3ae685e14a0fc9d9cedf9075b73f9f4"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/coverage.rs">
       <art:range hash="sha256:553cf605e837d0e8c2a092ff1fc7a793d29b7a85619fbc8f7124f74fc094d473" start-line="257" end-line="310"/>
     </art:artifact>
@@ -1149,7 +1149,7 @@
   </art:mapping>
 
   <art:mapping id="map-coverage-file-iteration">
-    <art:spec-ref node="coverage-analysis-tooling" revision="draft-1" node-hash="sha256:5c817544ff82bbf032f9a99b214db47d016a9ffe7b39744daeeee2f0186612b6"/>
+    <art:spec-ref node="coverage-analysis-tooling" revision="draft-1" node-hash="sha256:f600bb6f5a03ba8b4053bd058f12f654d3ae685e14a0fc9d9cedf9075b73f9f4"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/coverage.rs">
       <art:range hash="sha256:32d4d5616a1794543999ca3c61875cfa3cbb0dc426fd9ea6a27e63d83bfbc9e2" start-line="313" end-line="405"/>
     </art:artifact>
@@ -1161,7 +1161,7 @@
   <art:mapping id="map-coverage-file-structs">
     <art:spec-ref node="term-artifact-coverage"
               revision="draft-1"
-              node-hash="sha256:7a4985dae66bcf84580f2a0f983e955871c14ca3642f375096135b7d72cbdee0"/>
+              node-hash="sha256:71f390cb20232b668e429a5a6bd4c0f6d5fdf3a7e4e38539124e10cfc8810729"/>
     <art:artifact repo="clayers"
               repo-revision="753ad37"
               path="crates/clayers-spec/src/coverage.rs">
@@ -1175,7 +1175,7 @@
   <art:mapping id="map-connectivity-cli-command">
     <art:spec-ref node="connectivity-analysis"
               revision="draft-1"
-              node-hash="sha256:b17ed7dd984f94b427ab03fc8a5c6194a7ad73d48feb20a09607a3966c494c26"/>
+              node-hash="sha256:719793832b4e85c865906d747056fdc93fb485283caeb12244138ba937f08c85"/>
     <art:artifact repo="clayers"
               repo-revision="753ad37"
               path="crates/clayers/src/cli.rs">
@@ -1189,7 +1189,7 @@
   <art:mapping id="map-query-cli-command">
     <art:spec-ref node="xpath-query-tooling"
               revision="draft-1"
-              node-hash="sha256:52b2bd5a1539200002f4d8c4b8cc2e1879f653b32f6ac692b31837a13e1b0cdf"/>
+              node-hash="sha256:5fab35d8d1987ae4bd15a0ad3061039ae18093d024ffeffd0aac514babbe17bc"/>
     <art:artifact repo="clayers"
               repo-revision="753ad37"
               path="crates/clayers/src/cli.rs">
@@ -1203,7 +1203,7 @@
   <art:mapping id="map-artifact-coverage-cli">
     <art:spec-ref node="coverage-analysis-tooling"
               revision="draft-1"
-              node-hash="sha256:5c817544ff82bbf032f9a99b214db47d016a9ffe7b39744daeeee2f0186612b6"/>
+              node-hash="sha256:f600bb6f5a03ba8b4053bd058f12f654d3ae685e14a0fc9d9cedf9075b73f9f4"/>
     <art:artifact repo="clayers"
               repo-revision="753ad37"
               path="crates/clayers/src/cli.rs">
@@ -1217,7 +1217,7 @@
   <art:mapping id="map-cli-structure">
     <art:spec-ref node="artifact-hash-tooling"
               revision="draft-1"
-              node-hash="sha256:2b77d9ecc6f61267f350133743e0c02ce166308549bd274d42225fb9ec983dd4"/>
+              node-hash="sha256:597058960f26c0f7c84ac7d8c047292432d76defa0381dac61b22d1a3fbdd3a7"/>
     <art:artifact repo="clayers"
               repo-revision="753ad37"
               path="crates/clayers/src/cli.rs">
@@ -1231,7 +1231,7 @@
   <art:mapping id="map-drift-cli-command">
     <art:spec-ref node="drift-detection-tooling"
               revision="draft-1"
-              node-hash="sha256:c6601cbd1fd0d814eb2bbbf749adf98f415bef2d51fbcb28f428bd732d600162"/>
+              node-hash="sha256:c1b2f2070e157cc9b8f575e2ac5760b3f4a9a9fe67669231b705f5c94d9cc694"/>
     <art:artifact repo="clayers"
               repo-revision="753ad37"
               path="crates/clayers/src/cli.rs">
@@ -1245,7 +1245,7 @@
   <art:mapping id="map-content-hash-traits">
     <art:spec-ref node="term-node-hash"
               revision="draft-1"
-              node-hash="sha256:2fce9dfea2c8c93db88696c58099ef408677815e16d32ee5cbe482fe5f7a53d2"/>
+              node-hash="sha256:762f3d15701b155b671a2c1d9d50405184c85f602ab80d1e221b316e3103ba81"/>
     <art:artifact repo="clayers"
               repo-revision="753ad37"
               path="crates/clayers-xml/src/hash.rs">
@@ -1259,7 +1259,7 @@
   <art:mapping id="map-c14n-full-impl">
     <art:spec-ref node="term-c14n"
               revision="draft-1"
-              node-hash="sha256:bb2a9bb440b10bd79ab665b6a058b02b072a081260b8c35462f097a6baf26964"/>
+              node-hash="sha256:8dcd84d05571e4e006805a5207d322bf02419111c7462524a1a90d86c92f2481"/>
     <art:artifact repo="clayers"
               repo-revision="753ad37"
               path="crates/clayers-xml/src/c14n.rs">
@@ -1273,7 +1273,7 @@
   <art:mapping id="map-connectivity-structs">
     <art:spec-ref node="connectivity-analysis"
               revision="draft-1"
-              node-hash="sha256:b17ed7dd984f94b427ab03fc8a5c6194a7ad73d48feb20a09607a3966c494c26"/>
+              node-hash="sha256:719793832b4e85c865906d747056fdc93fb485283caeb12244138ba937f08c85"/>
     <art:artifact repo="clayers"
               repo-revision="753ad37"
               path="crates/clayers-spec/src/connectivity.rs">
@@ -1285,7 +1285,7 @@
 
 
   <art:mapping id="map-connectivity-graph-building">
-    <art:spec-ref node="connectivity-analysis" revision="draft-1" node-hash="sha256:b17ed7dd984f94b427ab03fc8a5c6194a7ad73d48feb20a09607a3966c494c26"/>
+    <art:spec-ref node="connectivity-analysis" revision="draft-1" node-hash="sha256:719793832b4e85c865906d747056fdc93fb485283caeb12244138ba937f08c85"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/connectivity.rs">
       <art:range hash="sha256:80d6bff9da4bc541a38612a51824673908aeb91701ae937bd4385b98f8db89dc" start-line="263" end-line="336"/>
     </art:artifact>
@@ -1294,7 +1294,7 @@
   </art:mapping>
 
   <art:mapping id="map-connectivity-isolated-hubs">
-    <art:spec-ref node="connectivity-analysis" revision="draft-1" node-hash="sha256:b17ed7dd984f94b427ab03fc8a5c6194a7ad73d48feb20a09607a3966c494c26"/>
+    <art:spec-ref node="connectivity-analysis" revision="draft-1" node-hash="sha256:719793832b4e85c865906d747056fdc93fb485283caeb12244138ba937f08c85"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/connectivity.rs">
       <art:range hash="sha256:4653d1582db6b20748bbfd3fbada095e6f0276a50ff3b44465d532fa897d7253" start-line="338" end-line="384"/>
     </art:artifact>
@@ -1303,7 +1303,7 @@
   </art:mapping>
 
   <art:mapping id="map-connectivity-bridges">
-    <art:spec-ref node="connectivity-analysis" revision="draft-1" node-hash="sha256:b17ed7dd984f94b427ab03fc8a5c6194a7ad73d48feb20a09607a3966c494c26"/>
+    <art:spec-ref node="connectivity-analysis" revision="draft-1" node-hash="sha256:719793832b4e85c865906d747056fdc93fb485283caeb12244138ba937f08c85"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/connectivity.rs">
       <art:range hash="sha256:69fe4f51c628d40d686adabda62da5d5f7872dd65b648174594104fd978e0148" start-line="386" end-line="466"/>
     </art:artifact>
@@ -1312,7 +1312,7 @@
   </art:mapping>
 
   <art:mapping id="map-connectivity-cycle-detection">
-    <art:spec-ref node="connectivity-analysis" revision="draft-1" node-hash="sha256:b17ed7dd984f94b427ab03fc8a5c6194a7ad73d48feb20a09607a3966c494c26"/>
+    <art:spec-ref node="connectivity-analysis" revision="draft-1" node-hash="sha256:719793832b4e85c865906d747056fdc93fb485283caeb12244138ba937f08c85"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/connectivity.rs">
       <art:range hash="sha256:b521e664da1bb4e20ddd20420964b8bd7e9b9b638f3d1d4dda3f75ba94b62e62" start-line="468" end-line="536"/>
     </art:artifact>
@@ -1322,7 +1322,7 @@
 
 
   <art:mapping id="map-discovery-index-files">
-    <art:spec-ref node="term-index" revision="draft-1" node-hash="sha256:d85b0e7440b7c8210fba2fff1f137df89f00201b247baf421715a3b05b7251d0"/>
+    <art:spec-ref node="term-index" revision="draft-1" node-hash="sha256:f245e6a30026640b766950b3fb5f91d0c596410c9dad38ea62f607541ffd4661"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/discovery.rs">
       <art:range hash="sha256:516f390f35b7fb92f80746079596e34ae62c68cd215dadf95b142ca6cb05482e" start-line="1" end-line="91"/>
     </art:artifact>
@@ -1331,7 +1331,7 @@
   </art:mapping>
 
   <art:mapping id="map-discovery-xml-walking">
-    <art:spec-ref node="term-index" revision="draft-1" node-hash="sha256:d85b0e7440b7c8210fba2fff1f137df89f00201b247baf421715a3b05b7251d0"/>
+    <art:spec-ref node="term-index" revision="draft-1" node-hash="sha256:f245e6a30026640b766950b3fb5f91d0c596410c9dad38ea62f607541ffd4661"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/discovery.rs">
       <art:range hash="sha256:93a189c6d1d2b38e4046f6f481989bb6e3c98d27d28182b3220aff17069dfb80" start-line="93" end-line="171"/>
     </art:artifact>
@@ -1343,7 +1343,7 @@
   <art:mapping id="map-fix-types">
     <art:spec-ref node="artifact-hash-tooling"
               revision="draft-1"
-              node-hash="sha256:2b77d9ecc6f61267f350133743e0c02ce166308549bd274d42225fb9ec983dd4"/>
+              node-hash="sha256:597058960f26c0f7c84ac7d8c047292432d76defa0381dac61b22d1a3fbdd3a7"/>
     <art:artifact repo="clayers"
               repo-revision="753ad37"
               path="crates/clayers-spec/src/fix.rs">
@@ -1356,7 +1356,7 @@
   <art:mapping id="map-fix-change-helpers">
     <art:spec-ref node="artifact-hash-tooling"
               revision="draft-1"
-              node-hash="sha256:2b77d9ecc6f61267f350133743e0c02ce166308549bd274d42225fb9ec983dd4"/>
+              node-hash="sha256:597058960f26c0f7c84ac7d8c047292432d76defa0381dac61b22d1a3fbdd3a7"/>
     <art:artifact repo="clayers"
               repo-revision="753ad37"
               path="crates/clayers-spec/src/fix.rs">
@@ -1368,7 +1368,7 @@
 
 
   <art:mapping id="map-xpath-query-types">
-    <art:spec-ref node="xpath-query-tooling" revision="draft-1" node-hash="sha256:52b2bd5a1539200002f4d8c4b8cc2e1879f653b32f6ac692b31837a13e1b0cdf"/>
+    <art:spec-ref node="xpath-query-tooling" revision="draft-1" node-hash="sha256:5fab35d8d1987ae4bd15a0ad3061039ae18093d024ffeffd0aac514babbe17bc"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/query.rs">
       <art:range hash="sha256:2d9d5cf99fc5bb3bc38b9f58cc20237107cc587a424ac0a01aebeadc9b564f83" start-line="1" end-line="79"/>
     </art:artifact>
@@ -1377,7 +1377,7 @@
   </art:mapping>
 
   <art:mapping id="map-xpath-query-evaluation">
-    <art:spec-ref node="xpath-query-tooling" revision="draft-1" node-hash="sha256:52b2bd5a1539200002f4d8c4b8cc2e1879f653b32f6ac692b31837a13e1b0cdf"/>
+    <art:spec-ref node="xpath-query-tooling" revision="draft-1" node-hash="sha256:5fab35d8d1987ae4bd15a0ad3061039ae18093d024ffeffd0aac514babbe17bc"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/query.rs">
       <art:range hash="sha256:833fde6254e9630b3302d2026e388f1b6a99c52564f75d19a29600a7a3a0b9d4" start-line="24" end-line="60"/>
     </art:artifact>
@@ -1386,7 +1386,7 @@
   </art:mapping>
 
   <art:mapping id="map-xpath-query-step-types">
-    <art:spec-ref node="xpath-query-tooling" revision="draft-1" node-hash="sha256:52b2bd5a1539200002f4d8c4b8cc2e1879f653b32f6ac692b31837a13e1b0cdf"/>
+    <art:spec-ref node="xpath-query-tooling" revision="draft-1" node-hash="sha256:5fab35d8d1987ae4bd15a0ad3061039ae18093d024ffeffd0aac514babbe17bc"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/query.rs">
       <art:range hash="sha256:115d4699a5ad0b4a39044b35e64e1f31b68f040aaad9fb5a8e852cba1de967dc" start-line="62" end-line="68"/>
     </art:artifact>
@@ -1395,7 +1395,7 @@
   </art:mapping>
 
   <art:mapping id="map-xpath-query-parse-impl">
-    <art:spec-ref node="xpath-query-tooling" revision="draft-1" node-hash="sha256:52b2bd5a1539200002f4d8c4b8cc2e1879f653b32f6ac692b31837a13e1b0cdf"/>
+    <art:spec-ref node="xpath-query-tooling" revision="draft-1" node-hash="sha256:5fab35d8d1987ae4bd15a0ad3061039ae18093d024ffeffd0aac514babbe17bc"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/query.rs">
       <art:range hash="sha256:608a9175ab1d7f215ad3f9960d53546edb1082d9aef415a13e6a863ba6422fd7" start-line="5" end-line="14"/>
     </art:artifact>
@@ -1404,7 +1404,7 @@
   </art:mapping>
 
   <art:mapping id="map-xpath-query-matching">
-    <art:spec-ref node="xpath-query-tooling" revision="draft-1" node-hash="sha256:52b2bd5a1539200002f4d8c4b8cc2e1879f653b32f6ac692b31837a13e1b0cdf"/>
+    <art:spec-ref node="xpath-query-tooling" revision="draft-1" node-hash="sha256:5fab35d8d1987ae4bd15a0ad3061039ae18093d024ffeffd0aac514babbe17bc"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/query.rs">
       <art:range hash="sha256:7f922ddffc48cde31d3d8233f09dd95eae5b7c142e25f1c949c7a4bce4fa0d6c" start-line="1" end-line="3"/>
     </art:artifact>
@@ -1414,7 +1414,7 @@
 
 
   <art:mapping id="map-assembly-combined">
-    <art:spec-ref node="term-combined-document" revision="draft-1" node-hash="sha256:1a1d592fddd637c0d8e8c946ff8a6d9419d653cd52c5ca07b6a3296b122c2a4f"/>
+    <art:spec-ref node="term-combined-document" revision="draft-1" node-hash="sha256:26d0a1750cf1bf0a41d4975cbd9f0a0e9023af9aceabcf08fa645788375e4b70"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/assembly.rs">
       <art:range hash="sha256:0e111a4c3731d96212515abbdb212fc329d05f89c0ffa557c1763864533520ce" start-line="1" end-line="59"/>
     </art:artifact>
@@ -1423,7 +1423,7 @@
   </art:mapping>
 
   <art:mapping id="map-assembly-xml-helpers">
-    <art:spec-ref node="term-combined-document" revision="draft-1" node-hash="sha256:1a1d592fddd637c0d8e8c946ff8a6d9419d653cd52c5ca07b6a3296b122c2a4f"/>
+    <art:spec-ref node="term-combined-document" revision="draft-1" node-hash="sha256:26d0a1750cf1bf0a41d4975cbd9f0a0e9023af9aceabcf08fa645788375e4b70"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/assembly.rs">
       <art:range hash="sha256:97848e2fce0e8a9ac0f8832cb9ab449fef3cd5571a30f20c7e1843739ffbe717" start-line="61" end-line="120"/>
     </art:artifact>
@@ -1433,7 +1433,7 @@
 
 
   <art:mapping id="map-validate-types">
-    <art:spec-ref node="cross-layer-integrity" revision="draft-1" node-hash="sha256:c4051c6fdd7b2ff1cae94ce7a1b8045e51459aa733d7ae0dd7403248e204dcd1"/>
+    <art:spec-ref node="cross-layer-integrity" revision="draft-1" node-hash="sha256:a2a11bfb0091d3f1fcb8dd87a490137fed26445cf436c466a6e307ba6670e19d"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/validate.rs">
       <art:range hash="sha256:103d6d87edacb10e2e751e93ba60fbfef715492ff37d2b8de0cede06693a4511" start-line="1" end-line="35"/>
     </art:artifact>
@@ -1442,7 +1442,7 @@
   </art:mapping>
 
   <art:mapping id="map-validate-id-uniqueness">
-    <art:spec-ref node="cross-layer-integrity" revision="draft-1" node-hash="sha256:c4051c6fdd7b2ff1cae94ce7a1b8045e51459aa733d7ae0dd7403248e204dcd1"/>
+    <art:spec-ref node="cross-layer-integrity" revision="draft-1" node-hash="sha256:a2a11bfb0091d3f1fcb8dd87a490137fed26445cf436c466a6e307ba6670e19d"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/validate.rs">
       <art:range hash="sha256:8172934a44b6a8b4bc1924a918918e510ea584e58441a07a480c742971722699" start-line="88" end-line="141"/>
     </art:artifact>
@@ -1451,7 +1451,7 @@
   </art:mapping>
 
   <art:mapping id="map-validate-keyrefs">
-    <art:spec-ref node="cross-layer-integrity" revision="draft-1" node-hash="sha256:c4051c6fdd7b2ff1cae94ce7a1b8045e51459aa733d7ae0dd7403248e204dcd1"/>
+    <art:spec-ref node="cross-layer-integrity" revision="draft-1" node-hash="sha256:a2a11bfb0091d3f1fcb8dd87a490137fed26445cf436c466a6e307ba6670e19d"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/validate.rs">
       <art:range hash="sha256:8fce67f04d886c94022ce2364cefc35e3a7b75e0024ddad6de88c5ef7564f464" start-line="143" end-line="199"/>
     </art:artifact>
@@ -1460,7 +1460,7 @@
   </art:mapping>
 
   <art:mapping id="map-validate-relation-refs">
-    <art:spec-ref node="cross-layer-integrity" revision="draft-1" node-hash="sha256:c4051c6fdd7b2ff1cae94ce7a1b8045e51459aa733d7ae0dd7403248e204dcd1"/>
+    <art:spec-ref node="cross-layer-integrity" revision="draft-1" node-hash="sha256:a2a11bfb0091d3f1fcb8dd87a490137fed26445cf436c466a6e307ba6670e19d"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/validate.rs">
       <art:range hash="sha256:a85916abcb035862412e7fe7e8e54b4eceea9fbde562bfb14846bc80c24075e1" start-line="202" end-line="249"/>
     </art:artifact>
@@ -1470,7 +1470,7 @@
 
 
   <art:mapping id="map-schema-acyclic-discovery">
-    <art:spec-ref node="schema-design" revision="draft-1" node-hash="sha256:cc085cd296eac82258752d3b80b4b37202ac0e5014019599b20d5f09e9acc3d7"/>
+    <art:spec-ref node="schema-design" revision="draft-1" node-hash="sha256:cd3bbfaf5e01360009a3364c7db435f8630cd9bf8bee4f92593cbbb46be897ce"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/schema.rs">
       <art:range hash="sha256:b9490bcd7af972a7c38fd3b40fc474dc01c279c8f8f5729bf4671ed9ff6d3c5b" start-line="1" end-line="95"/>
     </art:artifact>
@@ -1479,7 +1479,7 @@
   </art:mapping>
 
   <art:mapping id="map-schema-content-discovery-funcs">
-    <art:spec-ref node="schema-design" revision="draft-1" node-hash="sha256:cc085cd296eac82258752d3b80b4b37202ac0e5014019599b20d5f09e9acc3d7"/>
+    <art:spec-ref node="schema-design" revision="draft-1" node-hash="sha256:cd3bbfaf5e01360009a3364c7db435f8630cd9bf8bee4f92593cbbb46be897ce"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/schema.rs">
       <art:range hash="sha256:1cbcdcd3ce6de44abf871fff464df3fe9f20d03abb5eb53c65dbda2f601983cb" start-line="97" end-line="176"/>
     </art:artifact>
@@ -1488,7 +1488,7 @@
   </art:mapping>
 
   <art:mapping id="map-schema-content-collect">
-    <art:spec-ref node="schema-design" revision="draft-1" node-hash="sha256:cc085cd296eac82258752d3b80b4b37202ac0e5014019599b20d5f09e9acc3d7"/>
+    <art:spec-ref node="schema-design" revision="draft-1" node-hash="sha256:cd3bbfaf5e01360009a3364c7db435f8630cd9bf8bee4f92593cbbb46be897ce"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/schema.rs">
       <art:range hash="sha256:00745af9619d781662368824bf0522635d396422116c06ad45d762de129e3359" start-line="179" end-line="226"/>
     </art:artifact>
@@ -1500,7 +1500,7 @@
   <!-- Test module and gap-fill mappings -->
 
   <art:mapping id="map-fix-tests-structs">
-    <art:spec-ref node="artifact-hash-tooling" revision="draft-1" node-hash="sha256:2b77d9ecc6f61267f350133743e0c02ce166308549bd274d42225fb9ec983dd4"/>
+    <art:spec-ref node="artifact-hash-tooling" revision="draft-1" node-hash="sha256:597058960f26c0f7c84ac7d8c047292432d76defa0381dac61b22d1a3fbdd3a7"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/fix.rs">
       <art:range hash="sha256:beaf86807edd1e6faaff69076d1d2e1d70ba70a37f9604dcbda46952ef5ab0c0" start-line="109" end-line="117"/>
     </art:artifact>
@@ -1509,7 +1509,7 @@
   </art:mapping>
 
   <art:mapping id="map-fix-tests-replace-basic">
-    <art:spec-ref node="artifact-hash-tooling" revision="draft-1" node-hash="sha256:2b77d9ecc6f61267f350133743e0c02ce166308549bd274d42225fb9ec983dd4"/>
+    <art:spec-ref node="artifact-hash-tooling" revision="draft-1" node-hash="sha256:597058960f26c0f7c84ac7d8c047292432d76defa0381dac61b22d1a3fbdd3a7"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/fix.rs">
       <art:range hash="sha256:cf28af527ab877e11f6723691fa16a7a6a4d499a46c5e067fc2171992380546e" start-line="350" end-line="439"/>
     </art:artifact>
@@ -1518,7 +1518,7 @@
   </art:mapping>
 
   <art:mapping id="map-fix-tests-replace-advanced">
-    <art:spec-ref node="artifact-hash-tooling" revision="draft-1" node-hash="sha256:2b77d9ecc6f61267f350133743e0c02ce166308549bd274d42225fb9ec983dd4"/>
+    <art:spec-ref node="artifact-hash-tooling" revision="draft-1" node-hash="sha256:597058960f26c0f7c84ac7d8c047292432d76defa0381dac61b22d1a3fbdd3a7"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/fix.rs">
       <art:range hash="sha256:108e39e7b050a20b515bda8f94bf383f2229f612c5acba6250d7865cf6e22cc4" start-line="422" end-line="510"/>
     </art:artifact>
@@ -1527,7 +1527,7 @@
   </art:mapping>
 
   <art:mapping id="map-fix-tests-synthetic-setup">
-    <art:spec-ref node="artifact-hash-tooling" revision="draft-1" node-hash="sha256:2b77d9ecc6f61267f350133743e0c02ce166308549bd274d42225fb9ec983dd4"/>
+    <art:spec-ref node="artifact-hash-tooling" revision="draft-1" node-hash="sha256:597058960f26c0f7c84ac7d8c047292432d76defa0381dac61b22d1a3fbdd3a7"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/fix.rs">
       <art:range hash="sha256:5271bc83e16f429940603cd60cf3055dfa886e09bcd1f6708bf9263ebb62fa0c" start-line="512" end-line="570"/>
     </art:artifact>
@@ -1536,7 +1536,7 @@
   </art:mapping>
 
   <art:mapping id="map-fix-tests-synthetic-cases">
-    <art:spec-ref node="artifact-hash-tooling" revision="draft-1" node-hash="sha256:2b77d9ecc6f61267f350133743e0c02ce166308549bd274d42225fb9ec983dd4"/>
+    <art:spec-ref node="artifact-hash-tooling" revision="draft-1" node-hash="sha256:597058960f26c0f7c84ac7d8c047292432d76defa0381dac61b22d1a3fbdd3a7"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/fix.rs">
       <art:range hash="sha256:acdf09c6a227b85b2b08fdcdea9e27aea0973cd1bcdcba68684a709dc898b64f" start-line="572" end-line="652"/>
     </art:artifact>
@@ -1545,7 +1545,7 @@
   </art:mapping>
 
   <art:mapping id="map-fix-tests-node-basic">
-    <art:spec-ref node="artifact-hash-tooling" revision="draft-1" node-hash="sha256:2b77d9ecc6f61267f350133743e0c02ce166308549bd274d42225fb9ec983dd4"/>
+    <art:spec-ref node="artifact-hash-tooling" revision="draft-1" node-hash="sha256:597058960f26c0f7c84ac7d8c047292432d76defa0381dac61b22d1a3fbdd3a7"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/fix.rs">
       <art:range hash="sha256:56b1cb966d9001cf32ffa11d2acfa58d0ae83fd2580c7b5564b18f97b2ad21cd" start-line="655" end-line="730"/>
     </art:artifact>
@@ -1554,7 +1554,7 @@
   </art:mapping>
 
   <art:mapping id="map-fix-tests-node-shipped">
-    <art:spec-ref node="artifact-hash-tooling" revision="draft-1" node-hash="sha256:2b77d9ecc6f61267f350133743e0c02ce166308549bd274d42225fb9ec983dd4"/>
+    <art:spec-ref node="artifact-hash-tooling" revision="draft-1" node-hash="sha256:597058960f26c0f7c84ac7d8c047292432d76defa0381dac61b22d1a3fbdd3a7"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/fix.rs">
       <art:range hash="sha256:4282a7a6ea8e9082d3a9132b335ba10476cd3fb169449cbd06e72ef5f5e530da" start-line="732" end-line="811"/>
     </art:artifact>
@@ -1563,7 +1563,7 @@
   </art:mapping>
 
   <art:mapping id="map-hash-tests">
-    <art:spec-ref node="term-node-hash" revision="draft-1" node-hash="sha256:2fce9dfea2c8c93db88696c58099ef408677815e16d32ee5cbe482fe5f7a53d2"/>
+    <art:spec-ref node="term-node-hash" revision="draft-1" node-hash="sha256:762f3d15701b155b671a2c1d9d50405184c85f602ab80d1e221b316e3103ba81"/>
     <art:artifact repo="clayers" repo-revision="753ad37" path="crates/clayers-xml/src/hash.rs">
         <art:range hash="sha256:9f3255996ac411962119d6cb9acad34922bafae9ef0ed33aa434b0e6e80fe48a" start-line="92" end-line="146"/>
       </art:artifact>
@@ -1572,7 +1572,7 @@
   </art:mapping>
 
   <art:mapping id="map-assembly-tests">
-    <art:spec-ref node="term-combined-document" revision="draft-1" node-hash="sha256:1a1d592fddd637c0d8e8c946ff8a6d9419d653cd52c5ca07b6a3296b122c2a4f"/>
+    <art:spec-ref node="term-combined-document" revision="draft-1" node-hash="sha256:26d0a1750cf1bf0a41d4975cbd9f0a0e9023af9aceabcf08fa645788375e4b70"/>
     <art:artifact repo="clayers" repo-revision="753ad37" path="crates/clayers-spec/src/assembly.rs">
         <art:range hash="sha256:eed914d4013f7b1f353a96dbd601bbe798d510ba74926d85f3c530e08f1b63af" start-line="67" end-line="135"/>
       </art:artifact>
@@ -1581,16 +1581,16 @@
   </art:mapping>
 
   <art:mapping id="map-namespace-tests">
-    <art:spec-ref node="term-namespace" revision="draft-1" node-hash="sha256:f25e4ab2c6bbabf06032924fd295f0ec76d713b7a545511f1be5fb7dac1fdffe"/>
+    <art:spec-ref node="term-namespace" revision="draft-1" node-hash="sha256:c24a90723da4d166ea7aaf24b47f3b8eee0f4f49709133b43fa6cb772c680bfa"/>
     <art:artifact repo="clayers" repo-revision="753ad37" path="crates/clayers-spec/src/namespace.rs">
-        <art:range hash="sha256:f7e649ffc38c32aadf399a75aea71f0b3a03183e570d8b5682ce00d623d43aa5" start-line="65" end-line="103"/>
+        <art:range hash="sha256:33f24cbe9c11f8cd37b807258cf4270d7d811af8cfc0fcd3ac488e3fd2e45265" start-line="65" end-line="103"/>
       </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>Test module for namespace.rs: all 12 URN constants are distinct, prefix map covers all layers.</art:note>
   </art:mapping>
 
   <art:mapping id="map-c14n-tests">
-    <art:spec-ref node="term-c14n" revision="draft-1" node-hash="sha256:bb2a9bb440b10bd79ab665b6a058b02b072a081260b8c35462f097a6baf26964"/>
+    <art:spec-ref node="term-c14n" revision="draft-1" node-hash="sha256:8dcd84d05571e4e006805a5207d322bf02419111c7462524a1a90d86c92f2481"/>
     <art:artifact repo="clayers" repo-revision="753ad37" path="crates/clayers-xml/src/c14n.rs">
         <art:range hash="sha256:0ef80d3c2a106acc85c2fe444a8f64084c3716a024f621c16205a2e643f8eae5" start-line="74" end-line="121"/>
       </art:artifact>
@@ -1599,7 +1599,7 @@
   </art:mapping>
 
   <art:mapping id="map-coverage-tests-unit">
-    <art:spec-ref node="coverage-analysis-tooling" revision="draft-1" node-hash="sha256:5c817544ff82bbf032f9a99b214db47d016a9ffe7b39744daeeee2f0186612b6"/>
+    <art:spec-ref node="coverage-analysis-tooling" revision="draft-1" node-hash="sha256:f600bb6f5a03ba8b4053bd058f12f654d3ae685e14a0fc9d9cedf9075b73f9f4"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/coverage.rs">
       <art:range hash="sha256:3c1ee59e6226b3a112df9baa2a6d610d27262e604ec6e3b08310c493d31146be" start-line="407" end-line="501"/>
     </art:artifact>
@@ -1608,7 +1608,7 @@
   </art:mapping>
 
   <art:mapping id="map-coverage-tests-maps">
-    <art:spec-ref node="coverage-analysis-tooling" revision="draft-1" node-hash="sha256:5c817544ff82bbf032f9a99b214db47d016a9ffe7b39744daeeee2f0186612b6"/>
+    <art:spec-ref node="coverage-analysis-tooling" revision="draft-1" node-hash="sha256:f600bb6f5a03ba8b4053bd058f12f654d3ae685e14a0fc9d9cedf9075b73f9f4"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/coverage.rs">
       <art:range hash="sha256:e458849e719617f5c4d5c4766a727f70fbd0a9ff4df74ae31bc39cee57521333" start-line="550" end-line="643"/>
     </art:artifact>
@@ -1617,7 +1617,7 @@
   </art:mapping>
 
   <art:mapping id="map-coverage-tests-shipped">
-    <art:spec-ref node="coverage-analysis-tooling" revision="draft-1" node-hash="sha256:5c817544ff82bbf032f9a99b214db47d016a9ffe7b39744daeeee2f0186612b6"/>
+    <art:spec-ref node="coverage-analysis-tooling" revision="draft-1" node-hash="sha256:f600bb6f5a03ba8b4053bd058f12f654d3ae685e14a0fc9d9cedf9075b73f9f4"/>
     <art:artifact repo="clayers" repo-revision="HEAD" path="crates/clayers-spec/src/coverage.rs">
       <art:range hash="sha256:bd0e8a0d6f6e8ec2b5a9db4f4155a42e2f5966efaf3d978cf5a47eec85d46616" start-line="645" end-line="661"/>
     </art:artifact>
@@ -1626,7 +1626,7 @@
   </art:mapping>
 
   <art:mapping id="map-query-tests">
-    <art:spec-ref node="xpath-query-tooling" revision="draft-1" node-hash="sha256:52b2bd5a1539200002f4d8c4b8cc2e1879f653b32f6ac692b31837a13e1b0cdf"/>
+    <art:spec-ref node="xpath-query-tooling" revision="draft-1" node-hash="sha256:5fab35d8d1987ae4bd15a0ad3061039ae18093d024ffeffd0aac514babbe17bc"/>
     <art:artifact repo="clayers" repo-revision="753ad37" path="crates/clayers-spec/src/query.rs">
         <art:range hash="sha256:ea31e71c3a351deba02d4a08f4958983a15ced15db5254d39ec85c46129b8450" start-line="70" end-line="244"/>
       </art:artifact>
@@ -1635,7 +1635,7 @@
   </art:mapping>
 
   <art:mapping id="map-artifact-tests">
-    <art:spec-ref node="term-artifact-mapping" revision="draft-1" node-hash="sha256:eec8d61857f1384cf372c6c5bd28cc3de4a8306d9208e56dcf5e54938ca0a3df"/>
+    <art:spec-ref node="term-artifact-mapping" revision="draft-1" node-hash="sha256:79ed188148e100b14050a191b71070ca08541ce4a2dd428dea72ac41d8169db7"/>
     <art:artifact repo="clayers" repo-revision="753ad37" path="crates/clayers-spec/src/artifact.rs">
         <art:range hash="sha256:b5dfdf00fc8c1baa92dc40da36d0a71990ec8f9bc3fed10bb7c405611b3e7241" start-line="292" end-line="351"/>
       </art:artifact>
@@ -1644,7 +1644,7 @@
   </art:mapping>
 
   <art:mapping id="map-validate-tests">
-    <art:spec-ref node="cross-layer-integrity" revision="draft-1" node-hash="sha256:c4051c6fdd7b2ff1cae94ce7a1b8045e51459aa733d7ae0dd7403248e204dcd1"/>
+    <art:spec-ref node="cross-layer-integrity" revision="draft-1" node-hash="sha256:a2a11bfb0091d3f1fcb8dd87a490137fed26445cf436c466a6e307ba6670e19d"/>
     <art:artifact repo="clayers" repo-revision="753ad37" path="crates/clayers-spec/src/validate.rs">
         <art:range hash="sha256:264bf7fce0c3de3442c4427149a0b190f0a3881d7e8b50ed3045669641d6b62a" start-line="251" end-line="310"/>
       </art:artifact>
@@ -1653,7 +1653,7 @@
   </art:mapping>
 
   <art:mapping id="map-drift-tests">
-    <art:spec-ref node="drift-detection-tooling" revision="draft-1" node-hash="sha256:c6601cbd1fd0d814eb2bbbf749adf98f415bef2d51fbcb28f428bd732d600162"/>
+    <art:spec-ref node="drift-detection-tooling" revision="draft-1" node-hash="sha256:c1b2f2070e157cc9b8f575e2ac5760b3f4a9a9fe67669231b705f5c94d9cc694"/>
     <art:artifact repo="clayers" repo-revision="753ad37" path="crates/clayers-spec/src/drift.rs">
         <art:range hash="sha256:bf9b48de12eec07101e98e1a42e6f1c259a6f0a50e29dc55d0c24e28bc9b199b" start-line="205" end-line="238"/>
       </art:artifact>
@@ -1662,7 +1662,7 @@
   </art:mapping>
 
   <art:mapping id="map-schema-tests">
-    <art:spec-ref node="schema-design" revision="draft-1" node-hash="sha256:cc085cd296eac82258752d3b80b4b37202ac0e5014019599b20d5f09e9acc3d7"/>
+    <art:spec-ref node="schema-design" revision="draft-1" node-hash="sha256:cd3bbfaf5e01360009a3364c7db435f8630cd9bf8bee4f92593cbbb46be897ce"/>
     <art:artifact repo="clayers" repo-revision="753ad37" path="crates/clayers-spec/src/schema.rs">
         <art:range hash="sha256:10f3fab0b532d5490127dee92f7fcb8094f02763104166c3948206724cad0d5d" start-line="228" end-line="258"/>
       </art:artifact>
@@ -1671,7 +1671,7 @@
   </art:mapping>
 
   <art:mapping id="map-connectivity-tests">
-    <art:spec-ref node="connectivity-analysis" revision="draft-1" node-hash="sha256:b17ed7dd984f94b427ab03fc8a5c6194a7ad73d48feb20a09607a3966c494c26"/>
+    <art:spec-ref node="connectivity-analysis" revision="draft-1" node-hash="sha256:719793832b4e85c865906d747056fdc93fb485283caeb12244138ba937f08c85"/>
     <art:artifact repo="clayers" repo-revision="753ad37" path="crates/clayers-spec/src/connectivity.rs">
         <art:range hash="sha256:00a33abebe08005e6adf9a41ce44cec9466c0bf5a65736ed4d4ad6bed79f248d" start-line="549" end-line="648"/>
       </art:artifact>
@@ -1680,7 +1680,7 @@
   </art:mapping>
 
   <art:mapping id="map-discovery-tests">
-    <art:spec-ref node="term-index" revision="draft-1" node-hash="sha256:d85b0e7440b7c8210fba2fff1f137df89f00201b247baf421715a3b05b7251d0"/>
+    <art:spec-ref node="term-index" revision="draft-1" node-hash="sha256:f245e6a30026640b766950b3fb5f91d0c596410c9dad38ea62f607541ffd4661"/>
     <art:artifact repo="clayers" repo-revision="753ad37" path="crates/clayers-spec/src/discovery.rs">
         <art:range hash="sha256:7e863d1fb38d0cbeabe35d5ec184da73faf669bbac4faf1116271607c774254b" start-line="173" end-line="213"/>
       </art:artifact>
@@ -1689,7 +1689,7 @@
   </art:mapping>
 
   <art:mapping id="map-error-module">
-    <art:spec-ref node="term-c14n" revision="draft-1" node-hash="sha256:bb2a9bb440b10bd79ab665b6a058b02b072a081260b8c35462f097a6baf26964"/>
+    <art:spec-ref node="term-c14n" revision="draft-1" node-hash="sha256:8dcd84d05571e4e006805a5207d322bf02419111c7462524a1a90d86c92f2481"/>
     <art:artifact repo="clayers" repo-revision="753ad37" path="crates/clayers-xml/src/error.rs">
         <art:range hash="sha256:9ef6de93b70593eb7687d5ec63953e34321f98d497d5b1e408731438f7ed7cdb" start-line="1" end-line="54"/>
       </art:artifact>
@@ -1700,7 +1700,7 @@
   <!-- Final coverage gap fills -->
 
   <art:mapping id="map-artifact-schema-coverage-rest">
-    <art:spec-ref node="term-coverage" revision="draft-1" node-hash="sha256:692dd6fb58445852b69974a1c29cfae3efa0ff983d02ca4126e172ba62692971"/>
+    <art:spec-ref node="term-coverage" revision="draft-1" node-hash="sha256:b2b80819a3c4203b6115cb9c85e0463961401b7ab6c21ac06cb7ce63399cfa7e"/>
     <art:artifact repo="clayers" repo-revision="753ad37" path="schemas/artifact.xsd">
         <art:range hash="sha256:db71a911f53818d38a25054aecad68ed337216dd4b3ea83bf7d8342390164946" start-line="206" end-line="225"/>
       </art:artifact>
@@ -1709,7 +1709,7 @@
   </art:mapping>
 
   <art:mapping id="map-artifact-cli-dispatch">
-    <art:spec-ref node="artifact-hash-tooling" revision="draft-1" node-hash="sha256:2b77d9ecc6f61267f350133743e0c02ce166308549bd274d42225fb9ec983dd4"/>
+    <art:spec-ref node="artifact-hash-tooling" revision="draft-1" node-hash="sha256:597058960f26c0f7c84ac7d8c047292432d76defa0381dac61b22d1a3fbdd3a7"/>
     <art:artifact repo="clayers" repo-revision="753ad37" path="crates/clayers/src/cli.rs">
         <art:range hash="sha256:1857a8665f9ec6658759eed7b4e60c8501c0c879375f72f54dc678c54aa0bd7b" start-line="398" end-line="414"/>
       </art:artifact>
@@ -1718,7 +1718,7 @@
   </art:mapping>
 
   <art:mapping id="map-connectivity-schema-dir">
-    <art:spec-ref node="connectivity-analysis" revision="draft-1" node-hash="sha256:b17ed7dd984f94b427ab03fc8a5c6194a7ad73d48feb20a09607a3966c494c26"/>
+    <art:spec-ref node="connectivity-analysis" revision="draft-1" node-hash="sha256:719793832b4e85c865906d747056fdc93fb485283caeb12244138ba937f08c85"/>
     <art:artifact repo="clayers" repo-revision="753ad37" path="crates/clayers-spec/src/connectivity.rs">
         <art:range hash="sha256:3788fca5cb2b871905a6bdf8861e61e8afac5168fe0a18bfc50cadc239073b61" start-line="145" end-line="158"/>
       </art:artifact>
@@ -1727,7 +1727,7 @@
   </art:mapping>
 
   <art:mapping id="map-artifact-schema-gaps">
-    <art:spec-ref node="artifact-drift" revision="draft-1" node-hash="sha256:ac887dfc117adf6915d00bcb87aeab2871854dfc4e50ec68592892a61fecc034"/>
+    <art:spec-ref node="artifact-drift" revision="draft-1" node-hash="sha256:cb0b74de74ad64b5929d71b390ad744ee1f462762d5c0be2f9f1d5badcfec27b"/>
     <art:artifact repo="clayers" repo-revision="753ad37" path="schemas/artifact.xsd">
         <art:range hash="sha256:63e1a5b83598f826f1a20d212d35a183d145eb3c459ccfbe316c68f8706d6314" start-line="80" end-line="80"/>
         <art:range hash="sha256:6eee7b61823fb8ba479f9c2dbe25333c17ba87b2cd777284d2561c60c19f8e97" start-line="178" end-line="178"/>
