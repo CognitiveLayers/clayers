@@ -192,13 +192,21 @@ struct FreshnessItem {
 
 /// Determine whether to generate skills.
 ///
-/// Returns `true` if the `--skills` flag was passed, or if stdin is a TTY
-/// and the user accepts the interactive prompt (default: yes).
+/// Returns `true` if the `--skills` flag was passed, or if running in a
+/// genuinely interactive terminal and the user accepts the prompt.
+/// Guards against false TTY detection (e.g., `cargo test` inherits the
+/// parent terminal) by also checking for the test harness.
 fn should_generate_skills(explicit_flag: bool) -> bool {
     if explicit_flag {
         return true;
     }
-    if !std::io::stdin().is_terminal() {
+    if !std::io::stdin().is_terminal() || !std::io::stderr().is_terminal() {
+        return false;
+    }
+    // cargo test sets CARGO_MANIFEST_DIR; the clayers binary does not.
+    // This prevents the prompt from firing inside the test harness where
+    // stdin is technically a TTY but nobody is there to answer.
+    if std::env::var_os("CARGO_MANIFEST_DIR").is_some() {
         return false;
     }
     eprint!("Generate Claude Code skills? [Y/n] ");
@@ -499,7 +507,7 @@ pub fn adopt(target: &Path, update: bool, skills: bool) -> Result<()> {
     // 3. Amend agent file
     amend_agent_file(&target)?;
 
-    // 4. Optionally generate onboarding skill
+    // 4. Optionally generate skills
     if should_generate_skills(skills) {
         plant_skills(&target)?;
     }
