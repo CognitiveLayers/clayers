@@ -9,38 +9,50 @@ use crate::embedded;
 const MARKER_OPEN: &str = "<!-- clayers:adopt -->";
 const MARKER_CLOSE: &str = "<!-- /clayers:adopt -->";
 
-const WORKFLOW_CONTENT: &str = r"## Clayers Development Workflow
+/// Extract text content from an `llm:node` in the embedded guidance XML.
+///
+/// Finds the `llm:node` element whose `ref` attribute matches `ref_id`,
+/// then extracts the CDATA content. Returns `None` if not found.
+fn extract_from_guidance(ref_id: &str) -> Option<&'static str> {
+    let xml = embedded::AGENT_GUIDANCE_XML;
+    // Search for <llm:node ref="..."> specifically to avoid matching
+    // org:reference or other elements that share the same ref value.
+    let marker = format!("<llm:node ref=\"{ref_id}\"");
+    let marker_pos = xml.find(&marker)?;
+    let after_marker = &xml[marker_pos..];
+    let cdata_tag = "<![CDATA[";
+    let cdata_pos = after_marker.find(cdata_tag)?;
+    let content_start = marker_pos + cdata_pos + cdata_tag.len();
+    let content = &xml[content_start..];
+    let end_pos = content.find("]]>")?;
+    let raw = &xml[content_start..content_start + end_pos];
+    // Strip exactly one leading newline if present (allows readable XML formatting)
+    Some(raw.strip_prefix('\n').unwrap_or(raw))
+}
 
-This project uses [clayers](https://github.com/inferaldata/clayers) for
-structured, layered specifications with machine-verifiable traceability.
-
-**Spec first, code second.** Before implementing, update the spec to
-describe what you are building.
-
-1. **Update the spec** in `clayers/` — add prose, terminology, relations
-2. **Validate**: `clayers validate clayers/PROJECT/`
-3. **Implement** the code
-4. **Map spec to code** with artifact mappings, fix hashes
-5. **Iterate on quality**:
-   - Coverage: `clayers artifact --coverage clayers/PROJECT/`
-   - Connectivity: `clayers connectivity clayers/PROJECT/`
-   - Drift: `clayers artifact --drift clayers/PROJECT/`
-6. **Commit** spec + code together
-
-**Plans go in the spec.** Use the `pln:plan` layer to write implementation
-plans and save them in the knowledge base (`clayers/`). Plans are versioned,
-queryable, and linked to the concepts they implement.
-
-**Looking for what to do?** Drive spec coverage to 100%. Map every spec
-node to implementing code. This naturally leads to implementing everything
-that was specified.
-
-Install: `cargo install clayers`
-
-See [clayers documentation](https://github.com/inferaldata/clayers) for
-the full layer reference (prose, terminology, organization, relation,
-decision, source, plan, artifact, llm, revision).
-";
+/// Discover all skill ref IDs from the embedded guidance XML.
+///
+/// Finds `<llm:node ref="skill-...">` elements and returns the ref values.
+/// Uses the `<llm:node` tag prefix to distinguish from other elements
+/// (pr:section, org:reference) that also have skill- refs.
+fn discover_skills() -> Vec<&'static str> {
+    let xml = embedded::AGENT_GUIDANCE_XML;
+    let mut skills = Vec::new();
+    let needle = "<llm:node ref=\"skill-";
+    let ref_offset = "<llm:node ref=\"".len();
+    let mut search_from = 0;
+    while let Some(pos) = xml[search_from..].find(needle) {
+        let abs_start = search_from + pos + ref_offset;
+        if let Some(end) = xml[abs_start..].find('"') {
+            let ref_id = &xml[abs_start..abs_start + end];
+            skills.push(ref_id);
+            search_from = abs_start + end;
+        } else {
+            break;
+        }
+    }
+    skills
+}
 
 /// Check if a project has already been adopted.
 ///
@@ -141,7 +153,12 @@ fn check_freshness(target: &Path) -> Vec<FreshnessItem> {
     });
     let status = match agent_content {
         None => FreshnessStatus::Missing,
-        Some(existing) if existing.trim() == WORKFLOW_CONTENT.trim() => FreshnessStatus::Current,
+        Some(existing)
+            if extract_from_guidance("agent-workflow-instructions")
+                .is_some_and(|wf| existing.trim() == wf.trim()) =>
+        {
+            FreshnessStatus::Current
+        }
         Some(_) => FreshnessStatus::Outdated,
     };
     let agent_name = if target.join("CLAUDE.md").is_file() {
@@ -219,13 +236,17 @@ fn should_generate_skills(explicit_flag: bool) -> bool {
     trimmed.is_empty() || trimmed == "y" || trimmed == "yes"
 }
 
-/// Plant all embedded skills into `<target>/.claude/skills/`.
+/// Plant all skills extracted from the embedded guidance XML.
 fn plant_skills(target: &Path) -> Result<()> {
     let project_name = target
         .file_name()
         .map_or_else(|| "project".into(), |n| n.to_string_lossy().into_owned());
 
-    for &(name, template) in embedded::SKILLS {
+    for ref_id in discover_skills() {
+        let name = ref_id.strip_prefix("skill-").unwrap_or(ref_id);
+        let template = extract_from_guidance(ref_id)
+            .with_context(|| format!("skill content not found for {ref_id}"))?;
+
         let skill_dir = target.join(".claude").join("skills").join(name);
         fs::create_dir_all(&skill_dir)
             .with_context(|| format!("failed to create .claude/skills/{name}/"))?;
@@ -238,15 +259,17 @@ fn plant_skills(target: &Path) -> Result<()> {
     Ok(())
 }
 
-/// Check freshness of all embedded skill files.
+/// Check freshness of all skill files extracted from guidance XML.
 fn check_skills_freshness(target: &Path) -> Vec<FreshnessItem> {
     let project_name = target
         .file_name()
         .map_or_else(|| "project".into(), |n| n.to_string_lossy().into_owned());
 
-    embedded::SKILLS
-        .iter()
-        .map(|&(name, template)| {
+    discover_skills()
+        .into_iter()
+        .map(|ref_id| {
+            let name = ref_id.strip_prefix("skill-").unwrap_or(ref_id);
+            let template = extract_from_guidance(ref_id).unwrap_or("");
             let expected = template.replace("{{PROJECT_NAME}}", &project_name);
             let skill_path = target
                 .join(".claude")
@@ -353,7 +376,9 @@ fn create_starter_spec(target: &Path) -> Result<()> {
 
 /// Amend an agent file with the clayers workflow section.
 fn amend_agent_file(target: &Path) -> Result<()> {
-    let marked_content = format!("{MARKER_OPEN}\n{WORKFLOW_CONTENT}{MARKER_CLOSE}\n");
+    let workflow = extract_from_guidance("agent-workflow-instructions")
+        .expect("agent-workflow-instructions not found in embedded guidance XML");
+    let marked_content = format!("{MARKER_OPEN}\n{workflow}{MARKER_CLOSE}\n");
 
     if let Some((path, content)) = find_agent_file(target) {
         if content.contains(MARKER_OPEN) && content.contains(MARKER_CLOSE) {
@@ -653,8 +678,9 @@ mod tests {
         let dir = temp_dir();
         adopt(dir.path(), false, true).unwrap();
 
-        // Check all embedded skills are created
-        for &(name, _) in embedded::SKILLS {
+        // Check all discovered skills are created
+        for ref_id in discover_skills() {
+            let name = ref_id.strip_prefix("skill-").unwrap_or(ref_id);
             let skill = dir
                 .path()
                 .join(".claude")
@@ -723,7 +749,8 @@ mod tests {
 
         // Second: add skills to already-adopted project
         adopt(dir.path(), false, true).unwrap();
-        for &(name, _) in embedded::SKILLS {
+        for ref_id in discover_skills() {
+            let name = ref_id.strip_prefix("skill-").unwrap_or(ref_id);
             let skill = dir
                 .path()
                 .join(".claude")

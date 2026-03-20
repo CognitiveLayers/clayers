@@ -233,7 +233,7 @@
     <art:artifact repo="clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
-      <art:range hash="sha256:490daad46e6152fc5cf4ad862821767329df500794b33a4e61d3657105948a88"/>
+      <art:range hash="sha256:ff78cc60ebff3a974169524f52f57e96b357b4eadf6a2a6df60d29a06719cf00"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>The adopt module implements all adopt command logic:
@@ -248,7 +248,7 @@
     <art:artifact repo="clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/embedded.rs">
-      <art:range hash="sha256:2e1c0dbe34d876d5f7b097325caffc1a7b202b34985a8a6cfdb217ea95a67df5"/>
+      <art:range hash="sha256:5f685fdb4e5b6021174968bcedb1b61739e1b085616d62fb27b211737b067bb1"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>The embedded module provides build-time schema embedding
@@ -262,7 +262,7 @@
     <art:artifact repo="clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
-      <art:range hash="sha256:490daad46e6152fc5cf4ad862821767329df500794b33a4e61d3657105948a88"/>
+      <art:range hash="sha256:ff78cc60ebff3a974169524f52f57e96b357b4eadf6a2a6df60d29a06719cf00"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>The adopt module is the canonical implementation of the
@@ -276,7 +276,7 @@
     <art:artifact repo="clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
-      <art:range hash="sha256:7cd4a8519047f8bedf195b0d49dfa842451891775467c2461dccd62bee887d5f"
+      <art:range hash="sha256:c267f0579f4204e62a3fcf9d1d102986f039bd01ec12cc77df6e62ae08c237da"
                  start-line="12" end-line="43"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -291,7 +291,7 @@
     <art:artifact repo="clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
-      <art:range hash="sha256:7cd4a8519047f8bedf195b0d49dfa842451891775467c2461dccd62bee887d5f"
+      <art:range hash="sha256:c267f0579f4204e62a3fcf9d1d102986f039bd01ec12cc77df6e62ae08c237da"
                  start-line="12" end-line="43"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -306,7 +306,7 @@
     <art:artifact repo="clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
-      <art:range hash="sha256:de5c29a46483ec1ade175c5c9ebda8783a2066f12a528e950d0d4c131ce06004"
+      <art:range hash="sha256:27a896b6084d86b0e9bbcdb630ba4cd7fff8ba81f6fc4aa86b20902089eec6d9"
                  start-line="45" end-line="75"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -321,7 +321,7 @@
     <art:artifact repo="clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
-      <art:range hash="sha256:d5307519cbd5fdf2558a32701c7d326336d63c490cd7336985b77c54bb38dfa6"
+      <art:range hash="sha256:bc26a40b249694a36451d5395ef0750e718f9a1ecb8f7509b251d0b9f2e3d42c"
                  start-line="77" end-line="158"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -336,7 +336,7 @@
     <art:artifact repo="clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
-      <art:range hash="sha256:f98ed2be1945ebda43b9adf2df89516e65cf0b134e74680083cdd167a635b775"
+      <art:range hash="sha256:2998a703f70469131d6d4ff333d92016d1bc94ed2e78e0510bfbd0bdb8b6268f"
                  start-line="160" end-line="191"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -351,7 +351,7 @@
     <art:artifact repo="clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
-      <art:range hash="sha256:754f5395d5ab31142bfa3ea0d5b645eb1a6fc97a8abafe1c98e04cc4b4932a5e"
+      <art:range hash="sha256:04e11bbc51c4adb7a9e680a87d6f7f36e459324d424a86d8d38f8f9f5be21f43"
                  start-line="193" end-line="262"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -367,7 +367,7 @@
     <art:artifact repo="clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
-      <art:range hash="sha256:d13be038a8f3a9fd88c45223b66763349639877cfd90d6c31dbfd8a8a1716aad"
+      <art:range hash="sha256:f8559fc284f6c737121f9355e7bbca50573a9935b53d33563fe352aebb157301"
                  start-line="264" end-line="280"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -382,7 +382,7 @@
     <art:artifact repo="clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
-      <art:range hash="sha256:8ab5ab6479eb109b28290751f6bb2a4e33b742001f6aa749034995c8acea3bc1"
+      <art:range hash="sha256:4af8173796a3e59e7e901a87f834b3fd9961216dbaf8f2ea19898178d04cbb21"
                  start-line="282" end-line="339"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -397,7 +397,7 @@
     <art:artifact repo="clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
-      <art:range hash="sha256:f00aeb19e8bdbbb2758ab31a747b9a31551ea8b1c8d7c6cee8d05115749f3bbd"
+      <art:range hash="sha256:1877a4a83bea6d9714e3bcc06b6456b952943484934e5d5fb3840762b2fa70e4"
                  start-line="341" end-line="422"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -413,7 +413,7 @@
     <art:artifact repo="clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
-      <art:range hash="sha256:91991a251d294998f214cede9fe14236e32b3d795b1b7faf6f95aeee71ba1a28"
+      <art:range hash="sha256:847d09cf0626d4eeb1b3056410c54b410765d70271f380d203ac0cdd48ce0cba"
                  start-line="424" end-line="508"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -428,7 +428,7 @@
     <art:artifact repo="clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
-      <art:range hash="sha256:953f6a232e13874d89812c9d179288aa3d5299d2035c1cde15e49a7f603224e4"
+      <art:range hash="sha256:cddf5e2b113eaf42ab76db8ff76010856f2ac23496e2fd339bf44cdca78bbbf0"
                  start-line="510" end-line="583"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -443,7 +443,7 @@
     <art:artifact repo="clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
-      <art:range hash="sha256:2c2f6791a29dac26ca7cf4c710ffcc5433bc4fda76a2f628907894eb56253d1f"
+      <art:range hash="sha256:57e24bc7da4781eb852fe60d2db39e1e776896e713b84ddd22d3c6d978242920"
                  start-line="585" end-line="747"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -478,41 +478,26 @@
     <art:artifact repo="clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/embedded.rs">
-      <art:range hash="sha256:2e1c0dbe34d876d5f7b097325caffc1a7b202b34985a8a6cfdb217ea95a67df5"/>
+      <art:range hash="sha256:5f685fdb4e5b6021174968bcedb1b61739e1b085616d62fb27b211737b067bb1"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
-    <art:note>SKILLS array: embedded skill templates (onboard and
-    review-artifacts) via include_str! for zero-dependency generation.</art:note>
+    <art:note>AGENT_GUIDANCE_XML constant: embeds agent-guidance.xml
+    via include_str! for runtime extraction of workflow and skills.</art:note>
   </art:mapping>
 
-  <art:mapping id="map-adopt-skill-template-onboard">
+  <art:mapping id="map-adopt-guidance-content">
     <art:spec-ref node="adopt-skills"
               revision="draft-1"
               node-hash="sha256:d2c3ffbf286e6b143c0eeb3021ed66d3e930d680d9c45bbe08e1c6ce1b5bcdef"/>
     <art:artifact repo="clayers"
               repo-revision="HEAD"
-              path="skills/clayers-onboard.md">
-      <art:range hash="sha256:f1fe1668ba3acc9a99512c5411a63dfaedee07f77647a10ce105ccdf699bc331"/>
+              path="clayers/clayers/agent-guidance.xml">
+      <art:range hash="sha256:6b8e8455d91aa1cd488f92af3dd66746d119d543ebd077d44082d50c9a367e2c"/>
     </art:artifact>
-    <art:coverage>partial</art:coverage>
-    <art:note>The onboarding skill template: comprehensive phase-by-phase
-    guide for AI agents to create complete clayers specifications,
-    with XML patterns and clayers command references.</art:note>
-  </art:mapping>
-
-  <art:mapping id="map-adopt-skill-template-review">
-    <art:spec-ref node="adopt-skills"
-              revision="draft-1"
-              node-hash="sha256:d2c3ffbf286e6b143c0eeb3021ed66d3e930d680d9c45bbe08e1c6ce1b5bcdef"/>
-    <art:artifact repo="clayers"
-              repo-revision="HEAD"
-              path="skills/clayers-review-artifacts.md">
-      <art:range hash="sha256:f710a5a3cba398da7550c912bdc153243bc13fb4c2a0eaefac0ebfad4e10557a"/>
-    </art:artifact>
-    <art:coverage>partial</art:coverage>
-    <art:note>The review-artifacts skill template: end-to-end coverage
-    review, drift resolution with root-cause analysis, exemption
-    auditing, mapping quality improvement, and revision comparison.</art:note>
+    <art:coverage>full</art:coverage>
+    <art:note>The agent guidance spec file: contains workflow instructions,
+    onboarding skill, and review-artifacts skill as llm:node elements
+    with CDATA sections. Content is extracted at adopt time.</art:note>
   </art:mapping>
 
   <!-- Machine descriptions -->

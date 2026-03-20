@@ -22,6 +22,7 @@
   <file href="sources.xml"/>
   <file href="plans.xml"/>
   <file href="adopt.xml"/>
+  <file href="agent-guidance.xml"/>
   <file href="architecture-model.xml"/>
   <file href="revision.xml" layer="urn:clayers:revision"/>
 </spec:clayers>
