@@ -73,4 +73,8 @@ pub const DOC_XSLT_FILES: &[(&str, &str)] = &[
         "revision.xslt",
         include_str!("../../../schemas/doc/revision.xslt"),
     ),
+    (
+        "graph.xslt",
+        include_str!("../../../schemas/doc/graph.xslt"),
+    ),
 ];

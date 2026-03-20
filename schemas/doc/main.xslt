@@ -31,6 +31,7 @@
   <xsl:import href="llm.xslt"/>
   <xsl:import href="python.xslt"/>
   <xsl:import href="revision.xslt"/>
+  <xsl:import href="graph.xslt"/>
 
   <xsl:output method="html" encoding="UTF-8" indent="yes"/>
 
@@ -54,7 +55,7 @@
         </title>
         <link rel="preconnect" href="https://fonts.googleapis.com"/>
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="crossorigin"/>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400;1,6..72,500&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Newsreader:opsz,wght@6..72,400;6..72,600&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
         <link id="hljs-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github.min.css"/>
         <link id="hljs-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github-dark.min.css" disabled="disabled"/>
         <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.1.0/dist/fuse.min.js"></script>
@@ -307,10 +308,142 @@ nav#sidebar .nav-group > ul { padding-left: 0.75rem; }
 }
 
 /* Main content */
-main {
+.content-wrapper {
   margin-left: var(--sidebar-width);
+  display: flex;
+  min-height: 100vh;
+}
+.content-wrapper:has(#graph-panel:not(.collapsed)) {
+  height: 100vh;
+  overflow: hidden;
+}
+.content-wrapper:has(#graph-panel.collapsed) {
+  display: block;
+}
+main {
   max-width: 48rem;
   padding: 2rem 2.5rem 4rem;
+}
+.content-wrapper:has(#graph-panel:not(.collapsed)) main {
+  flex: 1;
+  min-width: 0;
+  max-width: none;
+  overflow-y: auto;
+}
+
+/* Graph panel */
+#graph-panel {
+  width: 40%;
+  min-width: 280px;
+  height: 100vh;
+  border-left: 1px solid hsl(var(--border));
+  background: hsl(var(--background));
+  display: flex;
+  flex-direction: column;
+}
+#graph-panel.collapsed { display: none; }
+.panel-divider {
+  width: 6px;
+  cursor: col-resize;
+  background: hsl(var(--border));
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.panel-divider:hover, .panel-divider.dragging { background: hsl(var(--ring)); }
+/* Divider hidden via JS when panel is collapsed */
+.graph-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid hsl(var(--border));
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+#graph-search {
+  flex: 1;
+  min-width: 80px;
+  max-width: 160px;
+  font-size: 0.7rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: var(--radius);
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  outline: none;
+}
+#graph-search:focus { border-color: hsl(var(--ring)); }
+.graph-btn-group {
+  display: inline-flex;
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.graph-btn-group .graph-tb { border-radius: 0; border: none; border-right: 1px solid hsl(var(--border)); }
+.graph-btn-group .graph-tb:last-child { border-right: none; }
+.graph-tb {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 24px;
+  padding: 0;
+  border-radius: var(--radius);
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--background));
+  color: hsl(var(--muted-foreground));
+  cursor: pointer;
+}
+.graph-tb:hover { background: hsl(var(--accent)); color: hsl(var(--accent-foreground)); }
+.graph-tb.active { background: hsl(var(--ring)); color: hsl(var(--primary-foreground)); }
+#graph-container {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Graph toggle button */
+nav#sidebar .graph-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: hsl(var(--muted-foreground));
+  border-radius: var(--radius);
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+nav#sidebar .graph-toggle:hover { background: hsl(var(--accent)); color: hsl(var(--accent-foreground)); }
+nav#sidebar .graph-toggle.active { background: hsl(var(--ring)); color: hsl(var(--primary-foreground)); }
+nav#sidebar .graph-toggle svg { width: 14px; height: 14px; }
+
+/* Content highlight for bidirectional hover */
+.content-highlight {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+  border-radius: var(--radius);
+  transition: outline-color 0.2s;
+}
+
+/* Mobile graph */
+@media (max-width: 768px) {
+  .content-wrapper { margin-left: 0; height: auto; overflow: visible; }
+  main { overflow: visible; height: auto; }
+  .panel-divider { display: none !important; }
+  #graph-panel { display: none; }
+  #graph-panel.mobile-active {
+    display: flex;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    width: 100% !important;
+    height: 100%;
+    z-index: 999;
+    border-left: none;
+  }
 }
 
 /* Headings */
@@ -822,18 +955,27 @@ h6:hover .heading-anchor { opacity: 1; }
     box-shadow: 2px 0 8px rgb(0 0 0 / 0.1);
   }
   nav#sidebar.open { transform: translateX(0); }
+  .content-wrapper { margin-left: 0; }
   main {
-    margin-left: 0;
     padding: 3rem 1.25rem 4rem;
   }
 }
 
 /* Print stylesheet */
 @media print {
-  nav#sidebar, .sidebar-toggle, .theme-toggle, #search,
-  #search-results, .sort-controls, .heading-anchor { display: none !important; }
+  nav#sidebar, .sidebar-toggle, .theme-toggle, .graph-toggle, #search,
+  #search-results, .sort-controls, .heading-anchor,
+  #graph-panel, .panel-divider { display: none !important; }
+  .content-wrapper {
+    margin-left: 0 !important;
+    display: block;
+    height: auto;
+    overflow: visible;
+  }
   main {
     margin-left: 0 !important;
+    overflow: visible !important;
+    height: auto !important;
     max-width: 100% !important;
     padding: 0 !important;
   }
@@ -858,6 +1000,9 @@ h6:hover .heading-anchor { opacity: 1; }
         <nav id="sidebar">
           <div class="sidebar-header">
             <input id="search" type="search" placeholder="Find..." autocomplete="off"/>
+            <button class="graph-toggle" onclick="toggleGraphPanel()" aria-label="Toggle graph" title="Toggle knowledge graph">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="18" r="3"/><line x1="8.5" y1="7.5" x2="15.5" y2="16.5"/><line x1="15.5" y1="7.5" x2="8.5" y2="16.5"/></svg>
+            </button>
             <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
               <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
               <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
@@ -1097,6 +1242,7 @@ h6:hover .heading-anchor { opacity: 1; }
           </xsl:if>
         </nav>
 
+        <div class="content-wrapper">
         <main>
           <div id="breadcrumbs" class="breadcrumbs"></div>
 
@@ -1164,6 +1310,48 @@ h6:hover .heading-anchor { opacity: 1; }
             </div>
           </xsl:if>
         </main>
+
+        <div class="panel-divider" id="panel-divider"></div>
+        <div id="graph-panel">
+          <div class="graph-toolbar">
+            <input id="graph-search" type="search" placeholder="Filter nodes..." autocomplete="off"/>
+            <span class="graph-btn-group" id="graph-layout-group">
+              <button class="graph-tb active" data-layout="elk-layered" title="ELK Layered: directed graph with layers">
+                <svg viewBox="0 0 16 16" width="14" height="14"><path d="M8 1v4M4 9v4M12 9v4M8 5l-4 4M8 5l4 4" stroke="currentColor" fill="none" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="2" r="1.5" fill="currentColor"/><circle cx="4" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>
+              </button>
+              <button class="graph-tb" data-layout="elk-force" title="ELK Force: organic clustering">
+                <svg viewBox="0 0 16 16" width="14" height="14"><circle cx="5" cy="5" r="1.5" fill="currentColor"/><circle cx="11" cy="4" r="1.5" fill="currentColor"/><circle cx="4" cy="11" r="1.5" fill="currentColor"/><circle cx="12" cy="10" r="1.5" fill="currentColor"/><circle cx="8" cy="8" r="1.5" fill="currentColor"/><path d="M5 5l3 3M11 4l-3 4M4 11l4-3M12 10l-4-2" stroke="currentColor" fill="none" stroke-width="1" opacity="0.5"/></svg>
+              </button>
+              <button class="graph-tb" data-layout="hierarchical" title="Dagre: top-down hierarchy">
+                <svg viewBox="0 0 16 16" width="14" height="14"><rect x="5" y="1" width="6" height="3" rx="1" fill="currentColor"/><rect x="1" y="7" width="5" height="3" rx="1" fill="currentColor"/><rect x="10" y="7" width="5" height="3" rx="1" fill="currentColor"/><path d="M8 4v1.5M3.5 7V5.5H8M12.5 7V5.5H8" stroke="currentColor" fill="none" stroke-width="1"/></svg>
+              </button>
+              <button class="graph-tb" data-layout="force" title="Force-directed: spring simulation">
+                <svg viewBox="0 0 16 16" width="14" height="14"><circle cx="3" cy="8" r="1.5" fill="currentColor"/><circle cx="13" cy="4" r="1.5" fill="currentColor"/><circle cx="8" cy="13" r="1.5" fill="currentColor"/><circle cx="10" cy="9" r="1.5" fill="currentColor"/><path d="M3 8l7 1M13 4l-3 5M10 9l-2 4" stroke="currentColor" fill="none" stroke-width="1" stroke-dasharray="2 2"/></svg>
+              </button>
+              <button class="graph-tb" data-layout="grid" title="Grid: grouped by type">
+                <svg viewBox="0 0 16 16" width="14" height="14"><rect x="1" y="1" width="4" height="4" rx="0.5" fill="currentColor" opacity="0.7"/><rect x="6" y="1" width="4" height="4" rx="0.5" fill="currentColor" opacity="0.7"/><rect x="11" y="1" width="4" height="4" rx="0.5" fill="currentColor" opacity="0.7"/><rect x="1" y="6" width="4" height="4" rx="0.5" fill="currentColor" opacity="0.5"/><rect x="6" y="6" width="4" height="4" rx="0.5" fill="currentColor" opacity="0.5"/><rect x="1" y="11" width="4" height="4" rx="0.5" fill="currentColor" opacity="0.3"/></svg>
+              </button>
+            </span>
+            <span class="graph-btn-group" id="graph-scope-group">
+              <button class="graph-tb active" data-scope="full" title="Full graph: all nodes">
+                <svg viewBox="0 0 16 16" width="14" height="14"><circle cx="4" cy="4" r="2" fill="currentColor"/><circle cx="12" cy="4" r="2" fill="currentColor"/><circle cx="4" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="12" r="2" fill="currentColor"/><path d="M6 4h4M4 6v4M12 6v4M6 12h4" stroke="currentColor" fill="none" stroke-width="1"/></svg>
+              </button>
+              <button class="graph-tb" data-scope="neighborhood" title="Neighborhood: current node + connections">
+                <svg viewBox="0 0 16 16" width="14" height="14"><circle cx="8" cy="8" r="2.5" fill="currentColor"/><circle cx="3" cy="4" r="1.5" fill="currentColor" opacity="0.5"/><circle cx="13" cy="4" r="1.5" fill="currentColor" opacity="0.5"/><circle cx="3" cy="12" r="1.5" fill="currentColor" opacity="0.5"/><circle cx="13" cy="12" r="1.5" fill="currentColor" opacity="0.5"/><path d="M6 7l-2-2M10 7l2-2M6 9l-2 2M10 9l2 2" stroke="currentColor" fill="none" stroke-width="1"/></svg>
+              </button>
+            </span>
+            <button class="graph-tb" id="graph-fit" title="Fit to view">
+              <svg viewBox="0 0 16 16" width="14" height="14"><path d="M2 5V2h3M11 2h3v3M14 11v3h-3M5 14H2v-3" stroke="currentColor" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <button class="graph-tb" onclick="toggleGraphPanel()" title="Close graph panel">
+              <svg viewBox="0 0 16 16" width="14" height="14"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" fill="none" stroke-width="1.5" stroke-linecap="round"/></svg>
+            </button>
+          </div>
+          <div id="graph-container"></div>
+        </div>
+        </div><!-- /content-wrapper -->
+
+        <xsl:call-template name="emit-graph-data"/>
 
         <script>
           <xsl:text>
@@ -1530,18 +1718,874 @@ window.addEventListener('popstate', function(e) {
       });
     });
   });
+
+  // Expose navigateTo globally for graph JS (separate script block)
+  window.navigateTo = navigateTo;
 })();
           </xsl:text>
         </script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
         <script>
           <xsl:text>
-hljs.highlightAll();
+function rehighlight() {
+  var active = document.querySelector('.page.active');
+  if (!active) return;
+  active.querySelectorAll('pre code:not([data-highlighted])').forEach(function(el) {
+    // Re-set text content to auto-escape any raw HTML before highlighting
+    el.textContent = el.textContent;
+    hljs.highlightElement(el);
+  });
+}
+rehighlight();
 // Re-highlight when switching pages
 var origShowPage = showPage;
-showPage = function(id, push) { origShowPage(id, push); hljs.highlightAll(); };
+showPage = function(id, push) { origShowPage(id, push); rehighlight(); };
           </xsl:text>
         </script>
+
+        <!-- Graph visualization dependencies -->
+        <script src="https://cdn.jsdelivr.net/npm/@joint/core@4/dist/joint.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/dagre@0.8/dist/dagre.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/elkjs@0.9/lib/elk.bundled.js"></script>
+
+        <script>
+          <xsl:text>
+// --- Graph Visualization (Steps 4-11) ---
+
+var clayersGraph = null;
+var nodeMap = {};
+var currentNodeId = null;
+var graphInitialized = false;
+
+// --- Node shape/color config ---
+// --- Node design system ---
+// Each type: gradient top/bottom, accent color, icon symbol, dimensions
+var NODE_TYPES = {
+  concept:   { top: '#818cf8', bot: '#6366f1', accent: '#4f46e5', icon: '\u25C6', w: 150, h: 44 },
+  task:      { top: '#34d399', bot: '#10b981', accent: '#059669', icon: '\u2713', w: 150, h: 44 },
+  reference: { top: '#94a3b8', bot: '#64748b', accent: '#475569', icon: '\u2261', w: 150, h: 44 },
+  term:      { top: '#c084fc', bot: '#a855f7', accent: '#7c3aed', icon: 'T',      w: 130, h: 40 },
+  decision:  { top: '#fbbf24', bot: '#f59e0b', accent: '#d97706', icon: '?',      w: 150, h: 44, dark: true },
+  plan:      { top: '#22d3ee', bot: '#06b6d4', accent: '#0891b2', icon: '\u25B6', w: 150, h: 44 },
+  source:    { top: '#7dd3fc', bot: '#38bdf8', accent: '#0284c7', icon: '\u2197', w: 130, h: 38 },
+  map:       { top: '#5eead4', bot: '#2dd4bf', accent: '#0d9488', icon: '\u2637', w: 140, h: 42, dark: true },
+  artifact:  { top: '#fdba74', bot: '#fb923c', accent: '#ea580c', icon: '\u2699', w: 120, h: 36, dark: true },
+  section:   { top: '#93c5fd', bot: '#60a5fa', accent: '#2563eb', icon: '\u00A7', w: 150, h: 44 }
+};
+
+var EDGE_STYLES = {
+  'depends-on':    { color: '#f59e0b', dash: '', width: 1.8 },
+  'refines':       { color: '#818cf8', dash: '', width: 1.5 },
+  'implements':    { color: '#34d399', dash: '', width: 1.5 },
+  'precedes':      { color: '#c084fc', dash: '8 4', width: 1.5 },
+  'constrains':    { color: '#f87171', dash: '', width: 1.8 },
+  'references':    { color: '#94a3b8', dash: '4 4', width: 1.2 },
+  'conflicts-with':{ color: '#f87171', dash: '6 4', width: 1.8 }
+};
+
+function getActiveLayout() {
+  var btn = document.querySelector('#graph-layout-group .graph-tb.active');
+  return btn ? btn.getAttribute('data-layout') : 'elk-layered';
+}
+
+function getActiveScope() {
+  var btn = document.querySelector('#graph-scope-group .graph-tb.active');
+  return btn ? btn.getAttribute('data-scope') : 'full';
+}
+
+function setActiveScope(scope) {
+  var group = document.getElementById('graph-scope-group');
+  if (!group) return;
+  group.querySelectorAll('.graph-tb').forEach(function(b) {
+    b.classList.toggle('active', b.getAttribute('data-scope') === scope);
+  });
+}
+
+function getThemeColors() {
+  var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  return {
+    text: isDark ? '#e2e8f0' : '#1e293b',
+    bg: isDark ? '#0f172a' : '#ffffff',
+    nodeBg: isDark ? 0.8 : 1.0
+  };
+}
+
+// Inject SVG defs for gradients and shadow filter
+function injectSvgDefs(paper) {
+  var svg = paper.svg;
+  var defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+
+  // Shadow filter
+  defs.innerHTML = '&lt;filter id="node-shadow" x="-10%" y="-10%" width="130%" height="140%">' +
+    '&lt;feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="rgba(0,0,0,0.15)" flood-opacity="1"/>' +
+    '&lt;/filter>' +
+    '&lt;filter id="node-glow" x="-20%" y="-20%" width="140%" height="140%">' +
+    '&lt;feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#f59e0b" flood-opacity="0.6"/>' +
+    '&lt;/filter>';
+
+  // Gradient for each node type
+  Object.keys(NODE_TYPES).forEach(function(type) {
+    var t = NODE_TYPES[type];
+    var grad = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+    grad.id = 'grad-' + type;
+    grad.setAttribute('x1', '0');
+    grad.setAttribute('y1', '0');
+    grad.setAttribute('x2', '0');
+    grad.setAttribute('y2', '1');
+    var s1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+    s1.setAttribute('offset', '0%');
+    s1.setAttribute('stop-color', t.top);
+    var s2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+    s2.setAttribute('offset', '100%');
+    s2.setAttribute('stop-color', t.bot);
+    grad.appendChild(s1);
+    grad.appendChild(s2);
+    defs.appendChild(grad);
+  });
+
+  svg.insertBefore(defs, svg.firstChild);
+}
+
+// Custom shape with accent bar, icon badge, and gradient body
+var CLayersNode = joint.dia.Element.define('clayers.Node', {
+  attrs: {
+    body: {
+      width: 'calc(w)',
+      height: 'calc(h)',
+      rx: 10, ry: 10,
+      strokeWidth: 0,
+      filter: 'url(#node-shadow)',
+      cursor: 'pointer'
+    },
+    accent: {
+      width: 4,
+      height: 'calc(h - 8)',
+      x: 3, y: 4,
+      rx: 2, ry: 2,
+      fill: '#4f46e5',
+      strokeWidth: 0
+    },
+    icon: {
+      x: 14,
+      y: 'calc(h / 2)',
+      textAnchor: 'middle',
+      textVerticalAnchor: 'middle',
+      fontSize: 12,
+      fontFamily: 'Inter, system-ui, sans-serif',
+      fontWeight: 700,
+      fill: 'rgba(255,255,255,0.7)'
+    },
+    label: {
+      x: 24,
+      y: 'calc(h / 2)',
+      textAnchor: 'start',
+      textVerticalAnchor: 'middle',
+      fontSize: 11,
+      fontFamily: 'Inter, system-ui, sans-serif',
+      fontWeight: 500,
+      fill: '#ffffff',
+      letterSpacing: '0.01em'
+    }
+  }
+}, {
+  markup: [
+    { tagName: 'rect', selector: 'body' },
+    { tagName: 'rect', selector: 'accent' },
+    { tagName: 'text', selector: 'icon' },
+    { tagName: 'text', selector: 'label' }
+  ]
+});
+
+function createNodeElement(node) {
+  var t = NODE_TYPES[node.type] || NODE_TYPES.section;
+  var maxLen = Math.floor((t.w - 30) / 7);
+  var label = node.label.length > maxLen ? node.label.substring(0, maxLen - 1) + '\u2026' : node.label;
+  var textColor = t.dark ? 'rgba(0,0,0,0.85)' : '#ffffff';
+  var accentAlpha = t.dark ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.35)';
+
+  var el = new CLayersNode();
+  el.resize(t.w, t.h);
+  el.attr('body/fill', 'url(#grad-' + node.type + ')');
+  el.attr('accent/fill', accentAlpha);
+  el.attr('icon/text', t.icon);
+  el.attr('icon/fill', t.dark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.55)');
+  el.attr('label/text', label);
+  el.attr('label/fill', textColor);
+
+  el.prop('nodeId', node.id);
+  el.prop('nodeType', node.type);
+  el.prop('nodePage', node.page);
+
+  return el;
+}
+
+function createLink(edge) {
+  var link = new joint.shapes.standard.Link();
+  var style = EDGE_STYLES[edge.type] || { color: '#94a3b8', dash: '', width: 1.2 };
+  link.attr('line/stroke', style.color);
+  link.attr('line/strokeWidth', style.width);
+  link.attr('line/strokeOpacity', 0.7);
+  link.attr('line/strokeLinecap', 'round');
+  if (style.dash) link.attr('line/strokeDasharray', style.dash);
+  link.attr('line/targetMarker/type', 'path');
+  link.attr('line/targetMarker/d', 'M 10 -5 0 0 10 5 Z');
+  link.attr('line/targetMarker/fill', style.color);
+  link.attr('line/targetMarker/stroke', 'none');
+  link.attr('line/targetMarker/opacity', 0.8);
+  link.connector({ name: 'rounded' });
+  return link;
+}
+
+function buildGraph(data, filterFn) {
+  var graph = clayersGraph.graph;
+  graph.clear();
+  nodeMap = {};
+
+  var nodes = filterFn ? data.nodes.filter(filterFn) : data.nodes;
+  var nodeIds = {};
+  nodes.forEach(function(n) { nodeIds[n.id] = true; });
+
+  clayersGraph._edges = data.edges.filter(function(e) {
+    return nodeIds[e.from] &amp;&amp; nodeIds[e.to];
+  });
+
+  // Add only nodes - links added after layout positions them
+  nodes.forEach(function(n) {
+    var el = createNodeElement(n);
+    el.addTo(graph);
+    nodeMap[n.id] = el;
+  });
+}
+
+function addLinks() {
+  var graph = clayersGraph.graph;
+  var edges = clayersGraph._edges || [];
+  // Remove any existing links
+  graph.getLinks().forEach(function(l) { l.remove(); });
+  edges.forEach(function(e) {
+    var link = createLink(e);
+    var src = nodeMap[e.from];
+    var tgt = nodeMap[e.to];
+    if (src &amp;&amp; tgt) {
+      link.source({ id: src.id });
+      link.target({ id: tgt.id });
+      link.addTo(graph);
+    }
+  });
+}
+
+// --- Layout algorithms (Step 6) ---
+
+function applyDagreLayout(graph, rankDir) {
+  var edges = clayersGraph._edges || [];
+  var elements = graph.getElements();
+
+  // Find connected node IDs
+  var connectedIds = {};
+  edges.forEach(function(e) {
+    var src = nodeMap[e.from];
+    var tgt = nodeMap[e.to];
+    if (src &amp;&amp; tgt) {
+      connectedIds[src.id] = true;
+      connectedIds[tgt.id] = true;
+    }
+  });
+
+  // Split into connected and unconnected
+  var connected = [];
+  var unconnected = [];
+  elements.forEach(function(el) {
+    if (connectedIds[el.id]) connected.push(el);
+    else unconnected.push(el);
+  });
+
+  // Layout connected nodes with dagre
+  var maxY = 0;
+  if (connected.length > 0) {
+    var g = new dagre.graphlib.Graph();
+    g.setGraph({ rankdir: rankDir, ranksep: 80, nodesep: 40, marginx: 20, marginy: 20 });
+    g.setDefaultEdgeLabel(function() { return {}; });
+    connected.forEach(function(el) {
+      var size = el.size();
+      g.setNode(el.id, { width: size.width, height: size.height });
+    });
+    edges.forEach(function(e) {
+      var src = nodeMap[e.from];
+      var tgt = nodeMap[e.to];
+      if (src &amp;&amp; tgt &amp;&amp; connectedIds[src.id] &amp;&amp; connectedIds[tgt.id]) {
+        g.setEdge(src.id, tgt.id);
+      }
+    });
+    dagre.layout(g);
+    g.nodes().forEach(function(id) {
+      var node = g.node(id);
+      var el = graph.getCell(id);
+      if (el &amp;&amp; node) {
+        el.position(node.x - node.width/2, node.y - node.height/2);
+        var bottom = node.y + node.height/2;
+        if (bottom > maxY) maxY = bottom;
+      }
+    });
+  }
+
+  // Place unconnected nodes in a compact grid below
+  if (unconnected.length > 0) {
+    var startY = maxY + 60;
+    var x = 20, rowH = 0;
+    unconnected.forEach(function(el) {
+      var s = el.size();
+      el.position(x, startY);
+      x += s.width + 12;
+      if (s.height > rowH) rowH = s.height;
+      if (x > 1200) { x = 20; startY += rowH + 12; rowH = 0; }
+    });
+  }
+}
+
+function applyForceLayout(graph) {
+  var elements = graph.getElements();
+  var edges = clayersGraph._edges || [];
+  if (!elements.length) return;
+
+  var width = document.getElementById('graph-container').clientWidth || 800;
+  var height = document.getElementById('graph-container').clientHeight || 600;
+  var area = width * height;
+  var k = Math.sqrt(area / elements.length) * 0.8;
+
+  // Build element ID map (JointJS UUID -> our nodeId)
+  var elById = {};
+  elements.forEach(function(el) { elById[el.id] = el; });
+
+  // Initialize random positions
+  var pos = {};
+  elements.forEach(function(el) {
+    pos[el.id] = { x: Math.random() * width, y: Math.random() * height, dx: 0, dy: 0 };
+  });
+
+  // Build edge list using JointJS UUIDs
+  var forceEdges = [];
+  edges.forEach(function(e) {
+    var src = nodeMap[e.from];
+    var tgt = nodeMap[e.to];
+    if (src &amp;&amp; tgt) forceEdges.push({ s: src.id, t: tgt.id });
+  });
+
+  // Fruchterman-Reingold iterations
+  for (var iter = 0; iter &lt; 80; iter++) {
+    var temp = k * (1 - iter / 80);
+    var ids = Object.keys(pos);
+
+    // Repulsive forces
+    for (var i = 0; i &lt; ids.length; i++) {
+      pos[ids[i]].dx = 0;
+      pos[ids[i]].dy = 0;
+      for (var j = 0; j &lt; ids.length; j++) {
+        if (i === j) continue;
+        var dx = pos[ids[i]].x - pos[ids[j]].x;
+        var dy = pos[ids[i]].y - pos[ids[j]].y;
+        var dist = Math.sqrt(dx*dx + dy*dy) || 1;
+        var force = (k * k) / dist;
+        pos[ids[i]].dx += (dx / dist) * force;
+        pos[ids[i]].dy += (dy / dist) * force;
+      }
+    }
+
+    // Attractive forces
+    forceEdges.forEach(function(fe) {
+      var s = fe.s, t = fe.t;
+      if (!pos[s] || !pos[t]) return;
+      var dx = pos[s].x - pos[t].x;
+      var dy = pos[s].y - pos[t].y;
+      var dist = Math.sqrt(dx*dx + dy*dy) || 1;
+      var force = (dist * dist) / k;
+      var fx = (dx / dist) * force;
+      var fy = (dy / dist) * force;
+      pos[s].dx -= fx; pos[s].dy -= fy;
+      pos[t].dx += fx; pos[t].dy += fy;
+    });
+
+    // Apply with temperature
+    ids.forEach(function(id) {
+      var mag = Math.sqrt(pos[id].dx*pos[id].dx + pos[id].dy*pos[id].dy) || 1;
+      pos[id].x += (pos[id].dx / mag) * Math.min(mag, temp);
+      pos[id].y += (pos[id].dy / mag) * Math.min(mag, temp);
+      pos[id].x = Math.max(20, Math.min(width - 20, pos[id].x));
+      pos[id].y = Math.max(20, Math.min(height - 20, pos[id].y));
+    });
+  }
+
+  elements.forEach(function(el) {
+    if (pos[el.id]) {
+      var s = el.size();
+      el.position(pos[el.id].x - s.width/2, pos[el.id].y - s.height/2);
+    }
+  });
+}
+
+function applyGridLayout(graph) {
+  var elements = graph.getElements();
+  if (!elements.length) return;
+
+  // Group by type
+  var groups = {};
+  elements.forEach(function(el) {
+    var t = el.prop('nodeType') || 'section';
+    if (!groups[t]) groups[t] = [];
+    groups[t].push(el);
+  });
+
+  var y = 20;
+  var typeOrder = ['concept', 'task', 'reference', 'term', 'decision', 'plan', 'map', 'source', 'artifact', 'section'];
+  typeOrder.forEach(function(type) {
+    if (!groups[type]) return;
+    var x = 20;
+    var maxH = 0;
+    groups[type].forEach(function(el) {
+      var s = el.size();
+      el.position(x, y);
+      x += s.width + 20;
+      if (s.height > maxH) maxH = s.height;
+      if (x > 900) { x = 20; y += maxH + 20; maxH = 0; }
+    });
+    y += maxH + 40;
+  });
+}
+
+function applyElkLayout(graph, algorithm) {
+  var elements = graph.getElements();
+  var edges = clayersGraph._edges || [];
+  if (!elements.length) return Promise.resolve();
+
+  var elk = new ELK();
+  var elkNodes = elements.map(function(el) {
+    var s = el.size();
+    return { id: el.id, width: s.width, height: s.height };
+  });
+
+  // Map our nodeIds to JointJS UUIDs for edge lookup
+  var elkEdges = [];
+  var edgeIdx = 0;
+  edges.forEach(function(e) {
+    var src = nodeMap[e.from];
+    var tgt = nodeMap[e.to];
+    if (src &amp;&amp; tgt) {
+      elkEdges.push({ id: 'e' + (edgeIdx++), sources: [src.id], targets: [tgt.id] });
+    }
+  });
+
+  var elkGraph = {
+    id: 'root',
+    layoutOptions: {
+      'elk.algorithm': algorithm,
+      'elk.spacing.nodeNode': '40',
+      'elk.layered.spacing.nodeNodeBetweenLayers': '80',
+      'elk.force.temperature': '0.1',
+      'elk.separateConnectedComponents': 'true',
+      'elk.spacing.componentComponent': '60'
+    },
+    children: elkNodes,
+    edges: elkEdges
+  };
+
+  return elk.layout(elkGraph).then(function(result) {
+    result.children.forEach(function(elkNode) {
+      var el = graph.getCell(elkNode.id);
+      if (el) el.position(elkNode.x, elkNode.y);
+    });
+  });
+}
+
+function applyLayout(type) {
+  if (!clayersGraph) return;
+  var graph = clayersGraph.graph;
+  var container = document.getElementById('graph-container');
+
+  // Hide during layout to prevent visual jump
+  container.style.visibility = 'hidden';
+
+  function finishLayout() {
+    addLinks();
+    clayersGraph.paper.scaleContentToFit({ padding: 40, minScale: 0.1, maxScale: 1.5 });
+    container.style.visibility = '';
+  }
+
+  if (type === 'elk-layered' || type === 'elk-force') {
+    var algo = type === 'elk-layered' ? 'layered' : 'force';
+    applyElkLayout(graph, algo).then(finishLayout);
+    return;
+  }
+
+  if (type === 'hierarchical') {
+    applyDagreLayout(graph, 'TB');
+  } else if (type === 'force') {
+    applyForceLayout(graph);
+  } else if (type === 'grid') {
+    applyGridLayout(graph);
+  }
+  finishLayout();
+}
+
+// --- Scope switching (Step 9) ---
+
+function showFullGraph() {
+  if (!clayersGraph) return;
+  buildGraph(clayersGraph.data, null);
+  applyLayout(getActiveLayout());
+}
+
+function showNeighborhood(nodeId) {
+  if (!clayersGraph || !nodeId) return;
+  var data = clayersGraph.data;
+  var neighbors = {};
+  neighbors[nodeId] = true;
+  data.edges.forEach(function(e) {
+    if (e.from === nodeId) neighbors[e.to] = true;
+    if (e.to === nodeId) neighbors[e.from] = true;
+  });
+  buildGraph(data, function(n) { return neighbors[n.id]; });
+  applyLayout(getActiveLayout());
+  // Highlight the center node
+  if (nodeMap[nodeId]) {
+    nodeMap[nodeId].attr('body/filter', 'url(#node-glow)');
+  }
+}
+
+function updateGraphScope() {
+  var scope = getActiveScope();
+  if (scope === 'neighborhood') {
+    showNeighborhood(currentNodeId);
+  } else {
+    showFullGraph();
+  }
+}
+
+// --- Init (Step 4) ---
+
+function initGraph() {
+  if (graphInitialized) return;
+  var dataEl = document.getElementById('clayers-graph-data');
+  if (!dataEl) return;
+
+  var data;
+  try { data = JSON.parse(dataEl.textContent); } catch(e) { return; }
+
+  graphInitialized = true;
+  var container = document.getElementById('graph-container');
+
+  // Defer to next frame so the panel has been laid out after removing display:none
+  requestAnimationFrame(function() {
+    var w = container.clientWidth || 600;
+    var h = container.clientHeight || 500;
+    _initGraphInner(data, container, w, h);
+  });
+}
+
+function _initGraphInner(data, container, w, h) {
+  var graph = new joint.dia.Graph();
+  var paper = new joint.dia.Paper({
+    el: container,
+    model: graph,
+    width: 20000,
+    height: 20000,
+    gridSize: 1,
+    background: { color: 'transparent' },
+    interactive: { linkMove: false, elementMove: true }
+  });
+
+  // Pan and zoom
+  var dragState = null;
+  paper.on('blank:pointerdown', function(evt) {
+    dragState = { x: evt.clientX, y: evt.clientY, tx: paper.translate().tx, ty: paper.translate().ty };
+  });
+  paper.el.addEventListener('mousemove', function(evt) {
+    if (!dragState) return;
+    paper.translate(dragState.tx + evt.clientX - dragState.x, dragState.ty + evt.clientY - dragState.y);
+  });
+  document.addEventListener('mouseup', function() { dragState = null; });
+  paper.el.addEventListener('wheel', function(evt) {
+    evt.preventDefault();
+    var delta = evt.deltaY &lt; 0 ? 1.1 : 0.9;
+    var s = paper.scale();
+    var newS = Math.max(0.1, Math.min(3, s.sx * delta));
+    paper.scale(newS, newS);
+  });
+
+  clayersGraph = { graph: graph, paper: paper, data: data };
+  injectSvgDefs(paper);
+  graphInitialized = true;
+
+  // Set initial node from URL hash
+  var initHash = window.location.hash.substring(1);
+  if (initHash) currentNodeId = initHash;
+
+  // Build initial graph and fit to view (hidden until layout completes)
+  container.style.visibility = 'hidden';
+
+  // --- Click-to-navigate (Step 7) ---
+  paper.on('element:pointerclick', function(elementView) {
+    var nId = elementView.model.prop('nodeId');
+    if (nId &amp;&amp; window.navigateTo) {
+      currentNodeId = nId;
+      window.navigateTo(nId);
+      // Close mobile overlay
+      var panel = document.getElementById('graph-panel');
+      if (panel &amp;&amp; panel.classList.contains('mobile-active')) {
+        panel.classList.remove('mobile-active');
+        panel.classList.add('collapsed');
+      }
+    }
+  });
+
+  // --- Bidirectional highlighting (Step 8) ---
+
+  // Graph hover -> Content highlight
+  paper.on('element:mouseenter', function(elementView) {
+    var nId = elementView.model.prop('nodeId');
+    var nPage = elementView.model.prop('nodePage');
+    var activePage = document.querySelector('.page.active');
+    if (activePage &amp;&amp; activePage.getAttribute('data-page') === nPage) {
+      var target = document.getElementById(nId);
+      if (target) target.classList.add('content-highlight');
+    }
+    // Highlight in graph
+    elementView.model.attr('body/filter', 'url(#node-glow)');
+  });
+
+  paper.on('element:mouseleave', function(elementView) {
+    var nId = elementView.model.prop('nodeId');
+    var target = document.getElementById(nId);
+    if (target) target.classList.remove('content-highlight');
+    // Unhighlight in graph
+    elementView.model.attr('body/filter', 'url(#node-shadow)');
+  });
+
+  // Content hover -> Graph highlight
+  var mainEl = document.querySelector('main');
+  if (mainEl) {
+    mainEl.addEventListener('mouseenter', function(evt) {
+      var link = evt.target.closest('a[href^="#"]');
+      if (!link || !clayersGraph) return;
+      var targetId = link.getAttribute('href').substring(1);
+      if (nodeMap[targetId]) {
+        nodeMap[targetId].attr('body/filter', 'url(#node-glow)');
+      }
+    }, true);
+
+    mainEl.addEventListener('mouseleave', function(evt) {
+      var link = evt.target.closest('a[href^="#"]');
+      if (!link || !clayersGraph) return;
+      var targetId = link.getAttribute('href').substring(1);
+      if (nodeMap[targetId]) {
+        nodeMap[targetId].attr('body/filter', 'url(#node-shadow)');
+      }
+    }, true);
+  }
+
+  // --- Toolbar events ---
+  // Layout buttons
+  document.getElementById('graph-layout-group').addEventListener('click', function(e) {
+    var btn = e.target.closest('[data-layout]');
+    if (!btn) return;
+    this.querySelectorAll('.graph-tb').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    applyLayout(btn.getAttribute('data-layout'));
+  });
+
+  // Scope buttons
+  document.getElementById('graph-scope-group').addEventListener('click', function(e) {
+    var btn = e.target.closest('[data-scope]');
+    if (!btn) return;
+    this.querySelectorAll('.graph-tb').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    var scope = btn.getAttribute('data-scope');
+    try { localStorage.setItem('clayers-graph-scope', scope); } catch(e2) {}
+    updateGraphScope();
+  });
+
+  document.getElementById('graph-fit').addEventListener('click', function() {
+    if (clayersGraph) clayersGraph.paper.scaleContentToFit({ padding: 40, minScale: 0.1, maxScale: 1.5 });
+  });
+
+  // Graph search (debounced)
+  var graphSearchTimer = null;
+  document.getElementById('graph-search').addEventListener('input', function() {
+    var q = this.value.trim().toLowerCase();
+    if (graphSearchTimer) clearTimeout(graphSearchTimer);
+    graphSearchTimer = setTimeout(function() {
+      if (!clayersGraph) return;
+      if (!q) {
+        // Clear filter - rebuild full graph
+        updateGraphScope();
+        return;
+      }
+      // Filter nodes matching search text
+      buildGraph(clayersGraph.data, function(n) {
+        return n.label.toLowerCase().indexOf(q) >= 0 ||
+               n.id.toLowerCase().indexOf(q) >= 0 ||
+               n.type.toLowerCase().indexOf(q) >= 0;
+      });
+      applyLayout(getActiveLayout());
+    }, 250);
+  });
+
+  // Determine initial scope and build graph accordingly
+  var initialScope = 'full';
+  try {
+    var savedScope = localStorage.getItem('clayers-graph-scope');
+    if (savedScope) initialScope = savedScope;
+  } catch(e) {}
+  if (data.nodes.length > 200) initialScope = 'neighborhood';
+  setActiveScope(initialScope);
+
+  if (initialScope === 'neighborhood' &amp;&amp; currentNodeId) {
+    showNeighborhood(currentNodeId);
+  } else {
+    buildGraph(data, null);
+    applyLayout('elk-layered');
+  }
+
+  // ResizeObserver to keep paper in sync
+  if (window.ResizeObserver) {
+    new ResizeObserver(function() {
+      if (clayersGraph) {
+        clayersGraph.paper.setDimensions(container.clientWidth, container.clientHeight);
+      }
+    }).observe(container);
+  }
+}
+
+// --- Toggle graph panel (Step 4) ---
+
+function toggleGraphPanel() {
+  var panel = document.getElementById('graph-panel');
+  var divider = document.getElementById('panel-divider');
+  var toggleBtn = document.querySelector('.graph-toggle');
+  if (!panel) return;
+
+  var isMobile = window.innerWidth &lt; 768;
+  if (isMobile) {
+    if (panel.classList.contains('mobile-active')) {
+      panel.classList.remove('mobile-active');
+      panel.classList.add('collapsed');
+    } else {
+      panel.classList.remove('collapsed');
+      panel.classList.add('mobile-active');
+      initGraph();
+    }
+  } else {
+    var isOpen = !panel.classList.contains('collapsed');
+    if (isOpen) {
+      // Close
+      panel.classList.add('collapsed');
+      if (divider) divider.style.display = 'none';
+    } else {
+      // Open
+      panel.classList.remove('collapsed');
+      if (divider) divider.style.display = '';
+      initGraph();
+      try {
+        var savedW = localStorage.getItem('clayers-graph-width');
+        if (savedW) panel.style.width = savedW + 'px';
+      } catch(e) {}
+      // Re-fit after opening
+      if (clayersGraph) {
+        requestAnimationFrame(function() {
+          var c = document.getElementById('graph-container');
+          clayersGraph.paper.setDimensions(c.clientWidth, c.clientHeight);
+          clayersGraph.paper.scaleContentToFit({ padding: 40, minScale: 0.1, maxScale: 1.5 });
+        });
+      }
+    }
+  }
+  // Update toggle button active state
+  if (toggleBtn) {
+    var nowOpen = !panel.classList.contains('collapsed') || panel.classList.contains('mobile-active');
+    toggleBtn.classList.toggle('active', nowOpen);
+  }
+}
+
+// --- Resizable divider (Step 5) ---
+
+(function() {
+  var divider = document.getElementById('panel-divider');
+  var panel = document.getElementById('graph-panel');
+  if (!divider || !panel) return;
+  var dragging = false;
+
+  divider.addEventListener('mousedown', function(e) {
+    e.preventDefault();
+    dragging = true;
+    divider.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  });
+
+  document.addEventListener('mousemove', function(e) {
+    if (!dragging) return;
+    var wrapper = document.querySelector('.content-wrapper');
+    if (!wrapper) return;
+    var wrapperRect = wrapper.getBoundingClientRect();
+    var newWidth = wrapperRect.right - e.clientX;
+    newWidth = Math.max(280, Math.min(wrapperRect.width * 0.7, newWidth));
+    panel.style.width = newWidth + 'px';
+    if (clayersGraph) {
+      var c = document.getElementById('graph-container');
+      clayersGraph.paper.setDimensions(c.clientWidth, c.clientHeight);
+    }
+  });
+
+  document.addEventListener('mouseup', function() {
+    if (!dragging) return;
+    dragging = false;
+    divider.classList.remove('dragging');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    try { localStorage.setItem('clayers-graph-width', panel.offsetWidth); } catch(e) {}
+  });
+})();
+
+// --- Hook showPage for scope updates (Step 9) ---
+var origShowPage2 = showPage;
+showPage = function(id, push) {
+  origShowPage2(id, push);
+  currentNodeId = id;
+  if (clayersGraph &amp;&amp; getActiveScope() === 'neighborhood') {
+    showNeighborhood(id);
+  }
+  // Highlight current node in graph
+  if (clayersGraph &amp;&amp; nodeMap[id]) {
+    // Reset all highlights
+    Object.keys(nodeMap).forEach(function(nid) {
+      nodeMap[nid].attr('body/filter', 'url(#node-shadow)');
+    });
+    nodeMap[id].attr('body/filter', 'url(#node-glow)');
+  }
+};
+
+// --- Theme recolor (Step 11) ---
+function recolorGraph() {
+  if (!clayersGraph) return;
+  var theme = getThemeColors();
+  Object.keys(nodeMap).forEach(function(id) {
+    nodeMap[id].attr('body/opacity', theme.nodeBg);
+  });
+}
+
+// Hook into theme toggle
+var origToggleTheme = toggleTheme;
+toggleTheme = function() {
+  origToggleTheme();
+  recolorGraph();
+};
+
+// Init graph on load (panel starts open)
+initGraph();
+// Mark toggle as active since panel starts open
+var _gtb = document.querySelector('.graph-toggle');
+if (_gtb) _gtb.classList.add('active');
+          </xsl:text>
+        </script>
+
       </body>
     </html>
   </xsl:template>
