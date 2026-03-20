@@ -586,6 +586,89 @@ details summary {
   line-height: 1.5;
 }
 
+/* Markdown-formatted LLM descriptions (agent guidance) */
+.llm-markdown {
+  margin: 0.5rem 0;
+}
+.llm-markdown summary {
+  color: hsl(var(--muted-foreground));
+  font-weight: 500;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+.markdown-body {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  padding: 0.5rem 0;
+}
+.markdown-body h1, .markdown-body h2, .markdown-body h3,
+.markdown-body h4, .markdown-body h5, .markdown-body h6 {
+  margin: 1.25rem 0 0.5rem;
+  line-height: 1.3;
+}
+.markdown-body h1 { font-size: 1.5rem; border-bottom: 1px solid hsl(var(--border)); padding-bottom: 0.25rem; }
+.markdown-body h2 { font-size: 1.25rem; border-bottom: 1px solid hsl(var(--border)); padding-bottom: 0.2rem; }
+.markdown-body h3 { font-size: 1.1rem; }
+.markdown-body h4 { font-size: 1rem; }
+.markdown-body p { margin: 0.5rem 0; }
+.markdown-body pre {
+  background: hsl(var(--muted));
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.375rem;
+  padding: 0.75rem 1rem;
+  overflow-x: auto;
+  font-size: 0.8125rem;
+  margin: 0.5rem 0;
+}
+.markdown-body code {
+  background: hsl(var(--muted));
+  padding: 0.15rem 0.35rem;
+  border-radius: 0.25rem;
+  font-size: 0.85em;
+}
+.markdown-body pre code {
+  background: none;
+  padding: 0;
+  border-radius: 0;
+  font-size: inherit;
+}
+.markdown-body table {
+  border-collapse: collapse;
+  margin: 0.5rem 0;
+  font-size: 0.8125rem;
+  width: auto;
+}
+.markdown-body th, .markdown-body td {
+  border: 1px solid hsl(var(--border));
+  padding: 0.35rem 0.75rem;
+  text-align: left;
+}
+.markdown-body th {
+  background: hsl(var(--muted));
+  font-weight: 600;
+}
+.markdown-body ul, .markdown-body ol {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+}
+.markdown-body li { margin: 0.2rem 0; }
+.markdown-body blockquote {
+  border-left: 3px solid hsl(var(--border));
+  margin: 0.5rem 0;
+  padding: 0.25rem 1rem;
+  color: hsl(var(--muted-foreground));
+}
+.markdown-body hr {
+  border: none;
+  border-top: 1px solid hsl(var(--border));
+  margin: 1rem 0;
+}
+.markdown-body strong { font-weight: 600; }
+.markdown-body em { font-style: italic; }
+.markdown-body a { color: hsl(var(--primary)); text-decoration: underline; }
+
 /* Inline artifact mappings per node */
 .node-artifacts {
   margin-top: 1.25rem;

@@ -72,10 +72,7 @@
       <!-- LLM machine description -->
       <xsl:variable name="llm-desc" select="ancestor::cmb:spec//llm:node[@ref = $sid]"/>
       <xsl:if test="$llm-desc">
-        <details class="llm-desc">
-          <summary>Machine description</summary>
-          <p><xsl:value-of select="normalize-space($llm-desc)"/></p>
-        </details>
+        <xsl:apply-templates select="$llm-desc" mode="inline"/>
       </xsl:if>
 
       <xsl:apply-templates select="*[not(self::pr:title or self::pr:shortdesc)]"/>

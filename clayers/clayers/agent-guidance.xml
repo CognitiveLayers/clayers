@@ -75,7 +75,7 @@
 
   <!-- Extractable content (CDATA preserves markdown formatting) -->
 
-  <llm:node ref="agent-workflow-instructions"><![CDATA[
+  <llm:node ref="agent-workflow-instructions" format="markdown"><![CDATA[
 ## Clayers Development Workflow
 
 This project uses [clayers](https://github.com/inferaldata/clayers) for
@@ -109,7 +109,7 @@ the full layer reference (prose, terminology, organization, relation,
 decision, source, plan, artifact, llm, revision).
 ]]></llm:node>
 
-  <llm:node ref="skill-clayers-onboard"><![CDATA[
+  <llm:node ref="skill-clayers-onboard" format="markdown"><![CDATA[
 ---
 name: clayers-onboard
 description: >
@@ -927,7 +927,7 @@ clayers query clayers/{{PROJECT_NAME}}/ '//art:mapping/art:spec-ref/@node' --tex
 ```
 ]]></llm:node>
 
-  <llm:node ref="skill-clayers-review-artifacts"><![CDATA[
+  <llm:node ref="skill-clayers-review-artifacts" format="markdown"><![CDATA[
 ---
 name: clayers-review-artifacts
 description: >

@@ -248,7 +248,7 @@
     <art:artifact repo="clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/embedded.rs">
-      <art:range hash="sha256:5f685fdb4e5b6021174968bcedb1b61739e1b085616d62fb27b211737b067bb1"/>
+      <art:range hash="sha256:9632c102669e49708103dcb415aaa94a9c6fc446761e8497f84be30712d61aea"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>The embedded module provides build-time schema embedding
@@ -478,7 +478,7 @@
     <art:artifact repo="clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/embedded.rs">
-      <art:range hash="sha256:5f685fdb4e5b6021174968bcedb1b61739e1b085616d62fb27b211737b067bb1"/>
+      <art:range hash="sha256:9632c102669e49708103dcb415aaa94a9c6fc446761e8497f84be30712d61aea"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>AGENT_GUIDANCE_XML constant: embeds agent-guidance.xml
@@ -492,7 +492,7 @@
     <art:artifact repo="clayers"
               repo-revision="HEAD"
               path="clayers/clayers/agent-guidance.xml">
-      <art:range hash="sha256:6b8e8455d91aa1cd488f92af3dd66746d119d543ebd077d44082d50c9a367e2c"/>
+      <art:range hash="sha256:f71bccc2a8ef49664e6bfd320676ca9807e97b88bee4a4d2e92371e95e550aa1"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>The agent guidance spec file: contains workflow instructions,
