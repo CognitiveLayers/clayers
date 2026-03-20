@@ -1,0 +1,966 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Python Integration: PyO3 bindings exposing clayers to Python.
+  Covers the clayers-py crate, the clayers Python package, and the
+  design of the sync/async API surface.
+-->
+<spec:clayers xmlns:spec="urn:clayers:spec"
+       xmlns:pr="urn:clayers:prose"
+       xmlns:trm="urn:clayers:terminology"
+       xmlns:org="urn:clayers:organization"
+       xmlns:rel="urn:clayers:relation"
+       xmlns:art="urn:clayers:artifact"
+       xmlns:llm="urn:clayers:llm"
+       spec:index="index.xml">
+
+  <!-- ═══════════════ Vocabulary ═══════════════ -->
+
+  <trm:term id="term-python-binding">
+    <trm:name>Python Binding</trm:name>
+    <trm:definition>A PyO3-based native extension that wraps the Rust clayers
+    crates as a Python package. The binding translates Rust types into Python
+    classes, maps Rust errors to a typed exception hierarchy, and bridges
+    the async/sync divide between the tokio-based clayers-repo and Python's
+    asyncio. Published as the "clayers" package on PyPI.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-knowledge-model">
+    <trm:name>Knowledge Model</trm:name>
+    <trm:definition>The Python class that represents a loaded clayers
+    specification. Wraps spec discovery, validation, drift detection,
+    coverage analysis, connectivity analysis, hash fixing, and XPath
+    querying behind a single stateful object. Constructed from a filesystem
+    path pointing to a spec directory.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-queryable-protocol">
+    <trm:name>Queryable Protocol</trm:name>
+    <trm:definition>A Python typing.Protocol that both KnowledgeModel and
+    Repo implement, defining a common query(xpath, mode) interface. Enables
+    generic Python functions to accept either a spec or a repository as a
+    query target, unifying the two query surfaces.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-repo-inner">
+    <trm:name>RepoInner</trm:name>
+    <trm:definition>An enum-dispatch wrapper around the generic Repo&lt;S&gt;
+    type, since PyO3 does not support generic pyclasses. RepoInner holds
+    either Repo&lt;MemoryStore&gt; or Repo&lt;SqliteStore&gt;, wrapped in
+    Arc for sharing between sync and async Python classes. A dispatch macro
+    routes method calls to the correct variant.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-global-runtime">
+    <trm:name>Global Tokio Runtime</trm:name>
+    <trm:definition>A lazily-initialized, shared tokio multi-thread runtime
+    used by the sync Repo class to bridge from synchronous Python calls to
+    the async clayers-repo methods. Created once via OnceLock and reused
+    across all sync Repo instances. The sync class releases the Python GIL
+    via Python.detach() before calling block_on(), preventing deadlocks
+    between the GIL and the tokio runtime.</trm:definition>
+  </trm:term>
+
+  <!-- ═══════════════ Content ═══════════════ -->
+
+  <pr:section id="python-integration">
+    <pr:title>Python Integration</pr:title>
+    <pr:shortdesc>PyO3 bindings exposing the clayers crates as a native
+    Python package with both sync and async APIs.</pr:shortdesc>
+
+    <pr:p>The clayers-py crate provides Python bindings to all four Rust
+    crates: clayers-xml (content hashing, canonicalization), clayers-spec
+    (validation, drift, coverage, connectivity, querying), clayers-repo
+    (version-controlled XML repositories), and the CLI-level assembly logic.
+    The result is a single Python package, <pr:code>import clayers</pr:code>,
+    that enables Python tooling to work with specs and repositories natively
+    without shelling out to the CLI.</pr:p>
+
+    <pr:p>The <trm:ref term="term-python-binding">binding</trm:ref> is built
+    with PyO3 and packaged via maturin. The native extension module is
+    <pr:code>clayers._clayers</pr:code>, and pure Python wrapper modules
+    provide re-exports, protocols, and submodule structure.</pr:p>
+
+    <pr:p>Typical use cases include: CI pipelines that validate specs and
+    fail on drift, pytest suites that assert coverage thresholds, Jupyter
+    notebooks that explore spec connectivity, web dashboards that render
+    spec health metrics, and agent frameworks that query specs
+    programmatically instead of parsing CLI output.</pr:p>
+  </pr:section>
+
+  <pr:section id="python-module-structure">
+    <pr:title>Module Structure</pr:title>
+    <pr:shortdesc>How the Python package is organized into submodules and
+    re-exports.</pr:shortdesc>
+
+    <pr:p>The package follows a layered structure mirroring the Rust crates:</pr:p>
+
+    <pr:table>
+      <pr:thead>
+        <pr:tr>
+          <pr:th>Python Module</pr:th>
+          <pr:th>Wraps</pr:th>
+          <pr:th>Key Types</pr:th>
+        </pr:tr>
+      </pr:thead>
+      <pr:tbody>
+        <pr:tr>
+          <pr:td>clayers</pr:td>
+          <pr:td>Top-level re-exports</pr:td>
+          <pr:td>KnowledgeModel, ContentHash, Repo, Author, exceptions</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>clayers.xml</pr:td>
+          <pr:td>clayers-xml</pr:td>
+          <pr:td>ContentHash</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>clayers.repo</pr:td>
+          <pr:td>clayers-repo (sync)</pr:td>
+          <pr:td>Repo, MemoryStore, SqliteStore, Author</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>clayers.repo.aio</pr:td>
+          <pr:td>clayers-repo (async)</pr:td>
+          <pr:td>Repo (async variant, same name)</pr:td>
+        </pr:tr>
+      </pr:tbody>
+    </pr:table>
+
+    <pr:p>Users switch between sync and async by changing the import path.
+    The sync <pr:code>from clayers.repo import Repo</pr:code> and async
+    <pr:code>from clayers.repo.aio import Repo</pr:code> share the same
+    class name and method signatures, making them a drop-in swap.</pr:p>
+  </pr:section>
+
+  <pr:section id="python-knowledge-model-api">
+    <pr:title>KnowledgeModel API</pr:title>
+    <pr:shortdesc>The central class for working with clayers specs from
+    Python.</pr:shortdesc>
+
+    <pr:p>The <trm:ref term="term-knowledge-model">KnowledgeModel</trm:ref>
+    class is constructed from a filesystem path and eagerly discovers index
+    files and spec files. Each method returns a typed result object that
+    mirrors the corresponding Rust struct with read-only Python attributes.
+    Errors are raised as SpecError exceptions.</pr:p>
+
+    <pr:p><pr:b>Constructor:</pr:b> <pr:code>KnowledgeModel(path, repo_root=None)</pr:code></pr:p>
+
+    <pr:table>
+      <pr:thead>
+        <pr:tr>
+          <pr:th>Property</pr:th>
+          <pr:th>Type</pr:th>
+          <pr:th>Description</pr:th>
+        </pr:tr>
+      </pr:thead>
+      <pr:tbody>
+        <pr:tr>
+          <pr:td>name</pr:td>
+          <pr:td>str</pr:td>
+          <pr:td>Spec name (directory basename)</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>files</pr:td>
+          <pr:td>list[str]</pr:td>
+          <pr:td>Discovered file paths</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>combined_xml</pr:td>
+          <pr:td>str</pr:td>
+          <pr:td>Assembled combined document</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>schema_dir</pr:td>
+          <pr:td>str | None</pr:td>
+          <pr:td>Path to schemas/ if found</pr:td>
+        </pr:tr>
+      </pr:tbody>
+    </pr:table>
+
+    <pr:table>
+      <pr:thead>
+        <pr:tr>
+          <pr:th>Method</pr:th>
+          <pr:th>Returns</pr:th>
+          <pr:th>Description</pr:th>
+        </pr:tr>
+      </pr:thead>
+      <pr:tbody>
+        <pr:tr>
+          <pr:td>validate()</pr:td>
+          <pr:td>ValidationResult</pr:td>
+          <pr:td>Well-formedness, ID uniqueness, cross-layer keyrefs</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>check_drift()</pr:td>
+          <pr:td>DriftReport</pr:td>
+          <pr:td>Compare stored hashes against current content</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>coverage(code_path=None)</pr:td>
+          <pr:td>CoverageReport</pr:td>
+          <pr:td>Spec-to-code and code-to-spec coverage analysis</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>connectivity()</pr:td>
+          <pr:td>ConnectivityReport</pr:td>
+          <pr:td>Graph metrics: components, hubs, bridges, cycles</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>query(xpath, *, mode="xml")</pr:td>
+          <pr:td>QueryResult</pr:td>
+          <pr:td>XPath query; mode is "count", "text", or "xml"</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>fix_node_hashes()</pr:td>
+          <pr:td>FixReport</pr:td>
+          <pr:td>Recompute spec-side hashes in artifact mappings</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>fix_artifact_hashes()</pr:td>
+          <pr:td>FixReport</pr:td>
+          <pr:td>Recompute code-side hashes in artifact mappings</pr:td>
+        </pr:tr>
+      </pr:tbody>
+    </pr:table>
+
+    <pr:p>A CI gate that validates a spec and checks drift on every
+    commit:</pr:p>
+    <pr:codeblock language="python">from clayers import KnowledgeModel
+
+km = KnowledgeModel("clayers/my-project")
+result = km.validate()
+assert result.is_valid, [e.message for e in result.errors]
+
+drift = km.check_drift()
+assert drift.drifted_count == 0, (
+    f"{drift.drifted_count} mappings drifted"
+)</pr:codeblock>
+
+    <pr:p>Querying the spec as a knowledge base to find which code
+    implements a concept:</pr:p>
+    <pr:codeblock language="python">km = KnowledgeModel("clayers/clayers")
+
+# Find all terms
+terms = km.query("//trm:term/trm:name", mode="text")
+print(terms.values)  # ['Layer', 'Namespace', 'Node', ...]
+
+# Find artifact mappings for a concept
+paths = km.query(
+    '//art:mapping[art:spec-ref/@node="term-drift"]'
+    '/art:artifact/@path',
+    mode="text",
+)
+print(paths.values)  # ['crates/clayers-spec/src/drift.rs']</pr:codeblock>
+
+    <pr:p>A coverage threshold test in pytest:</pr:p>
+    <pr:codeblock language="python">def test_spec_coverage_above_threshold():
+    km = KnowledgeModel("clayers/my-project")
+    cov = km.coverage()
+    mapped_pct = cov.mapped_nodes / cov.total_nodes * 100
+    assert mapped_pct >= 80, (
+        f"Only {mapped_pct:.0f}% of spec nodes are mapped. "
+        f"Unmapped: {cov.unmapped_nodes}"
+    )</pr:codeblock>
+
+    <pr:p>Exploring spec connectivity in a notebook:</pr:p>
+    <pr:codeblock language="python">km = KnowledgeModel("clayers/clayers")
+conn = km.connectivity()
+print(f"Nodes: {conn.node_count}, Edges: {conn.edge_count}")
+print(f"Density: {conn.density:.4f}")
+for hub in conn.hub_nodes[:3]:
+    print(f"  Hub: {hub.id} (degree {hub.total_degree})")
+for node_id in conn.isolated_nodes[:5]:
+    print(f"  Isolated: {node_id}")</pr:codeblock>
+  </pr:section>
+
+  <pr:section id="python-repo-api">
+    <pr:title>Repository API</pr:title>
+    <pr:shortdesc>Sync and async Python wrappers for the content-addressed
+    XML repository.</pr:shortdesc>
+
+    <pr:p>The repository API wraps clayers-repo's Repo&lt;S&gt; behind
+    <trm:ref term="term-repo-inner">RepoInner</trm:ref> enum dispatch.
+    Both the sync and async Repo classes hold an Arc&lt;RepoInner&gt; and
+    expose identical method signatures. The sync class uses a
+    <trm:ref term="term-global-runtime">shared tokio runtime</trm:ref> with
+    block_on() after releasing the GIL. The async class returns Python
+    awaitables via future_into_py().</pr:p>
+
+    <pr:p><pr:b>Constructor:</pr:b> <pr:code>Repo(store)</pr:code> where store
+    is MemoryStore() or SqliteStore.open(path) / SqliteStore.open_in_memory()</pr:p>
+
+    <pr:table>
+      <pr:thead>
+        <pr:tr>
+          <pr:th>Method</pr:th>
+          <pr:th>Returns</pr:th>
+          <pr:th>Description</pr:th>
+        </pr:tr>
+      </pr:thead>
+      <pr:tbody>
+        <pr:tr>
+          <pr:td>import_xml(xml)</pr:td>
+          <pr:td>ContentHash</pr:td>
+          <pr:td>Decompose XML into the Merkle DAG, return document hash</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>export_xml(hash)</pr:td>
+          <pr:td>str</pr:td>
+          <pr:td>Reconstruct XML from its content hash</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>build_tree(entries)</pr:td>
+          <pr:td>ContentHash</pr:td>
+          <pr:td>Build tree from [(path, doc_hash)] pairs</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>commit(branch, tree, author, message)</pr:td>
+          <pr:td>ContentHash</pr:td>
+          <pr:td>Create commit on branch pointing to tree</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>create_branch(name, target)</pr:td>
+          <pr:td>None</pr:td>
+          <pr:td>Create branch pointing to commit hash</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>delete_branch(name)</pr:td>
+          <pr:td>None</pr:td>
+          <pr:td>Delete a branch</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>list_branches()</pr:td>
+          <pr:td>list[(str, ContentHash)]</pr:td>
+          <pr:td>All branches with their tip hashes</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>create_tag(name, target, tagger, message)</pr:td>
+          <pr:td>None</pr:td>
+          <pr:td>Create annotated tag</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>list_tags()</pr:td>
+          <pr:td>list[(str, ContentHash)]</pr:td>
+          <pr:td>All tags with their target hashes</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>log(from_hash, limit=None)</pr:td>
+          <pr:td>list[CommitObject]</pr:td>
+          <pr:td>Walk commit history</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>diff_trees(a, b)</pr:td>
+          <pr:td>list[FileChange]</pr:td>
+          <pr:td>File-level diff between two trees</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>query(xpath, *, mode="xml")</pr:td>
+          <pr:td>QueryResult</pr:td>
+          <pr:td>XPath query against HEAD</pr:td>
+        </pr:tr>
+      </pr:tbody>
+    </pr:table>
+
+    <pr:p><pr:b>Supporting types:</pr:b></pr:p>
+    <pr:table>
+      <pr:thead>
+        <pr:tr>
+          <pr:th>Class</pr:th>
+          <pr:th>Key Attributes</pr:th>
+        </pr:tr>
+      </pr:thead>
+      <pr:tbody>
+        <pr:tr>
+          <pr:td>Author(name, email)</pr:td>
+          <pr:td>name: str, email: str</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>CommitObject</pr:td>
+          <pr:td>tree, parents, author, timestamp, message</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>FileChange</pr:td>
+          <pr:td>kind ("added"/"removed"/"modified"), path, old_hash, new_hash</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>ContentHash</pr:td>
+          <pr:td>hex, prefixed; from_canonical(), from_hex(), from_bytes()</pr:td>
+        </pr:tr>
+      </pr:tbody>
+    </pr:table>
+
+    <pr:p>A version-controlled XML editing workflow using the sync API:</pr:p>
+    <pr:codeblock language="python">from clayers.repo import Repo, MemoryStore, Author
+
+repo = Repo(MemoryStore())
+author = Author("Alice", "alice@example.com")
+
+# Import documents and commit
+spec = repo.import_xml("&lt;spec&gt;&lt;section id='intro'/&gt;&lt;/spec&gt;")
+index = repo.import_xml("&lt;index&gt;&lt;file href='spec.xml'/&gt;&lt;/index&gt;")
+tree = repo.build_tree([
+    ("spec.xml", spec),
+    ("index.xml", index),
+])
+commit = repo.commit("main", tree, author, "Initial spec")
+
+# Later: modify, commit, and diff
+spec_v2 = repo.import_xml("&lt;spec&gt;&lt;section id='intro' status='draft'/&gt;&lt;/spec&gt;")
+tree_v2 = repo.build_tree([("spec.xml", spec_v2), ("index.xml", index)])
+commit_v2 = repo.commit("main", tree_v2, author, "Add draft status")
+
+changes = repo.diff_trees(tree, tree_v2)
+for c in changes:
+    print(f"{c.kind}: {c.path}")</pr:codeblock>
+
+    <pr:p>The same workflow using the async API (only the import changes):</pr:p>
+    <pr:codeblock language="python">from clayers.repo.aio import Repo  # only this line changes
+from clayers.repo import MemoryStore, Author
+
+repo = Repo(MemoryStore())
+author = Author("Alice", "alice@example.com")
+
+spec = await repo.import_xml("&lt;spec/&gt;")
+tree = await repo.build_tree([("spec.xml", spec)])
+commit = await repo.commit("main", tree, author, "Initial")</pr:codeblock>
+
+    <pr:p>Persistent storage with SQLite survives process restarts:</pr:p>
+    <pr:codeblock language="python">from clayers.repo import Repo, Author
+from clayers import SqliteStore
+
+repo = Repo(SqliteStore.open("my-project.db"))
+# All commits, branches, tags persist to disk</pr:codeblock>
+  </pr:section>
+
+  <pr:section id="python-error-hierarchy">
+    <pr:title>Error Hierarchy</pr:title>
+    <pr:shortdesc>How Rust errors map to Python exceptions.</pr:shortdesc>
+
+    <pr:p>A base ClayersError exception inherits from Python's Exception.
+    Three subclasses map to the Rust crate error types:</pr:p>
+
+    <pr:table>
+      <pr:thead>
+        <pr:tr>
+          <pr:th>Python Exception</pr:th>
+          <pr:th>Rust Source</pr:th>
+          <pr:th>Raised By</pr:th>
+        </pr:tr>
+      </pr:thead>
+      <pr:tbody>
+        <pr:tr>
+          <pr:td>ClayersError</pr:td>
+          <pr:td>(base class)</pr:td>
+          <pr:td>Catch-all for any clayers error</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>XmlError</pr:td>
+          <pr:td>clayers_xml::Error</pr:td>
+          <pr:td>ContentHash.from_hex(), canonicalization</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>SpecError</pr:td>
+          <pr:td>clayers_spec::Error</pr:td>
+          <pr:td>KnowledgeModel constructor and all methods</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>RepoError</pr:td>
+          <pr:td>clayers_repo::Error</pr:td>
+          <pr:td>Repo constructor and all methods</pr:td>
+        </pr:tr>
+      </pr:tbody>
+    </pr:table>
+
+    <pr:p>Catching errors at different levels of specificity:</pr:p>
+    <pr:codeblock language="python">from clayers import ClayersError, SpecError, KnowledgeModel
+
+try:
+    km = KnowledgeModel("/nonexistent/path")
+except SpecError as e:
+    print(f"Spec problem: {e}")  # catches only spec errors
+except ClayersError as e:
+    print(f"Any clayers error: {e}")  # catches all subtypes</pr:codeblock>
+  </pr:section>
+
+  <pr:section id="python-queryable">
+    <pr:title>Shared Query Protocol</pr:title>
+    <pr:shortdesc>How KnowledgeModel and Repo share the Queryable
+    interface.</pr:shortdesc>
+
+    <pr:p>Both KnowledgeModel and Repo implement the
+    <trm:ref term="term-queryable-protocol">Queryable protocol</trm:ref>,
+    a runtime-checkable typing.Protocol. This enables generic Python code
+    to accept either as a query target.</pr:p>
+
+    <pr:p><pr:b>Protocol method:</pr:b> <pr:code>query(xpath: str, *, mode: str = "xml") -&gt; QueryResult</pr:code></pr:p>
+
+    <pr:table>
+      <pr:thead>
+        <pr:tr>
+          <pr:th>QueryResult Attribute</pr:th>
+          <pr:th>Type</pr:th>
+          <pr:th>Description</pr:th>
+        </pr:tr>
+      </pr:thead>
+      <pr:tbody>
+        <pr:tr>
+          <pr:td>kind</pr:td>
+          <pr:td>str</pr:td>
+          <pr:td>"count", "text", or "xml"</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>count</pr:td>
+          <pr:td>int | None</pr:td>
+          <pr:td>Set when kind == "count"</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>values</pr:td>
+          <pr:td>list[str] | None</pr:td>
+          <pr:td>Set when kind == "text" or "xml"</pr:td>
+        </pr:tr>
+      </pr:tbody>
+    </pr:table>
+
+    <pr:p>Writing a function that works with both filesystem specs and
+    versioned repositories:</pr:p>
+    <pr:codeblock language="python">from clayers import Queryable
+
+def count_terms(source: Queryable) -&gt; int:
+    result = source.query("//trm:term", mode="count")
+    return result.count or 0
+
+# Works with specs on disk
+from clayers import KnowledgeModel
+km = KnowledgeModel("clayers/my-project")
+print(count_terms(km))  # e.g. 42
+
+# Works identically with a repository snapshot
+from clayers.repo import Repo, MemoryStore
+repo = Repo(MemoryStore())
+# ... after importing and committing documents ...
+print(count_terms(repo))</pr:codeblock>
+  </pr:section>
+
+  <!-- ═══════════════ Topic Typing ═══════════════ -->
+
+  <org:concept ref="python-integration">
+    <org:purpose>Understanding the purpose and scope of the Python bindings
+    and how they relate to the four Rust crates.</org:purpose>
+  </org:concept>
+
+  <org:reference ref="python-module-structure">
+    <org:purpose>Lookup reference for which Python module wraps which Rust
+    crate and what types are available.</org:purpose>
+  </org:reference>
+
+  <org:reference ref="python-knowledge-model-api">
+    <org:purpose>Reference for the KnowledgeModel class methods and return
+    types.</org:purpose>
+  </org:reference>
+
+  <org:reference ref="python-repo-api">
+    <org:purpose>Reference for the sync/async Repo API and the inner
+    dispatch design.</org:purpose>
+  </org:reference>
+
+  <org:concept ref="python-error-hierarchy">
+    <org:purpose>Understanding how Rust errors propagate as typed Python
+    exceptions.</org:purpose>
+  </org:concept>
+
+  <org:concept ref="python-queryable">
+    <org:purpose>Understanding the shared query protocol and QueryResult
+    type.</org:purpose>
+  </org:concept>
+
+  <org:concept ref="term-python-binding">
+    <org:purpose>Core vocabulary for the Python integration.</org:purpose>
+  </org:concept>
+
+  <org:concept ref="term-knowledge-model">
+    <org:purpose>The central Python class wrapping spec operations.</org:purpose>
+  </org:concept>
+
+  <org:concept ref="term-queryable-protocol">
+    <org:purpose>The shared query interface between KnowledgeModel and
+    Repo.</org:purpose>
+  </org:concept>
+
+  <org:concept ref="term-repo-inner">
+    <org:purpose>The enum dispatch pattern for wrapping generic Rust
+    types in PyO3.</org:purpose>
+  </org:concept>
+
+  <org:concept ref="term-global-runtime">
+    <org:purpose>The shared tokio runtime bridging sync Python to async
+    Rust.</org:purpose>
+  </org:concept>
+
+  <!-- ═══════════════ Relations ═══════════════ -->
+
+  <rel:relation type="refines" from="python-integration" to="layered-architecture">
+    <rel:note>The Python bindings expose the layered architecture to
+    Python tooling, wrapping all four Rust crates.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="term-knowledge-model" to="term-combined-document">
+    <rel:note>KnowledgeModel assembles the combined document to answer
+    queries.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="term-knowledge-model" to="term-drift">
+    <rel:note>KnowledgeModel.check_drift() delegates to drift
+    detection.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="term-knowledge-model" to="term-coverage">
+    <rel:note>KnowledgeModel.coverage() delegates to coverage
+    analysis.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="term-knowledge-model" to="term-artifact-mapping">
+    <rel:note>KnowledgeModel.fix_artifact_hashes() and fix_node_hashes()
+    operate on artifact mappings.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="python-repo-api" to="term-repo-inner">
+    <rel:note>Both sync and async Repo hold Arc&lt;RepoInner&gt;.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="term-repo-inner" to="term-global-runtime">
+    <rel:note>The sync Repo class uses the global runtime to bridge
+    async-to-sync.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="term-queryable-protocol" to="term-knowledge-model">
+    <rel:note>KnowledgeModel implements Queryable.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="python-error-hierarchy" to="term-python-binding">
+    <rel:note>The error hierarchy is part of the binding layer.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="python-knowledge-model-api" to="python-integration">
+    <rel:note>KnowledgeModel is the primary class in the Python
+    integration, wrapping all spec analysis operations.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="python-repo-api" to="python-integration">
+    <rel:note>The Repo API is the other main class in the Python
+    integration, wrapping VCS operations.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="python-module-structure" to="python-integration">
+    <rel:note>Module structure defines how the Python package is
+    organized into importable submodules.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="python-queryable" to="python-integration">
+    <rel:note>The Queryable protocol unifies KnowledgeModel and Repo
+    query surfaces within the integration.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="python-knowledge-model-api" to="term-knowledge-model">
+    <rel:note>The API section documents the KnowledgeModel class.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="python-queryable" to="term-queryable-protocol">
+    <rel:note>The shared query section documents the Queryable
+    protocol.</rel:note>
+  </rel:relation>
+
+  <!-- ═══════════════ Artifact Mappings ═══════════════ -->
+
+  <!-- PyO3 module root -->
+  <art:mapping id="map-py-module-root">
+    <art:spec-ref node="python-integration"
+              revision="draft-1"
+              node-hash="sha256:4223ff2d7912cbca40b7036c87eb18862f500ed27723d1183b13bf476367194c"/>
+    <art:artifact repo="clayers"
+              repo-revision="69ddfa1"
+              path="crates/clayers-py/src/lib.rs">
+      <art:range hash="sha256:08c3f10c376ee7f1285fac63fbd9ecf4a6bc0abf8a85cce960c6dd6119d54578"
+                 start-line="1" end-line="31"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>The #[pymodule] root wires all submodules together:
+    errors, query, spec types, KnowledgeModel, xml, repo.</art:note>
+  </art:mapping>
+
+  <!-- Error hierarchy -->
+  <art:mapping id="map-py-errors">
+    <art:spec-ref node="python-error-hierarchy"
+              revision="draft-1"
+              node-hash="sha256:e8cd9c2a9982c9143c6815106f9d05270fc54ae0d92b21ae26e4c1886f38bda7"/>
+    <art:artifact repo="clayers"
+              repo-revision="69ddfa1"
+              path="crates/clayers-py/src/errors.rs">
+      <art:range hash="sha256:74fb1f9f2ca8c492b922c302632009009925d8c20cdad786336e56214f4a1aa1"
+                 start-line="1" end-line="23"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Defines ClayersError, XmlError, SpecError, RepoError exception
+    hierarchy and helper conversion functions.</art:note>
+  </art:mapping>
+
+  <!-- KnowledgeModel class -->
+  <art:mapping id="map-py-knowledge-model">
+    <art:spec-ref node="python-knowledge-model-api"
+              revision="draft-1"
+              node-hash="sha256:7e1409ee37a91d0d90c2bd2b81e555e10e7f16f971af3f3f9883088be0e19665"/>
+    <art:artifact repo="clayers"
+              repo-revision="69ddfa1"
+              path="crates/clayers-py/src/knowledge_model.rs">
+      <art:range hash="sha256:fd3e3c86e361e86452f6e3303060765a6d03bec37f7c77e26b184fa527afac85"
+                 start-line="1" end-line="148"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>KnowledgeModel pyclass: constructor, properties (name, files,
+    combined_xml, schema_dir), and methods (validate, check_drift, coverage,
+    connectivity, fix_node_hashes, fix_artifact_hashes, query).</art:note>
+  </art:mapping>
+
+  <!-- Spec result types -->
+  <art:mapping id="map-py-spec-types">
+    <art:spec-ref node="python-knowledge-model-api"
+              revision="draft-1"
+              node-hash="sha256:7e1409ee37a91d0d90c2bd2b81e555e10e7f16f971af3f3f9883088be0e19665"/>
+    <art:artifact repo="clayers"
+              repo-revision="69ddfa1"
+              path="crates/clayers-py/src/spec/types.rs">
+      <art:range hash="sha256:3770be58396ca5d9953a17d164ee38a0291b32b2042456d1f6b6423e3a269849"
+                 start-line="1" end-line="400"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>All spec result pyclasses: ValidationResult, DriftReport,
+    CoverageReport, ConnectivityReport, FixReport, and their subtypes.
+    Each mirrors the corresponding Rust struct with From conversions.</art:note>
+  </art:mapping>
+
+  <!-- QueryResult and Queryable -->
+  <art:mapping id="map-py-query">
+    <art:spec-ref node="python-queryable"
+              revision="draft-1"
+              node-hash="sha256:9d911196246f9344dd3cfc69adefc30984850b95bc2cec82e01dbd3755b169c1"/>
+    <art:artifact repo="clayers"
+              repo-revision="69ddfa1"
+              path="crates/clayers-py/src/query.rs">
+      <art:range hash="sha256:3735832a0923a2ff9e7f7469ac892acbc014aca3ed9ee646f483b4c9e104e4cc"
+                 start-line="1" end-line="97"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Shared QueryResult pyclass with kind/count/values, and
+    query mode parsers for both spec and repo variants.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-py-queryable-protocol">
+    <art:spec-ref node="python-queryable"
+              revision="draft-1"
+              node-hash="sha256:9d911196246f9344dd3cfc69adefc30984850b95bc2cec82e01dbd3755b169c1"/>
+    <art:artifact repo="clayers"
+              repo-revision="69ddfa1"
+              path="crates/clayers-py/python/clayers/protocols.py">
+      <art:range hash="sha256:42b46aae70a52472b6bd082a535065be2759aa78bb6a0b2721b3bdfa1131d19e"
+                 start-line="1" end-line="6"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>The runtime-checkable Queryable Protocol definition in
+    pure Python.</art:note>
+  </art:mapping>
+
+  <!-- ContentHash wrapper -->
+  <art:mapping id="map-py-content-hash">
+    <art:spec-ref node="python-module-structure"
+              revision="draft-1"
+              node-hash="sha256:b27ad6aee64ad263b3e1519020182f73fd2a2121076fb35649978d90d3e9b82b"/>
+    <art:artifact repo="clayers"
+              repo-revision="69ddfa1"
+              path="crates/clayers-py/src/xml/hash.rs">
+      <art:range hash="sha256:94f96c0ac5829f3a2fe553466374e283d5bcbc0568b5a4924f518395115431ea"
+                 start-line="1" end-line="78"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>ContentHash pyclass wrapping clayers_xml::ContentHash with
+    from_bytes, from_canonical, from_hex, hex, prefixed, __eq__, __hash__.</art:note>
+  </art:mapping>
+
+  <!-- RepoInner enum dispatch -->
+  <art:mapping id="map-py-repo-inner">
+    <art:spec-ref node="term-repo-inner"
+              revision="draft-1"
+              node-hash="sha256:3606578b91e906962f39b788593f1647f6abcf9dbec84cfd8b6b747ff7c0d234"/>
+    <art:artifact repo="clayers"
+              repo-revision="69ddfa1"
+              path="crates/clayers-py/src/repo/inner.rs">
+      <art:range hash="sha256:fc80ba63d0f421b14dae86d2797c8ec2e31791a26a6350dace757da9ca071e2f"
+                 start-line="1" end-line="37"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>RepoInner enum (Memory/Sqlite variants), dispatch! macro,
+    global tokio runtime via OnceLock, and SharedRepo type alias.</art:note>
+  </art:mapping>
+
+  <!-- Sync Repo class -->
+  <art:mapping id="map-py-repo-sync">
+    <art:spec-ref node="python-repo-api"
+              revision="draft-1"
+              node-hash="sha256:faa2a77d587dd3267a0b227ce0e963268f1ca678e36b5699ebce6396e920ef1b"/>
+    <art:artifact repo="clayers"
+              repo-revision="69ddfa1"
+              path="crates/clayers-py/src/repo/repo_sync.rs">
+      <art:range hash="sha256:ffb5c32a7e2c5e4635f31f8e6e619dc1c77ed140ff9da3f3fcbbadcbdbe5b84c"
+                 start-line="1" end-line="250"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Sync Repo pyclass using py.detach() + get_runtime().block_on()
+    for all async repo methods. Store type detection via Bound::cast.</art:note>
+  </art:mapping>
+
+  <!-- Async Repo class -->
+  <art:mapping id="map-py-repo-async">
+    <art:spec-ref node="python-repo-api"
+              revision="draft-1"
+              node-hash="sha256:faa2a77d587dd3267a0b227ce0e963268f1ca678e36b5699ebce6396e920ef1b"/>
+    <art:artifact repo="clayers"
+              repo-revision="69ddfa1"
+              path="crates/clayers-py/src/repo/repo_async.rs">
+      <art:range hash="sha256:c770f57da55cfd27edc63d1dddbd034e29205263ac635930f1802388072b2335"
+                 start-line="1" end-line="230"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Async Repo pyclass (exposed as "Repo" in clayers.repo.aio)
+    using pyo3_async_runtimes::tokio::future_into_py for all methods.</art:note>
+  </art:mapping>
+
+  <!-- Store wrappers -->
+  <art:mapping id="map-py-stores">
+    <art:spec-ref node="python-repo-api"
+              revision="draft-1"
+              node-hash="sha256:faa2a77d587dd3267a0b227ce0e963268f1ca678e36b5699ebce6396e920ef1b"/>
+    <art:artifact repo="clayers"
+              repo-revision="69ddfa1"
+              path="crates/clayers-py/src/repo/store.rs">
+      <art:range hash="sha256:1367ccc130c7d4e4984b2906e9cc19e5104349437de94e544c19816d0b00db7a"
+                 start-line="1" end-line="65"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>MemoryStore and SqliteStore pyclasses that create RepoInner
+    instances on demand.</art:note>
+  </art:mapping>
+
+  <!-- Object model types -->
+  <art:mapping id="map-py-objects">
+    <art:spec-ref node="python-repo-api"
+              revision="draft-1"
+              node-hash="sha256:faa2a77d587dd3267a0b227ce0e963268f1ca678e36b5699ebce6396e920ef1b"/>
+    <art:artifact repo="clayers"
+              repo-revision="69ddfa1"
+              path="crates/clayers-py/src/repo/objects.rs">
+      <art:range hash="sha256:5ca4a5530e1e91841cfd3c13a4037b3838a3ca99d4530b1d100a8a899553ca93"
+                 start-line="1" end-line="111"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Author, CommitObject, TreeEntry, FileChange pyclasses with
+    From conversions from Rust types.</art:note>
+  </art:mapping>
+
+  <!-- Python package re-exports -->
+  <art:mapping id="map-py-package-init">
+    <art:spec-ref node="python-module-structure"
+              revision="draft-1"
+              node-hash="sha256:b27ad6aee64ad263b3e1519020182f73fd2a2121076fb35649978d90d3e9b82b"/>
+    <art:artifact repo="clayers"
+              repo-revision="69ddfa1"
+              path="crates/clayers-py/python/clayers/__init__.py">
+      <art:range hash="sha256:211ff1f8ef42e306a50821901c6df8f67c6a37f6ec749df805f1d3080359c70b"
+                 start-line="1" end-line="25"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Top-level __init__.py re-exporting KnowledgeModel, ContentHash,
+    Repo, MemoryStore, Author, exceptions, and Queryable.</art:note>
+  </art:mapping>
+
+  <!-- ═══════════════ LLM Descriptions ═══════════════ -->
+
+  <llm:node ref="python-integration">
+    The Python integration section describes the clayers-py crate: a PyO3
+    native extension that wraps all four Rust crates (clayers-xml,
+    clayers-spec, clayers-repo, and CLI-level logic) as the "clayers"
+    Python package. The binding provides KnowledgeModel for spec analysis,
+    sync/async Repo for VCS operations, ContentHash for hash manipulation,
+    and a typed exception hierarchy. Key design: enum dispatch for generic
+    Repo&lt;S&gt;, shared global tokio runtime for sync, Queryable protocol
+    unifying KnowledgeModel and Repo.
+  </llm:node>
+
+  <llm:node ref="python-module-structure">
+    Module layout: clayers (re-exports), clayers.xml (ContentHash),
+    clayers.repo (sync Repo, MemoryStore, SqliteStore, Author),
+    clayers.repo.aio (async Repo). Native extension is clayers._clayers.
+    Users swap sync/async by changing the import path only.
+  </llm:node>
+
+  <llm:node ref="python-knowledge-model-api">
+    KnowledgeModel wraps all clayers-spec operations: validate(),
+    check_drift(), coverage(code_path=None), connectivity(),
+    fix_node_hashes(), fix_artifact_hashes(), query(xpath, mode).
+    Properties: name, files, combined_xml, schema_dir. Returns typed
+    result objects (ValidationResult, DriftReport, etc.).
+  </llm:node>
+
+  <llm:node ref="python-repo-api">
+    Sync and async Repo classes wrapping clayers-repo. Both hold
+    Arc&lt;RepoInner&gt; (enum dispatch over store types). Sync uses
+    py.detach() + block_on(). Async uses future_into_py(). Methods:
+    import_xml, export_xml, build_tree, commit, create_branch,
+    delete_branch, list_branches, create_tag, list_tags, log,
+    diff_trees, query.
+  </llm:node>
+
+  <llm:node ref="python-error-hierarchy">
+    Exception hierarchy: ClayersError (base, extends Exception) with
+    XmlError, SpecError, RepoError subclasses mapping to the three
+    Rust crate error types. Helper functions (spec_err, repo_err)
+    convert errors without orphan-rule issues.
+  </llm:node>
+
+  <llm:node ref="python-queryable">
+    Queryable is a runtime-checkable typing.Protocol with
+    query(xpath, mode="xml") -&gt; QueryResult. Both KnowledgeModel
+    and Repo implement it. QueryResult has kind ("count"/"text"/"xml"),
+    count (int or None), values (list or None).
+  </llm:node>
+
+  <llm:node ref="term-python-binding">
+    The clayers-py crate: PyO3 + maturin native extension. Wraps all
+    Rust crates as Python classes. Module name: clayers._clayers.
+    Pure Python wrappers provide re-exports and protocols.
+  </llm:node>
+
+  <llm:node ref="term-knowledge-model">
+    Python class for loaded specs. Constructor discovers index/spec
+    files. Methods: validate, check_drift, coverage, connectivity,
+    fix_node_hashes, fix_artifact_hashes, query. All sync (clayers-spec
+    is sync Rust).
+  </llm:node>
+
+  <llm:node ref="term-queryable-protocol">
+    typing.Protocol unifying KnowledgeModel and Repo query APIs.
+    Single method: query(xpath, *, mode="xml") -&gt; QueryResult.
+    Runtime-checkable via isinstance().
+  </llm:node>
+
+  <llm:node ref="term-repo-inner">
+    Enum dispatch for PyO3: RepoInner::Memory(Repo&lt;MemoryStore&gt;)
+    or RepoInner::Sqlite(Repo&lt;SqliteStore&gt;). Wrapped in Arc for
+    sharing between sync/async classes. dispatch! macro routes calls.
+  </llm:node>
+
+  <llm:node ref="term-global-runtime">
+    OnceLock&lt;tokio::runtime::Runtime&gt; shared across all sync Repo
+    instances. Multi-thread runtime with enable_all(). Sync methods
+    call py.detach() to release GIL, then block_on() on this runtime.
+  </llm:node>
+
+</spec:clayers>

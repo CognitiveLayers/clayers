@@ -232,6 +232,28 @@
         <org:title>Reading Maps (This Feature)</org:title>
       </org:topicref>
     </org:part>
+
+    <org:part audience="developer" role="implementor">
+      <org:title>Python Integration</org:title>
+      <org:topicref ref="python-integration">
+        <org:title>Overview and Architecture</org:title>
+      </org:topicref>
+      <org:topicref ref="python-module-structure">
+        <org:title>Package Layout</org:title>
+      </org:topicref>
+      <org:topicref ref="python-knowledge-model-api">
+        <org:title>Working with Specs (KnowledgeModel)</org:title>
+      </org:topicref>
+      <org:topicref ref="python-repo-api">
+        <org:title>Working with Repositories (Repo)</org:title>
+      </org:topicref>
+      <org:topicref ref="python-queryable">
+        <org:title>Shared Query Protocol</org:title>
+      </org:topicref>
+      <org:topicref ref="python-error-hierarchy" required="false">
+        <org:title>Exception Hierarchy</org:title>
+      </org:topicref>
+    </org:part>
   </org:map>
 
 
@@ -279,7 +301,7 @@
   <art:mapping id="map-newcomers-guide-self">
     <art:spec-ref node="newcomers-guide"
               revision="draft-1"
-              node-hash="sha256:d6187ac0531715f148fadd18015e27b6d3792fdad43f9b79540091b4e7b52c4d"/>
+              node-hash="sha256:4738bf2f99253936e1d7ac6b352a8294e9edb14cc5a0e58460acf98395effa09"/>
     <art:artifact repo="clayers"
               repo-revision="753ad37"
               path="clayers/clayers/reading-maps.xml">

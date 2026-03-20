@@ -1,0 +1,8 @@
+*.so
+*.dylib
+*.dSYM/
+*.pyd
+__pycache__/
+.venv/
+target/
+uv.lock

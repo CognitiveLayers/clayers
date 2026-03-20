@@ -68,7 +68,7 @@
     <art:artifact repo="clayers"
               repo-revision="ae7434a"
               path="schemas/llm.xsd">
-        <art:range hash="sha256:cbdae85e63cd958d16ddcd40fc3e572bc0cfeeec31e90f20f746361226f80d2d"/>
+        <art:range hash="sha256:77d4c8fee44bfcad36365d51af8919c1e3f25470c95dfeb055b0c9b0e2b364a3"/>
       </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>llm.xsd defines both the out-of-band elements (node, schema) and

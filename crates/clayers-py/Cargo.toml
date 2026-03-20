@@ -1,0 +1,20 @@
+[package]
+name = "clayers-py"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "clayers_py"
+crate-type = ["cdylib"]
+
+[features]
+default = ["sqlite"]
+sqlite = ["clayers-repo/sqlite"]
+
+[dependencies]
+clayers-repo = { version = "0.1.0", path = "../clayers-repo", features = ["serde"] }
+clayers-spec = { version = "0.1.0", path = "../clayers-spec" }
+clayers-xml = { version = "0.1.0", path = "../clayers-xml" }
+pyo3 = { version = "0.28.2", features = ["extension-module"] }
+pyo3-async-runtimes = { version = "0.28.0", features = ["tokio-runtime"] }
+tokio = { version = "1.50.0", features = ["rt", "rt-multi-thread"] }
