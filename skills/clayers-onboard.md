@@ -4,9 +4,11 @@ description: >
   Systematically onboard this project to clayers specifications. Analyzes the
   entire codebase, creates structured specs with prose/terminology/relations/LLM
   descriptions, maps all code with artifact traceability, and iterates until
-  coverage, connectivity, and drift are all clean. Use when: "onboard to clayers",
-  "create specs", "clayers-onboard", "drive coverage to 100%".
-argument-hint: "[--resume | --phase N]"
+  coverage, connectivity, and drift are all clean. Also supports catch-up mode
+  to fill gaps in an existing knowledge model. Use when: "onboard to clayers",
+  "create specs", "clayers-onboard", "drive coverage to 100%", "catch up",
+  "fill spec gaps", "missing coverage".
+argument-hint: "[--resume | --phase N | --catch-up]"
 ---
 
 # Clayers Onboard
@@ -26,9 +28,159 @@ Before starting, verify:
    `clayers/{{PROJECT_NAME}}/index.xml` exists. If not, run `clayers adopt .`
 3. **You can read the entire codebase**: you need access to all source files
 
-If resuming (`--resume`), skip to the phase where you left off. Run
-`clayers artifact --coverage clayers/{{PROJECT_NAME}}/` and
-`clayers connectivity clayers/{{PROJECT_NAME}}/` to assess current state.
+**Mode selection:**
+- **Fresh onboarding** (no arguments or `--phase 1`): Start from Phase 1.
+  Use when the spec is empty or nearly empty.
+- **Resume** (`--resume`): Assess current state and pick up where you left
+  off. Run coverage and connectivity to determine which phase to continue.
+- **Catch-up** (`--catch-up`): The spec exists but has gaps. Skip Phase 1
+  and go directly to the Catch-Up section below. Use when: coverage is
+  insufficient, new code was added without spec updates, or a previous
+  session left the knowledge model incomplete.
+
+---
+
+## Catch-Up Mode
+
+**Use when**: the spec already exists but coverage is incomplete. This
+happens when new code was added without corresponding spec updates, when
+a previous onboarding session was interrupted, or when an LLM lost context
+and left gaps in the knowledge model.
+
+Catch-up is NOT about fixing mappings (use `/clayers-review-artifacts` for
+that). Catch-up is about finding concepts that are completely absent from
+the knowledge model -- code that has no spec node at all.
+
+### Step 1: Assess current state
+
+```bash
+clayers artifact --coverage clayers/{{PROJECT_NAME}}/
+clayers artifact --coverage clayers/{{PROJECT_NAME}}/ --code-path src/
+clayers connectivity clayers/{{PROJECT_NAME}}/
+clayers validate clayers/{{PROJECT_NAME}}/
+```
+
+Record:
+- Total nodes, mapped, exempt, unmapped
+- Code coverage % per file
+- Isolated nodes
+- Any validation errors
+
+### Step 2: Identify uncovered code
+
+Focus on the "code coverage" section of the coverage output. For each file
+with uncovered ranges (`NOT COVERED`), read the uncovered code and ask:
+
+**Is there a spec node that should describe this code?**
+
+Build a gap list organized by type:
+
+```
+MISSING SPEC NODES:
+  src/auth/jwt.rs:45-120  -- JWT token validation (no spec node exists)
+  src/api/handlers.rs:200-280  -- bulk import endpoint (not described)
+
+MISSING TERMS:
+  "tenant" -- used 47 times across codebase, no trm:term
+  "pipeline stage" -- core concept, undefined
+
+MISSING RELATIONS:
+  auth module depends on database module (no rel:relation)
+
+THIN SPEC NODES (exist but lack depth):
+  section-api -- has 2-sentence description for a 500-line module
+```
+
+### Step 3: Scan for missing domain terminology
+
+Compare the codebase vocabulary against existing terms:
+
+```bash
+# List existing terms
+clayers query clayers/{{PROJECT_NAME}}/ '//trm:term/trm:name' --text
+```
+
+Then scan the code for domain-specific words, type names, and concepts
+that appear frequently but have no corresponding term. Look in:
+- Type/struct/class names
+- Function names (especially public API)
+- Constants and configuration keys
+- Comments that define concepts
+- Documentation and README files
+
+### Step 4: Scan for missing module descriptions
+
+```bash
+# List existing spec sections
+clayers query clayers/{{PROJECT_NAME}}/ '//pr:section/pr:title' --text
+```
+
+Compare against the project's directory structure. Each major module or
+component should have a corresponding spec section. Look for:
+- Source directories with no spec file
+- Files with significant logic but no artifact mapping
+- New modules added since the last onboarding
+
+### Step 5: Check for shallow spec nodes
+
+For each existing spec node, assess whether its description is adequate:
+
+```bash
+# List all spec nodes
+clayers query clayers/{{PROJECT_NAME}}/ '//*[@id]/@id' --text
+```
+
+A spec node is "shallow" if:
+- The prose is just one sentence for a complex concept
+- It lacks an LLM description (`llm:node`)
+- It has no relations to other nodes (isolated)
+- Its artifact mapping covers 200+ lines without decomposition
+- The description doesn't match what the code actually does
+
+For each shallow node, decide:
+- **Deepen**: Add more prose, sub-sections, terms, relations
+- **Decompose**: Split into multiple focused nodes
+- **Update**: Rewrite to match current code (it may have evolved)
+
+### Step 6: Execute the gap fill
+
+For each item on your gap list, apply the appropriate phase:
+
+| Gap type | Action | Go to |
+|----------|--------|-------|
+| Missing term | Create `trm:term` | Phase 2 |
+| Missing spec node | Create spec file/section | Phase 3 |
+| Missing artifact mapping | Create `art:mapping` | Phase 4 |
+| Missing relation | Add `rel:relation` | Phase 3 |
+| Missing LLM description | Add `llm:node` | Phase 3 |
+| Shallow node | Deepen/decompose | Phase 3 |
+
+Work through the gap list systematically. After each batch of changes:
+
+```bash
+clayers validate clayers/{{PROJECT_NAME}}/
+clayers artifact --fix-node-hash clayers/{{PROJECT_NAME}}/
+clayers artifact --fix-artifact-hash clayers/{{PROJECT_NAME}}/
+```
+
+### Step 7: Verify catch-up is complete
+
+Run the full quality suite (same as Phase 5 + Phase 6):
+
+```bash
+clayers artifact --coverage clayers/{{PROJECT_NAME}}/
+clayers connectivity clayers/{{PROJECT_NAME}}/
+clayers artifact --drift clayers/{{PROJECT_NAME}}/
+clayers validate clayers/{{PROJECT_NAME}}/
+```
+
+Compare against your Step 1 baseline:
+- Unmapped nodes should be zero (or reduced)
+- Code coverage should be higher
+- Isolated nodes should be zero
+- No new validation errors
+
+If gaps remain, repeat Steps 2-6 for the remaining items.
 
 ---
 

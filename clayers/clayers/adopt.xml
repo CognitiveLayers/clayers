@@ -492,7 +492,7 @@
     <art:artifact repo="clayers"
               repo-revision="HEAD"
               path="skills/clayers-onboard.md">
-      <art:range hash="sha256:f55153ec44564b30742c5ab2a0df45f1773a429366da894b789da1adb5dbe6f0"/>
+      <art:range hash="sha256:f1fe1668ba3acc9a99512c5411a63dfaedee07f77647a10ce105ccdf699bc331"/>
     </art:artifact>
     <art:coverage>partial</art:coverage>
     <art:note>The onboarding skill template: comprehensive phase-by-phase
