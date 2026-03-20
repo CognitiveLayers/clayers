@@ -51,7 +51,7 @@ impl<C: Codec> WsTransport<C> {
             // Build a request with auth headers applied
             let req = http::Request::builder()
                 .uri(url)
-                .header("Host", url_host(url).unwrap_or_default())
+                .header("Host", url_host(url))
                 .header("Connection", "Upgrade")
                 .header("Upgrade", "websocket")
                 .header("Sec-WebSocket-Version", "13")
@@ -181,11 +181,12 @@ impl WsRequestValidator for BearerToken {
 }
 
 /// Extract the host:port from a `ws://` or `wss://` URL.
-fn url_host(url: &str) -> Option<String> {
+fn url_host(url: &str) -> String {
     let without_scheme = url
         .strip_prefix("ws://")
-        .or_else(|| url.strip_prefix("wss://"))?;
-    Some(without_scheme.split('/').next()?.to_string())
+        .or_else(|| url.strip_prefix("wss://"))
+        .unwrap_or(url);
+    without_scheme.split('/').next().unwrap_or(url).to_string()
 }
 
 /// Start a WebSocket server that dispatches to a [`RepositoryProvider`].

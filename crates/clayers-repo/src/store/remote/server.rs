@@ -117,7 +117,8 @@ impl<P: RepositoryProvider + 'static> Server<P> {
             .collect();
         for tx_id in to_rollback {
             if let Some(mut state) = txns.remove(&tx_id) {
-                let _ = state.tx.rollback().await;
+                // Best-effort cleanup: rollback failure is non-fatal on disconnect.
+                drop(state.tx.rollback().await);
             }
         }
     }
@@ -410,12 +411,13 @@ impl<P: RepositoryProvider + 'static> Server<P> {
         let conns = self.connections.lock().await;
         for (&id, tx) in conns.iter() {
             if id != origin {
-                let _ = tx.send(ServerMessage::RefUpdated {
+                // Receiver dropped = client disconnected; safe to discard.
+                drop(tx.send(ServerMessage::RefUpdated {
                     repo: repo.to_string(),
                     name: name.to_string(),
                     old,
                     new,
-                });
+                }));
             }
         }
     }

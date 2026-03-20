@@ -67,13 +67,14 @@ impl<T: Transport + 'static> RemoteStore<T> {
                                 }
                                 ServerMessage::SubtreeItem { .. } => {
                                     if let Some(tx) = streams_guard.get(&id) {
-                                        let _ = tx.send(msg);
+                                        // Receiver dropped = stream consumer gone; ok to discard.
+                                        drop(tx.send(msg));
                                     }
                                 }
                                 ServerMessage::Error { .. } => {
                                     // Forward error to stream, then close it
                                     if let Some(tx) = streams_guard.remove(&id) {
-                                        let _ = tx.send(msg);
+                                        drop(tx.send(msg));
                                     }
                                 }
                                 _ => {}
@@ -82,10 +83,11 @@ impl<T: Transport + 'static> RemoteStore<T> {
                         }
                     }
 
-                    // Regular reply: dispatch to pending waiter
+                    // Regular reply: dispatch to pending waiter.
+                    // Receiver dropped = caller timed out; ok to discard.
                     let mut pending_guard = pending.lock().await;
                     if let Some(tx) = pending_guard.remove(&id) {
-                        let _ = tx.send(msg);
+                        drop(tx.send(msg));
                     }
                 }
             })
@@ -473,11 +475,14 @@ impl<T: Transport + 'static> Drop for RemoteTransaction<T> {
             let transport = Arc::clone(&self.transport);
             let tx_id = self.tx_id;
             let id = self.alloc_id();
-            // Fire-and-forget rollback
+            // Fire-and-forget rollback: if the transport is closed, the server
+            // will clean up the transaction on disconnect anyway.
             tokio::spawn(async move {
-                let _ = transport
-                    .send(ClientMessage::TxRollback { id, tx_id })
-                    .await;
+                drop(
+                    transport
+                        .send(ClientMessage::TxRollback { id, tx_id })
+                        .await,
+                );
             });
         }
     }
