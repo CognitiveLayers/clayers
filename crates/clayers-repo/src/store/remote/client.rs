@@ -27,6 +27,7 @@ pub struct RemoteStore<T: Transport> {
     next_id: Arc<AtomicU64>,
     pending: Arc<Mutex<HashMap<MessageId, oneshot::Sender<ServerMessage>>>>,
     streams: Arc<Mutex<HashMap<MessageId, mpsc::UnboundedSender<ServerMessage>>>>,
+    notifications: Mutex<mpsc::UnboundedReceiver<ServerMessage>>,
     reader_abort: AbortHandle,
 }
 
@@ -40,19 +41,23 @@ impl<T: Transport + 'static> RemoteStore<T> {
             Arc::new(Mutex::new(HashMap::new()));
         let streams: Arc<Mutex<HashMap<MessageId, mpsc::UnboundedSender<ServerMessage>>>> =
             Arc::new(Mutex::new(HashMap::new()));
+        let (notify_tx, notify_rx) = mpsc::unbounded_channel();
 
         let reader = {
             let transport = Arc::clone(&transport);
             let pending = Arc::clone(&pending);
             let streams = Arc::clone(&streams);
+            let notify_tx = notify_tx.clone();
             tokio::spawn(async move {
                 loop {
                     let Ok(msg) = transport.recv().await else {
                         break;
                     };
 
-                    // Server-initiated notifications: drop for now
+                    // Server-initiated notifications (RefUpdated, TransactionTerminated)
                     let Some(id) = msg.id() else {
+                        // Receiver dropped = nobody listening; ok to discard.
+                        drop(notify_tx.send(msg));
                         continue;
                     };
 
@@ -99,6 +104,7 @@ impl<T: Transport + 'static> RemoteStore<T> {
             next_id: Arc::new(AtomicU64::new(1)),
             pending,
             streams,
+            notifications: Mutex::new(notify_rx),
             reader_abort: reader.abort_handle(),
         }
     }
@@ -115,6 +121,13 @@ impl<T: Transport + 'static> RemoteStore<T> {
         }
         self.transport.send(msg).await?;
         rx.await.map_err(|_| Error::Storage("connection closed".into()))
+    }
+
+    /// Receive the next server-initiated notification (e.g., `RefUpdated`).
+    ///
+    /// Returns `None` if the connection is closed.
+    pub async fn recv_notification(&self) -> Option<ServerMessage> {
+        self.notifications.lock().await.recv().await
     }
 
     /// List repositories available on the server.

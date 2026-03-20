@@ -459,6 +459,63 @@ mod tests {
         store_rx.recv().unwrap()
     }
 
+    #[tokio::test]
+    async fn ref_updated_broadcast_to_other_client() {
+        use crate::store::RefStore;
+        let addr = shared_server_addr();
+        let repo_name = format!(
+            "notify-{}",
+            REPO_COUNTER.fetch_add(1, Ordering::Relaxed)
+        );
+
+        // Client A and Client B connect to the same repo.
+        let (store_a_tx, store_a_rx) = std::sync::mpsc::channel();
+        let (store_b_tx, store_b_rx) = std::sync::mpsc::channel();
+        let repo_a = repo_name.clone();
+        let repo_b = repo_name.clone();
+
+        test_runtime().spawn(async move {
+            let t = WsTransport::connect(&format!("ws://{addr}"), JsonCodec, None)
+                .await
+                .unwrap();
+            let s = super::super::RemoteStore::new(t, &repo_a);
+            let _ = store_a_tx.send(s);
+        });
+        test_runtime().spawn(async move {
+            let t = WsTransport::connect(&format!("ws://{addr}"), JsonCodec, None)
+                .await
+                .unwrap();
+            let s = super::super::RemoteStore::new(t, &repo_b);
+            let _ = store_b_tx.send(s);
+        });
+
+        let client_a = store_a_rx.recv().unwrap();
+        let client_b = store_b_rx.recv().unwrap();
+
+        // Client A sets a ref.
+        let hash = clayers_xml::ContentHash::from_canonical(b"test-ref-updated");
+        client_a.set_ref("refs/heads/main", hash).await.unwrap();
+
+        // Client B should receive a RefUpdated notification.
+        let notification = tokio::time::timeout(
+            std::time::Duration::from_secs(2),
+            client_b.recv_notification(),
+        )
+        .await
+        .expect("timed out waiting for RefUpdated")
+        .expect("connection closed");
+
+        match notification {
+            super::super::ServerMessage::RefUpdated {
+                name, new, ..
+            } => {
+                assert_eq!(name, "refs/heads/main");
+                assert_eq!(new, Some(hash));
+            }
+            other => panic!("expected RefUpdated, got {other:?}"),
+        }
+    }
+
     mod remote_tests {
         use super::create_remote_store;
         crate::store::tests::store_tests!(create_remote_store());
