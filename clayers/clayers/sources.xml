@@ -242,7 +242,7 @@
   <art:mapping id="map-type-source-kind-schema">
     <art:spec-ref node="type-source-kind"
               revision="draft-1"
-              node-hash="sha256:e5d774435b6e8c81e991660a017b0c052b9be36bc986873bf3b51f2abcd272fb"/>
+              node-hash="sha256:446e898cbbd322085bccdc884981e6abdfd02bd4e6e8ecba58fa9e3a718324af"/>
     <art:artifact repo="clayers"
               repo-revision="753ad37"
               path="schemas/source.xsd">
@@ -256,7 +256,7 @@
   <art:mapping id="map-source-layer-schema-elements">
     <art:spec-ref node="source-layer"
               revision="draft-1"
-              node-hash="sha256:f26191fc260d7ea4a40a0471428096ae2c745ef7a55935d13f2585d73c5962a8"/>
+              node-hash="sha256:a1189bcc03b1acebb4128b0acd10d35e3f58308e6bf7f73e6a3bdef0a3f709b0"/>
     <art:artifact repo="clayers"
               repo-revision="753ad37"
               path="schemas/source.xsd">
@@ -269,7 +269,7 @@
   <art:mapping id="map-source-layer-schema-types">
     <art:spec-ref node="source-layer"
               revision="draft-1"
-              node-hash="sha256:f26191fc260d7ea4a40a0471428096ae2c745ef7a55935d13f2585d73c5962a8"/>
+              node-hash="sha256:a1189bcc03b1acebb4128b0acd10d35e3f58308e6bf7f73e6a3bdef0a3f709b0"/>
     <art:artifact repo="clayers"
               repo-revision="753ad37"
               path="schemas/source.xsd">
@@ -282,7 +282,7 @@
   <art:mapping id="map-source-layer-schema-kinds">
     <art:spec-ref node="source-layer"
               revision="draft-1"
-              node-hash="sha256:f26191fc260d7ea4a40a0471428096ae2c745ef7a55935d13f2585d73c5962a8"/>
+              node-hash="sha256:a1189bcc03b1acebb4128b0acd10d35e3f58308e6bf7f73e6a3bdef0a3f709b0"/>
     <art:artifact repo="clayers"
               repo-revision="753ad37"
               path="schemas/source.xsd">
@@ -296,7 +296,7 @@
   <art:mapping id="map-src-dita-spec-self">
     <art:spec-ref node="src-dita-spec"
               revision="draft-1"
-              node-hash="sha256:8e8c83e044d7897f9c75d24cc95a82619fcf5d9c7481c7d8adfa6fccb4e081c2"/>
+              node-hash="sha256:4c4a43138a604a8fc2e28d8b5c169e86d79d8b2f9b134a2ee010290d7f75682e"/>
     <art:artifact repo="clayers"
               repo-revision="753ad37"
               path="clayers/clayers/sources.xml">
@@ -309,7 +309,7 @@
   <art:mapping id="map-src-xsd-11-spec-self">
     <art:spec-ref node="src-xsd-11-spec"
               revision="draft-1"
-              node-hash="sha256:67ffeb81267e5b24e41231b2e0fdf51133245e7ff6f649b1eb8709b2419afb0e"/>
+              node-hash="sha256:28614be7d6805201efbefa0b8f9ff80028f93c09f3c0a2af59afa5406f60d3bd"/>
     <art:artifact repo="clayers"
               repo-revision="753ad37"
               path="clayers/clayers/sources.xml">
@@ -322,7 +322,7 @@
   <art:mapping id="map-source-design-influences-self">
     <art:spec-ref node="source-layer-design-influences"
               revision="draft-1"
-              node-hash="sha256:3193dc6aaad9cf0e191e79c1ad3799ee6c0ac5f36adb7f2d991057516ceda380"/>
+              node-hash="sha256:6674399edcd4e75cc71f556cd765b442c9a8e86f3356c14a4b1de9b5b7784e71"/>
     <art:artifact repo="clayers"
               repo-revision="753ad37"
               path="clayers/clayers/sources.xml">

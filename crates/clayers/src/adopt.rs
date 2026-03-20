@@ -1,4 +1,5 @@
 use std::fs;
+use std::io::{IsTerminal, Write as _};
 use std::path::Path;
 
 use anyhow::{Context, Result, bail};
@@ -189,6 +190,77 @@ struct FreshnessItem {
     status: FreshnessStatus,
 }
 
+/// Determine whether to generate the onboarding skill.
+///
+/// Returns `true` if the `--skills` flag was passed, or if stdin is a TTY
+/// and the user accepts the interactive prompt (default: yes).
+fn should_generate_skills(explicit_flag: bool) -> bool {
+    if explicit_flag {
+        return true;
+    }
+    if !std::io::stdin().is_terminal() {
+        return false;
+    }
+    eprint!("Generate onboarding skill for Claude Code? [Y/n] ");
+    std::io::stderr().flush().ok();
+    let mut input = String::new();
+    if std::io::stdin().read_line(&mut input).is_err() {
+        return false;
+    }
+    let trimmed = input.trim().to_lowercase();
+    trimmed.is_empty() || trimmed == "y" || trimmed == "yes"
+}
+
+/// Plant the onboarding skill into `<target>/.claude/skills/clayers-onboard/`.
+fn plant_skill(target: &Path) -> Result<()> {
+    let project_name = target
+        .file_name()
+        .map_or_else(|| "project".into(), |n| n.to_string_lossy().into_owned());
+
+    let skill_dir = target
+        .join(".claude")
+        .join("skills")
+        .join("clayers-onboard");
+    fs::create_dir_all(&skill_dir).context("failed to create .claude/skills/clayers-onboard/")?;
+
+    let content = embedded::ONBOARD_SKILL.replace("{{PROJECT_NAME}}", &project_name);
+    fs::write(skill_dir.join("SKILL.md"), &content).context("failed to write SKILL.md")?;
+
+    println!("  created: .claude/skills/clayers-onboard/SKILL.md");
+    Ok(())
+}
+
+/// Check freshness of the onboarding skill file.
+fn check_skill_freshness(target: &Path) -> FreshnessItem {
+    let project_name = target
+        .file_name()
+        .map_or_else(|| "project".into(), |n| n.to_string_lossy().into_owned());
+    let expected = embedded::ONBOARD_SKILL.replace("{{PROJECT_NAME}}", &project_name);
+
+    let skill_path = target
+        .join(".claude")
+        .join("skills")
+        .join("clayers-onboard")
+        .join("SKILL.md");
+
+    let status = if !skill_path.exists() {
+        FreshnessStatus::Missing
+    } else if let Ok(existing) = fs::read_to_string(&skill_path) {
+        if existing == expected {
+            FreshnessStatus::Current
+        } else {
+            FreshnessStatus::Outdated
+        }
+    } else {
+        FreshnessStatus::Outdated
+    };
+
+    FreshnessItem {
+        path: ".claude/skills/clayers-onboard/SKILL.md".into(),
+        status,
+    }
+}
+
 /// Plant all embedded schemas into `<target>/.clayers/schemas/`.
 fn plant_schemas(target: &Path) -> Result<()> {
     let schemas_dir = target.join(".clayers").join("schemas");
@@ -312,7 +384,7 @@ fn amend_agent_file(target: &Path) -> Result<()> {
     Ok(())
 }
 
-/// Update outdated schemas and agent instructions.
+/// Update outdated schemas, agent instructions, and skill files.
 fn update_adopted(target: &Path, items: &[FreshnessItem]) -> Result<()> {
     let schemas_dir = target.join(".clayers").join("schemas");
     fs::create_dir_all(&schemas_dir).context("failed to create .clayers/schemas/")?;
@@ -323,6 +395,8 @@ fn update_adopted(target: &Path, items: &[FreshnessItem]) -> Result<()> {
         }
         if item.path.ends_with("instructions") {
             amend_agent_file(target)?;
+        } else if item.path.contains("clayers-onboard") {
+            plant_skill(target)?;
         } else if let Some(filename) = item.path.strip_prefix(".clayers/schemas/") {
             if filename == "catalog.xml" {
                 fs::write(schemas_dir.join("catalog.xml"), embedded::CATALOG)
@@ -347,14 +421,15 @@ fn update_adopted(target: &Path, items: &[FreshnessItem]) -> Result<()> {
     Ok(())
 }
 
-pub fn adopt(target: &Path, update: bool) -> Result<()> {
+pub fn adopt(target: &Path, update: bool, skills: bool) -> Result<()> {
     let target = target
         .canonicalize()
         .with_context(|| format!("target path does not exist: {}", target.display()))?;
 
     if is_adopted(&target) {
         println!("clayers: project already adopted, checking freshness...");
-        let items = check_freshness(&target);
+        let mut items = check_freshness(&target);
+        items.push(check_skill_freshness(&target));
 
         let any_outdated = items
             .iter()
@@ -369,16 +444,32 @@ pub fn adopt(target: &Path, update: bool) -> Result<()> {
             println!("  {}: {label}", item.path);
         }
 
+        // Handle explicit --skills on already-adopted project
+        let skill_item = items
+            .iter()
+            .find(|i| i.path.contains("clayers-onboard"));
+        let skill_needs_gen = skills
+            && skill_item
+                .is_some_and(|i| i.status != FreshnessStatus::Current);
+
         if any_outdated {
-            if update {
+            if update || skill_needs_gen {
                 println!();
-                println!("clayers: updating outdated components...");
-                update_adopted(&target, &items)?;
-                println!("clayers: update complete");
+                if update {
+                    println!("clayers: updating outdated components...");
+                    update_adopted(&target, &items)?;
+                    println!("clayers: update complete");
+                } else {
+                    // Only --skills without --update: just generate the skill
+                    plant_skill(&target)?;
+                }
             } else {
                 println!();
                 bail!("project already adopted; run with --update to update outdated components");
             }
+        } else if skill_needs_gen {
+            println!();
+            plant_skill(&target)?;
         } else if update {
             println!();
             println!("clayers: everything is current");
@@ -405,6 +496,11 @@ pub fn adopt(target: &Path, update: bool) -> Result<()> {
     // 3. Amend agent file
     amend_agent_file(&target)?;
 
+    // 4. Optionally generate onboarding skill
+    if should_generate_skills(skills) {
+        plant_skill(&target)?;
+    }
+
     println!();
     println!("clayers: adoption complete");
 
@@ -424,7 +520,7 @@ mod tests {
     #[test]
     fn test_fresh_adopt_creates_schemas() {
         let dir = temp_dir();
-        adopt(dir.path(), false).unwrap();
+        adopt(dir.path(), false, false).unwrap();
 
         let schemas = dir.path().join(".clayers").join("schemas");
         assert!(schemas.is_dir());
@@ -438,7 +534,7 @@ mod tests {
     #[test]
     fn test_fresh_adopt_creates_starter_spec() {
         let dir = temp_dir();
-        adopt(dir.path(), false).unwrap();
+        adopt(dir.path(), false, false).unwrap();
 
         let project_name = dir
             .path()
@@ -454,7 +550,7 @@ mod tests {
     #[test]
     fn test_fresh_adopt_creates_agents_md() {
         let dir = temp_dir();
-        adopt(dir.path(), false).unwrap();
+        adopt(dir.path(), false, false).unwrap();
 
         let agents = dir.path().join("AGENTS.md");
         assert!(agents.exists());
@@ -468,7 +564,7 @@ mod tests {
     fn test_adopt_prefers_claude_md() {
         let dir = temp_dir();
         fs::write(dir.path().join("CLAUDE.md"), "# Project\n").unwrap();
-        adopt(dir.path(), false).unwrap();
+        adopt(dir.path(), false, false).unwrap();
 
         let claude = fs::read_to_string(dir.path().join("CLAUDE.md")).unwrap();
         assert!(claude.contains(MARKER_OPEN));
@@ -479,17 +575,17 @@ mod tests {
     #[test]
     fn test_detects_already_adopted() {
         let dir = temp_dir();
-        adopt(dir.path(), false).unwrap();
+        adopt(dir.path(), false, false).unwrap();
 
         // Second adopt without --update should fail
-        let result = adopt(dir.path(), false);
+        let result = adopt(dir.path(), false, false);
         assert!(result.is_err());
     }
 
     #[test]
     fn test_update_replaces_markers() {
         let dir = temp_dir();
-        adopt(dir.path(), false).unwrap();
+        adopt(dir.path(), false, false).unwrap();
 
         // Tamper with agent file
         let agents = dir.path().join("AGENTS.md");
@@ -498,7 +594,7 @@ mod tests {
         fs::write(&agents, tampered).unwrap();
 
         // Update should restore
-        adopt(dir.path(), true).unwrap();
+        adopt(dir.path(), true, false).unwrap();
         let restored = fs::read_to_string(&agents).unwrap();
         assert!(restored.contains("Clayers Development Workflow"));
         assert!(!restored.contains("OLD CONTENT"));
@@ -511,7 +607,7 @@ mod tests {
         fs::create_dir_all(&spec_dir).unwrap();
         fs::write(spec_dir.join("custom.xml"), "<custom/>").unwrap();
 
-        adopt(dir.path(), false).unwrap();
+        adopt(dir.path(), false, false).unwrap();
 
         assert_eq!(
             fs::read_to_string(spec_dir.join("custom.xml")).unwrap(),
@@ -522,7 +618,7 @@ mod tests {
     #[test]
     fn test_schema_content_matches_embedded() {
         let dir = temp_dir();
-        adopt(dir.path(), false).unwrap();
+        adopt(dir.path(), false, false).unwrap();
 
         let schemas = dir.path().join(".clayers").join("schemas");
         for &(name, content) in embedded::SCHEMAS {
@@ -534,10 +630,118 @@ mod tests {
     #[test]
     fn test_update_when_current_reports_ok() {
         let dir = temp_dir();
-        adopt(dir.path(), false).unwrap();
+        adopt(dir.path(), false, false).unwrap();
 
         // Update on a fresh adopt should succeed (everything current)
-        let result = adopt(dir.path(), true);
+        let result = adopt(dir.path(), true, false);
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_fresh_adopt_with_skills_creates_skill_file() {
+        let dir = temp_dir();
+        adopt(dir.path(), false, true).unwrap();
+
+        let skill = dir
+            .path()
+            .join(".claude")
+            .join("skills")
+            .join("clayers-onboard")
+            .join("SKILL.md");
+        assert!(skill.exists(), "SKILL.md should be created with --skills");
+        let content = fs::read_to_string(&skill).unwrap();
+        assert!(
+            content.contains("name: clayers-onboard"),
+            "should have skill name"
+        );
+        assert!(
+            !content.contains("{{PROJECT_NAME}}"),
+            "placeholders should be replaced"
+        );
+    }
+
+    #[test]
+    fn test_fresh_adopt_without_skills_skips_skill() {
+        let dir = temp_dir();
+        // Non-TTY in tests: should_generate_skills(false) returns false
+        adopt(dir.path(), false, false).unwrap();
+
+        let skill_dir = dir.path().join(".claude").join("skills");
+        assert!(
+            !skill_dir.exists(),
+            ".claude/skills/ should not exist without --skills"
+        );
+    }
+
+    #[test]
+    fn test_skill_project_name_substitution() {
+        let dir = temp_dir();
+        adopt(dir.path(), false, true).unwrap();
+
+        let project_name = dir
+            .path()
+            .file_name()
+            .unwrap()
+            .to_string_lossy()
+            .into_owned();
+        let skill = dir
+            .path()
+            .join(".claude")
+            .join("skills")
+            .join("clayers-onboard")
+            .join("SKILL.md");
+        let content = fs::read_to_string(&skill).unwrap();
+        assert!(
+            content.contains(&project_name),
+            "skill should contain the project name"
+        );
+    }
+
+    #[test]
+    fn test_skills_flag_on_already_adopted() {
+        let dir = temp_dir();
+        // First: adopt without skills
+        adopt(dir.path(), false, false).unwrap();
+        assert!(
+            !dir.path().join(".claude").join("skills").exists(),
+            "no skill yet"
+        );
+
+        // Second: add skills to already-adopted project
+        adopt(dir.path(), false, true).unwrap();
+        let skill = dir
+            .path()
+            .join(".claude")
+            .join("skills")
+            .join("clayers-onboard")
+            .join("SKILL.md");
+        assert!(skill.exists(), "SKILL.md should be created with --skills");
+    }
+
+    #[test]
+    fn test_skill_freshness_detected() {
+        let dir = temp_dir();
+        adopt(dir.path(), false, true).unwrap();
+
+        // Tamper with skill file
+        let skill = dir
+            .path()
+            .join(".claude")
+            .join("skills")
+            .join("clayers-onboard")
+            .join("SKILL.md");
+        fs::write(&skill, "tampered content").unwrap();
+
+        // Update should restore
+        adopt(dir.path(), true, false).unwrap();
+        let restored = fs::read_to_string(&skill).unwrap();
+        assert!(
+            restored.contains("clayers-onboard"),
+            "skill should be restored"
+        );
+        assert!(
+            !restored.contains("tampered content"),
+            "tampered content should be gone"
+        );
     }
 }

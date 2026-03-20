@@ -240,7 +240,7 @@
   <art:mapping id="map-term-reading-map-self">
     <art:spec-ref node="term-reading-map"
               revision="draft-1"
-              node-hash="sha256:e918c444e6becb8a29420c35a8cbdebc9f334554f6119fc2e47e6f5659c1af2b"/>
+              node-hash="sha256:e1c60525439c75284d152b0bbfec3f9655e09467961d9d803f0bc46aa3319730"/>
     <art:artifact repo="clayers"
               repo-revision="753ad37"
               path="clayers/clayers/reading-maps.xml">
@@ -253,7 +253,7 @@
   <art:mapping id="map-term-topicref-self">
     <art:spec-ref node="term-topicref"
               revision="draft-1"
-              node-hash="sha256:a726cd4df418b89ba94909fc30e0f4e0492787d856382a67ad13d56e0b6b93c9"/>
+              node-hash="sha256:4b6c5ed548931dbccfeaba5510f3b21ec7714b8dabbeb1aff2b2162709247376"/>
     <art:artifact repo="clayers"
               repo-revision="753ad37"
               path="clayers/clayers/reading-maps.xml">
@@ -266,7 +266,7 @@
   <art:mapping id="map-term-profiling-self">
     <art:spec-ref node="term-profiling"
               revision="draft-1"
-              node-hash="sha256:a90e77693f41b66e9fa0c5dcd8ad784d34288b47d88ee6f0aa1378602ef70e3d"/>
+              node-hash="sha256:21ec5b804ed75c484f5677ce24b81eae15647e7a7efa03b4e33b7f52013b5b02"/>
     <art:artifact repo="clayers"
               repo-revision="753ad37"
               path="clayers/clayers/reading-maps.xml">
@@ -279,7 +279,7 @@
   <art:mapping id="map-newcomers-guide-self">
     <art:spec-ref node="newcomers-guide"
               revision="draft-1"
-              node-hash="sha256:4cddaf3208480249becbcf0a8d9ea06ef00fb6841b08fd347b3393600f7c0c6f"/>
+              node-hash="sha256:d6187ac0531715f148fadd18015e27b6d3792fdad43f9b79540091b4e7b52c4d"/>
     <art:artifact repo="clayers"
               repo-revision="753ad37"
               path="clayers/clayers/reading-maps.xml">
@@ -292,7 +292,7 @@
   <art:mapping id="map-reading-maps-concept-self">
     <art:spec-ref node="reading-maps-concept"
               revision="draft-1"
-              node-hash="sha256:17f9cf3cd8de47f68c428494002189900a9cdd1410db99797631ae9dd9d28750"/>
+              node-hash="sha256:a6497bde73e63fed68010aea9e56a263c796861097e5e5030ee6823578e80324"/>
     <art:artifact repo="clayers"
               repo-revision="753ad37"
               path="clayers/clayers/reading-maps.xml">
@@ -305,7 +305,7 @@
   <art:mapping id="map-reading-maps-structure-self">
     <art:spec-ref node="reading-maps-structure"
               revision="draft-1"
-              node-hash="sha256:2107d47492c58099765c6410b8efdbe53321040edfb7f46edf30510a3fab97ff"/>
+              node-hash="sha256:b283fcd80a4a08810e55987fa9eef6cc5778b4f9a8ebd5a165ec1748f50b6f3b"/>
     <art:artifact repo="clayers"
               repo-revision="753ad37"
               path="clayers/clayers/reading-maps.xml">

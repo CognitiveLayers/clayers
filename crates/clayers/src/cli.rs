@@ -105,6 +105,9 @@ enum Command {
         /// Update outdated schemas and instructions in an already-adopted project.
         #[arg(long)]
         update: bool,
+        /// Generate Claude Code skill for clayers onboarding.
+        #[arg(long)]
+        skills: bool,
     },
 
     // -----------------------------------------------------------------------
@@ -285,7 +288,11 @@ fn run(cli: &Cli) -> Result<()> {
             output,
             self_contained,
         } => crate::doc::cmd_doc(path, output.as_deref(), *self_contained),
-        Command::Adopt { path, update } => cmd_adopt(path, *update),
+        Command::Adopt {
+            path,
+            update,
+            skills,
+        } => cmd_adopt(path, *update, *skills),
 
         // Repository commands.
         Command::Init { path, bare } => {
@@ -647,8 +654,8 @@ fn cmd_schema(path: Option<&Path>, layers: &[String]) -> Result<()> {
     Ok(())
 }
 
-fn cmd_adopt(path: &Path, update: bool) -> Result<()> {
-    crate::adopt::adopt(path, update)
+fn cmd_adopt(path: &Path, update: bool, skills: bool) -> Result<()> {
+    crate::adopt::adopt(path, update, skills)
 }
 
 #[allow(clippy::too_many_arguments, clippy::fn_params_excessive_bools)]

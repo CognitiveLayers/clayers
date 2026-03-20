@@ -22,6 +22,8 @@ pub const SCHEMAS: &[(&str, &str)] = &[
 pub const CATALOG: &str = include_str!("../../../schemas/catalog.xml");
 pub const POSTPROCESS_XSLT: &str = include_str!("../../../schemas/postprocess.xslt");
 
+pub const ONBOARD_SKILL: &str = include_str!("../../../skills/clayers-onboard.md");
+
 pub const DOC_XSLT_FILES: &[(&str, &str)] = &[
     ("main.xslt", include_str!("../../../schemas/doc/main.xslt")),
     (

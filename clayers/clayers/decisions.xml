@@ -581,7 +581,7 @@
   <art:mapping id="map-type-decision-schema">
     <art:spec-ref node="type-decision"
               revision="draft-1"
-              node-hash="sha256:3a20e167e6d70581a153a530a4e330a931447111bea70abd5e57e750242630a8"/>
+              node-hash="sha256:a47bd38f8b73f6ce3f7b80af318190c44007e6faec5bf04f24f394e5981dffdc"/>
     <art:artifact repo="clayers"
               repo-revision="753ad37"
               path="schemas/decision.xsd">
@@ -595,7 +595,7 @@
   <art:mapping id="map-type-supersedes-schema">
     <art:spec-ref node="type-supersedes"
               revision="draft-1"
-              node-hash="sha256:8ef3167621c2225a90d663976eece31d114457ecf68566276c30b2eda2ce837a"/>
+              node-hash="sha256:a58b1932733d864dbcd4ebc06895f25430a8074f0a6b1ed765715d1e9cc4500d"/>
     <art:artifact repo="clayers"
               repo-revision="753ad37"
               path="schemas/decision.xsd">
@@ -609,7 +609,7 @@
   <art:mapping id="map-decision-layer-schema-header">
     <art:spec-ref node="decision-layer"
               revision="draft-1"
-              node-hash="sha256:4a3635de83e2c313a2901f4bf3d238eca848cfc7c77a4161d885eadef175b5dd"/>
+              node-hash="sha256:d290f4e10e3fca54a56623c3fa4edf8067df5c3654743d36eb0f51c82cb3ba95"/>
     <art:artifact repo="clayers"
               repo-revision="753ad37"
               path="schemas/decision.xsd">
@@ -622,7 +622,7 @@
   <art:mapping id="map-decision-layer-schema-types">
     <art:spec-ref node="decision-layer"
               revision="draft-1"
-              node-hash="sha256:4a3635de83e2c313a2901f4bf3d238eca848cfc7c77a4161d885eadef175b5dd"/>
+              node-hash="sha256:d290f4e10e3fca54a56623c3fa4edf8067df5c3654743d36eb0f51c82cb3ba95"/>
     <art:artifact repo="clayers"
               repo-revision="753ad37"
               path="schemas/decision.xsd">
@@ -636,7 +636,7 @@
   <art:mapping id="map-adr-xml-format-self">
     <art:spec-ref node="adr-xml-format"
               revision="draft-1"
-              node-hash="sha256:6bc90d7dc4ef6089567a65d12a5a687133db697505adac4be5359c7a8847ec47"/>
+              node-hash="sha256:214931bff2866a6bfa7601610d67063cdb2162300a35521d847a67b84db227cf"/>
     <art:artifact repo="clayers"
               repo-revision="753ad37"
               path="clayers/clayers/decisions.xml">
@@ -649,7 +649,7 @@
   <art:mapping id="map-dec-xml-format-self">
     <art:spec-ref node="dec-xml-format"
               revision="draft-1"
-              node-hash="sha256:f58b0f57216667faeea4572e94c8552980896046d97c7d2a18dc58a6f62bcd23"/>
+              node-hash="sha256:11050a22c74d60d3036afffb6197d0c5786010882b820e2532c6b2f84ca3b763"/>
     <art:artifact repo="clayers"
               repo-revision="753ad37"
               path="clayers/clayers/decisions.xml">
@@ -662,7 +662,7 @@
   <art:mapping id="map-adr-layered-schemas-self">
     <art:spec-ref node="adr-layered-schemas"
               revision="draft-1"
-              node-hash="sha256:d9f7fd92acaa5579e34b9b2c67a07e729959b955f57ab37d1fff2133a15d1699"/>
+              node-hash="sha256:2bf2586b0529b21ef5c775bbb53bc1fc13c348defa8054344574c7dc33b67a82"/>
     <art:artifact repo="clayers"
               repo-revision="753ad37"
               path="clayers/clayers/decisions.xml">
@@ -675,7 +675,7 @@
   <art:mapping id="map-dec-layered-schemas-self">
     <art:spec-ref node="dec-layered-schemas"
               revision="draft-1"
-              node-hash="sha256:96b80c68cc71b652c5159d611c395515d12fe097ea0ade0c906799b2f73a40e1"/>
+              node-hash="sha256:e7c31548f5f913ca0dfe39a389189f3631a996bf48078fcb331bf33ee4ab9f54"/>
     <art:artifact repo="clayers"
               repo-revision="753ad37"
               path="clayers/clayers/decisions.xml">
@@ -688,7 +688,7 @@
   <art:mapping id="map-adr-topic-files-self">
     <art:spec-ref node="adr-topic-files"
               revision="draft-1"
-              node-hash="sha256:5ca7e4f62d73efbb9615ec15952fbfa808c9331c9a7824ee186d33341d4c7cdc"/>
+              node-hash="sha256:9e8bcf0d415c48fe625c9bc6f3d672da993c1259230f605ab323c4a9293d0f16"/>
     <art:artifact repo="clayers"
               repo-revision="753ad37"
               path="clayers/clayers/decisions.xml">
@@ -701,7 +701,7 @@
   <art:mapping id="map-dec-topic-files-self">
     <art:spec-ref node="dec-topic-files"
               revision="draft-1"
-              node-hash="sha256:9840b3a20dcc17e1823074ebfde481e2687d9873e963a793c3b22fb7d3aebd03"/>
+              node-hash="sha256:2139a046a5ad497ff9429c6f7b0af9be42ffa5831769c15f1ec88dbd4b1afc4d"/>
     <art:artifact repo="clayers"
               repo-revision="753ad37"
               path="clayers/clayers/decisions.xml">
@@ -714,7 +714,7 @@
   <art:mapping id="map-adr-xsd-11-self">
     <art:spec-ref node="adr-xsd-11"
               revision="draft-1"
-              node-hash="sha256:82d5cf8df73acfccba7d37e0008012fbb3dcba9b09bfa4a48385344bebc77342"/>
+              node-hash="sha256:d3a6eb9a7a59363529989608a3b8ee78658069a7b11861f00142886b25560913"/>
     <art:artifact repo="clayers"
               repo-revision="753ad37"
               path="clayers/clayers/decisions.xml">
@@ -727,7 +727,7 @@
   <art:mapping id="map-dec-xsd-11-self">
     <art:spec-ref node="dec-xsd-11"
               revision="draft-1"
-              node-hash="sha256:9662b1f81a4fde36908d813596719ab1a02d01d07c11a023592b8c7e4a6e4bc6"/>
+              node-hash="sha256:3d4c032fe2023cd3ea94e5f90af52e6ca0fa1b6d1980829b69c22618bbbaa065"/>
     <art:artifact repo="clayers"
               repo-revision="753ad37"
               path="clayers/clayers/decisions.xml">
