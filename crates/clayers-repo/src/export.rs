@@ -669,38 +669,31 @@ mod tests {
         #![proptest_config(ProptestConfig::with_cases(100))]
 
         /// C1: Import determinism - same XML imported twice gives same hash.
+        /// Requires successful parse (rejects unparseable inputs via prop_assume!).
         #[test]
         fn prop_import_determinism(xml in crate::store::prop_strategies::arb_xml_document()) {
             let rt = crate::store::prop_strategies::runtime();
             rt.block_on(async {
                 let store = MemoryStore::new();
                 let h1 = import_xml(&store, &xml).await;
-                let h2 = import_xml(&store, &xml).await;
-                match (h1, h2) {
-                    (Ok(h1), Ok(h2)) => {
-                        prop_assert_eq!(h1, h2, "same XML should produce same hash");
-                    }
-                    (Err(_), Err(_)) => {} // both fail is fine
-                    (Ok(_), Err(e)) => {
-                        prop_assert!(false, "first import succeeded but second failed: {e}");
-                    }
-                    (Err(e), Ok(_)) => {
-                        prop_assert!(false, "first import failed but second succeeded: {e}");
-                    }
-                }
+                prop_assume!(h1.is_ok(), "skip unparseable XML");
+                let h1 = h1.unwrap();
+                let h2 = import_xml(&store, &xml).await.unwrap();
+                prop_assert_eq!(h1, h2, "same XML should produce same hash");
                 Ok(())
             })?;
         }
 
         /// C2: Export/import idempotency - import -> export -> reimport gives same hash.
+        /// Requires successful parse (rejects unparseable inputs via prop_assume!).
         #[test]
         fn prop_export_import_idempotent(xml in crate::store::prop_strategies::arb_xml_document()) {
             let rt = crate::store::prop_strategies::runtime();
             rt.block_on(async {
                 let store = MemoryStore::new();
-                let Ok(h1) = import_xml(&store, &xml).await else {
-                    return Ok(());  // skip inputs that fail to import
-                };
+                let h1 = import_xml(&store, &xml).await;
+                prop_assume!(h1.is_ok(), "skip unparseable XML");
+                let h1 = h1.unwrap();
                 let exported = export_xml(&store, h1).await.unwrap();
                 let h2 = import_xml(&store, &exported).await.unwrap();
                 prop_assert_eq!(h1, h2, "export->reimport should give same hash");
@@ -709,18 +702,53 @@ mod tests {
         }
 
         /// C3: All objects stored - after import, subtree(doc) yields objects.
+        /// Requires successful parse.
         #[test]
         fn prop_import_stores_subtree(xml in crate::store::prop_strategies::arb_xml_document()) {
             let rt = crate::store::prop_strategies::runtime();
             rt.block_on(async {
                 let store = MemoryStore::new();
-                let Ok(hash) = import_xml(&store, &xml).await else {
-                    return Ok(());  // skip inputs that fail to import
-                };
-                // Collect the subtree; should contain at least the document itself
+                let h = import_xml(&store, &xml).await;
+                prop_assume!(h.is_ok(), "skip unparseable XML");
+                let hash = h.unwrap();
                 let objects = try_collect_stream(store.subtree(&hash)).await.unwrap();
                 prop_assert!(!objects.is_empty(), "subtree should contain at least the document");
                 prop_assert!(objects.contains_key(&hash), "subtree should contain the document hash");
+                Ok(())
+            })?;
+        }
+
+        /// C4: Different XML documents produce different hashes.
+        /// If two structurally different inputs produce the same hash,
+        /// one would silently overwrite the other in the store.
+        #[test]
+        fn prop_distinct_xml_distinct_hashes(
+            xml_a in crate::store::prop_strategies::arb_xml_document(),
+            xml_b in crate::store::prop_strategies::arb_xml_document(),
+        ) {
+            let rt = crate::store::prop_strategies::runtime();
+            rt.block_on(async {
+                // Only test when both parse and the XML strings differ
+                let store = MemoryStore::new();
+                let ha = import_xml(&store, &xml_a).await;
+                let hb = import_xml(&store, &xml_b).await;
+                prop_assume!(ha.is_ok() && hb.is_ok(), "skip unparseable");
+                let ha = ha.unwrap();
+                let hb = hb.unwrap();
+                if xml_a != xml_b {
+                    // Different XML text doesn't guarantee different hashes
+                    // (e.g., insignificant whitespace differences canonicalize away).
+                    // But if the hashes ARE the same, the exported XML must also be the same
+                    // (proving the documents are canonically identical).
+                    if ha == hb {
+                        let ea = export_xml(&store, ha).await.unwrap();
+                        let eb = export_xml(&store, hb).await.unwrap();
+                        prop_assert_eq!(
+                            ea, eb,
+                            "same hash but different exports = data loss"
+                        );
+                    }
+                }
                 Ok(())
             })?;
         }

@@ -1,4 +1,5 @@
 /target
+proptest-regressions/
 __pycache__/
 *.pyc
 *.pyo

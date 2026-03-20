@@ -696,152 +696,455 @@ pub(crate) fn arb_xml_document() -> impl Strategy<Value = String> {
 ///
 /// Returns `(objects, document_hash)` where objects is a `Vec<(ContentHash, Object)>`
 /// suitable for insertion into a store.
+///
+/// Generates varied shapes: flat, deep nesting, mixed children (text + element +
+/// comment), and documents with prologues (comments/PIs before root).
+#[allow(clippy::too_many_lines)]
 pub(crate) fn arb_object_dag() -> impl Strategy<Value = (Vec<(ContentHash, Object)>, ContentHash)> {
-    // 1-5 leaf objects, then 1-3 elements referencing them, then a document.
     (
+        // Leaf objects: text, comments, PIs
         pvec(
             prop_oneof![
                 arb_text_object().prop_map(Object::Text),
                 arb_comment_object().prop_map(Object::Comment),
                 arb_pi_object().prop_map(Object::PI),
             ],
-            1..=5,
+            2..=6,
         ),
-        pvec(arb_content_hash(), 5),
-        pvec(arb_content_hash(), 3),
-        arb_content_hash(),
-        arb_content_hash(),
-        // For element local names
-        pvec("[a-z]{1,6}", 3),
+        // Hash pool (large enough for leaves + elements + doc + prologue)
+        pvec(arb_content_hash(), 20),
+        // Element names
+        pvec("[a-z]{1,6}", 5),
+        // Include prologue?
+        proptest::bool::weighted(0.4),
+        // Deep nesting? (element -> element -> element -> leaf)
+        proptest::bool::weighted(0.3),
     )
-        .prop_map(|(leaf_objs, leaf_hashes, elem_hashes, root_elem_hash, doc_hash, elem_names)| {
+        .prop_map(|(leaf_objs, hashes, elem_names, with_prologue, deep_nesting)| {
             let mut objects: Vec<(ContentHash, Object)> = Vec::new();
+            let mut hi = 0;
+            let mut next_h = || { let h = hashes[hi % hashes.len()]; hi += 1; h };
 
             // Store leaf objects
-            let leaf_count = leaf_objs.len();
-            for (i, obj) in leaf_objs.into_iter().enumerate() {
-                objects.push((leaf_hashes[i], obj));
+            let mut leaf_hashes = Vec::new();
+            for obj in leaf_objs {
+                let h = next_h();
+                objects.push((h, obj));
+                leaf_hashes.push(h);
             }
 
-            // Build 1-3 element objects referencing leaf hashes
-            let mut element_hashes_used = Vec::new();
-            let elems_to_make = elem_hashes.len().min(3);
-            for i in 0..elems_to_make {
-                // Each element gets a slice of the leaf hashes as children
-                let start = (i * leaf_count) / elems_to_make;
-                let end = ((i + 1) * leaf_count) / elems_to_make;
-                let children: Vec<ContentHash> = (start..end)
-                    .map(|j| leaf_hashes[j])
-                    .collect();
-
-                let elem = ElementObject {
-                    local_name: elem_names[i].clone(),
+            let root_children = if deep_nesting {
+                // Deep: chain of elements, each containing the next
+                // leaf[0] -> elem_inner -> elem_mid -> elem_outer (root child)
+                let inner_h = next_h();
+                let inner = ElementObject {
+                    local_name: elem_names[0].clone(),
                     namespace_uri: None,
                     namespace_prefix: None,
                     extra_namespaces: vec![],
                     attributes: vec![],
-                    children,
-                    inclusive_hash: elem_hashes[i],
+                    children: vec![leaf_hashes[0]],
+                    inclusive_hash: inner_h,
                 };
-                objects.push((elem_hashes[i], Object::Element(elem)));
-                element_hashes_used.push(elem_hashes[i]);
-            }
+                objects.push((inner_h, Object::Element(inner)));
 
-            // Build a root element that references all inner elements
+                let mid_h = next_h();
+                // Mid element has inner + a leaf sibling (mixed children)
+                let mut mid_children = vec![inner_h];
+                if leaf_hashes.len() > 1 {
+                    mid_children.push(leaf_hashes[1]);
+                }
+                let mid = ElementObject {
+                    local_name: elem_names[1 % elem_names.len()].clone(),
+                    namespace_uri: None,
+                    namespace_prefix: None,
+                    extra_namespaces: vec![],
+                    attributes: vec![],
+                    children: mid_children,
+                    inclusive_hash: mid_h,
+                };
+                objects.push((mid_h, Object::Element(mid)));
+
+                // Remaining leaves as siblings of the deep chain
+                let mut root_kids = vec![mid_h];
+                for lh in leaf_hashes.iter().skip(2) {
+                    root_kids.push(*lh);
+                }
+                root_kids
+            } else {
+                // Flat: 1-3 elements each containing a slice of leaves
+                let mut element_hashes = Vec::new();
+                let elems_to_make = 1 + (leaf_hashes.len() / 3).min(3);
+                let leaf_count = leaf_hashes.len();
+                for i in 0..elems_to_make {
+                    let start = (i * leaf_count) / elems_to_make;
+                    let end = ((i + 1) * leaf_count) / elems_to_make;
+                    let children: Vec<ContentHash> = (start..end)
+                        .map(|j| leaf_hashes[j])
+                        .collect();
+                    if children.is_empty() {
+                        continue;
+                    }
+                    let h = next_h();
+                    let elem = ElementObject {
+                        local_name: elem_names[i % elem_names.len()].clone(),
+                        namespace_uri: None,
+                        namespace_prefix: None,
+                        extra_namespaces: vec![],
+                        attributes: vec![],
+                        children,
+                        inclusive_hash: h,
+                    };
+                    objects.push((h, Object::Element(elem)));
+                    element_hashes.push(h);
+                }
+                element_hashes
+            };
+
+            // Root element
+            let root_h = next_h();
             let root_elem = ElementObject {
                 local_name: "root".to_string(),
                 namespace_uri: None,
                 namespace_prefix: None,
                 extra_namespaces: vec![],
                 attributes: vec![],
-                children: element_hashes_used,
-                inclusive_hash: root_elem_hash,
+                children: root_children,
+                inclusive_hash: root_h,
             };
-            objects.push((root_elem_hash, Object::Element(root_elem)));
+            objects.push((root_h, Object::Element(root_elem)));
 
-            // Wrap in a document
+            // Prologue: comment and/or PI before the root element
+            let mut prologue_hashes = Vec::new();
+            if with_prologue {
+                let comment_h = next_h();
+                objects.push((
+                    comment_h,
+                    Object::Comment(CommentObject {
+                        content: "generated prologue comment".into(),
+                    }),
+                ));
+                prologue_hashes.push(comment_h);
+
+                // Sometimes also a PI
+                if hashes[0].0[0] % 2 == 0 {
+                    let pi_h = next_h();
+                    objects.push((
+                        pi_h,
+                        Object::PI(PIObject {
+                            target: "app".into(),
+                            data: Some("version=1".into()),
+                        }),
+                    ));
+                    prologue_hashes.push(pi_h);
+                }
+            }
+
+            // Document
+            let doc_h = next_h();
             let doc = DocumentObject {
-                root: root_elem_hash,
-                prologue: vec![],
+                root: root_h,
+                prologue: prologue_hashes,
             };
-            objects.push((doc_hash, Object::Document(doc)));
+            objects.push((doc_h, Object::Document(doc)));
 
-            (objects, doc_hash)
+            (objects, doc_h)
         })
 }
 
-/// Generate a DAG with commits, trees, and documents.
+/// A commit graph shape for varied topology testing.
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum CommitShape {
+    /// Single root commit with no parents.
+    Single,
+    /// Linear chain of N commits (2-6).
+    Linear,
+    /// Diamond: root -> two branches -> merge commit.
+    Diamond,
+    /// Wide fan: root with 2-4 child commits (no merge).
+    Fan,
+    /// Deep merge: two independent linear chains merged at the tip.
+    DeepMerge,
+    /// Octopus: root -> N branches -> single merge with all as parents.
+    Octopus,
+}
+
+pub(crate) fn arb_commit_shape() -> impl Strategy<Value = CommitShape> {
+    prop_oneof![
+        Just(CommitShape::Single),
+        Just(CommitShape::Linear),
+        Just(CommitShape::Diamond),
+        Just(CommitShape::Fan),
+        Just(CommitShape::DeepMerge),
+        Just(CommitShape::Octopus),
+    ]
+}
+
+/// Generate a DAG with commits in varied topologies, each with distinct trees.
 ///
-/// Returns `(objects, tip_commit_hash)`.
+/// Returns `(objects, tip_commit_hash, all_commit_hashes_in_ancestor_order)`.
+/// The third element is useful for verifying history traversal properties.
+#[allow(clippy::too_many_lines)]
 pub(crate) fn arb_commit_dag()
-    -> impl Strategy<Value = (Vec<(ContentHash, Object)>, ContentHash)>
+    -> impl Strategy<Value = (Vec<(ContentHash, Object)>, ContentHash, Vec<ContentHash>)>
 {
     (
-        // 1-3 document DAGs
-        pvec(arb_object_dag(), 1..=3),
-        // Hashes for trees and commits
-        pvec(arb_content_hash(), 6),
+        arb_commit_shape(),
+        // Document DAGs for distinct trees per commit
+        pvec(arb_object_dag(), 2..=4),
+        // Enough unique hashes for the largest shape (octopus with 4 branches
+        // needs ~8 commits + ~4 trees + margin). Use 40 to avoid collisions.
+        pvec(arb_content_hash(), 40),
         arb_author(),
         arb_timestamp(),
-        pvec(".{1,30}", 3),
+        pvec(".{1,30}", 10),
     )
-        .prop_map(|(doc_dags, extra_hashes, author, timestamp, messages)| {
+        .prop_map(|(shape, doc_dags, hashes, author, timestamp, messages)| {
             let mut objects: Vec<(ContentHash, Object)> = Vec::new();
-            let mut doc_hash_to_path: Vec<(String, ContentHash)> = Vec::new();
+            let mut hash_idx = 0;
+            let mut msg_idx = 0;
 
-            // Collect all document objects
+            // Use from_canonical with index to guarantee unique hashes even if
+            // the pool is exhausted. The pool provides variety; the index provides uniqueness.
+            let mut next_hash = || {
+                let base = &hashes[hash_idx % hashes.len()];
+                let h = ContentHash::from_canonical(&[&base.0[..], &hash_idx.to_le_bytes()[..]].concat());
+                hash_idx += 1;
+                h
+            };
+            let mut next_msg = || { let m = messages[msg_idx % messages.len()].clone(); msg_idx += 1; m };
+
+            // Collect all documents, then build trees with varying subsets.
+            // Tree 0 always contains ALL documents (so the tip can reach everything).
+            // Additional trees contain subsets for variety.
+            let mut all_doc_entries = Vec::new();
             for (i, (dag_objects, doc_hash)) in doc_dags.into_iter().enumerate() {
                 for obj in dag_objects {
                     objects.push(obj);
                 }
-                doc_hash_to_path.push((format!("doc{i}.xml"), doc_hash));
+                all_doc_entries.push(TreeEntry {
+                    path: format!("doc{i}.xml"),
+                    document: doc_hash,
+                });
             }
 
-            // Build a tree
-            let tree_hash = extra_hashes[0];
-            let entries: Vec<TreeEntry> = doc_hash_to_path
-                .iter()
-                .map(|(path, hash)| TreeEntry {
-                    path: path.clone(),
-                    document: *hash,
-                })
-                .collect();
-            let tree = TreeObject::new(entries);
-            objects.push((tree_hash, Object::Tree(tree)));
+            let mut tree_hashes = Vec::new();
+            // Tree 0: all documents
+            let full_tree_hash = next_hash();
+            objects.push((full_tree_hash, Object::Tree(TreeObject::new(all_doc_entries.clone()))));
+            tree_hashes.push(full_tree_hash);
+            // Additional trees: subsets (one doc each) for commit variety
+            for entry in &all_doc_entries {
+                let h = next_hash();
+                objects.push((h, Object::Tree(TreeObject::new(vec![entry.clone()]))));
+                tree_hashes.push(h);
+            }
 
-            // Build 1-3 commits in a chain
-            let commit1_hash = extra_hashes[1];
-            let commit1 = CommitObject {
-                tree: tree_hash,
-                parents: vec![],
-                author: author.clone(),
-                timestamp,
-                message: messages[0].clone(),
-            };
-            objects.push((commit1_hash, Object::Commit(commit1)));
+            let mut commit_order = Vec::new();
 
-            let commit2_hash = extra_hashes[2];
-            let commit2 = CommitObject {
-                tree: tree_hash,
-                parents: vec![commit1_hash],
-                author: author.clone(),
-                timestamp,
-                message: messages[1].clone(),
-            };
-            objects.push((commit2_hash, Object::Commit(commit2)));
+            match shape {
+                CommitShape::Single => {
+                    let h = next_hash();
+                    objects.push((h, Object::Commit(CommitObject {
+                        tree: tree_hashes[0],
+                        parents: vec![],
+                        author: author.clone(),
+                        timestamp,
+                        message: next_msg(),
+                    })));
+                    commit_order.push(h);
+                }
+                CommitShape::Linear => {
+                    // 2-6 commits in a chain, each with its own tree where possible
+                    let chain_len = 2 + (hashes[0].0[0] as usize % 5); // 2..6
+                    let mut prev = None;
+                    for i in 0..chain_len {
+                        let h = next_hash();
+                        let parents = prev.map_or_else(Vec::new, |p| vec![p]);
+                        objects.push((h, Object::Commit(CommitObject {
+                            tree: tree_hashes[i % tree_hashes.len()],
+                            parents,
+                            author: author.clone(),
+                            timestamp,
+                            message: next_msg(),
+                        })));
+                        commit_order.push(h);
+                        prev = Some(h);
+                    }
+                }
+                CommitShape::Diamond => {
+                    // root -> left, right -> merge
+                    let root = next_hash();
+                    objects.push((root, Object::Commit(CommitObject {
+                        tree: tree_hashes[0],
+                        parents: vec![],
+                        author: author.clone(),
+                        timestamp,
+                        message: next_msg(),
+                    })));
+                    commit_order.push(root);
 
-            // Third commit merges (has two parents to test branching)
-            let commit3_hash = extra_hashes[3];
-            let commit3 = CommitObject {
-                tree: tree_hash,
-                parents: vec![commit2_hash, commit1_hash],
-                author,
-                timestamp,
-                message: messages[2].clone(),
-            };
-            objects.push((commit3_hash, Object::Commit(commit3)));
+                    let left = next_hash();
+                    objects.push((left, Object::Commit(CommitObject {
+                        tree: tree_hashes[1 % tree_hashes.len()],
+                        parents: vec![root],
+                        author: author.clone(),
+                        timestamp,
+                        message: next_msg(),
+                    })));
+                    commit_order.push(left);
 
-            (objects, commit3_hash)
+                    let right = next_hash();
+                    objects.push((right, Object::Commit(CommitObject {
+                        tree: tree_hashes[2 % tree_hashes.len()],
+                        parents: vec![root],
+                        author: author.clone(),
+                        timestamp,
+                        message: next_msg(),
+                    })));
+                    commit_order.push(right);
+
+                    let merge = next_hash();
+                    objects.push((merge, Object::Commit(CommitObject {
+                        tree: tree_hashes[3 % tree_hashes.len()],
+                        parents: vec![left, right],
+                        author: author.clone(),
+                        timestamp,
+                        message: next_msg(),
+                    })));
+                    commit_order.push(merge);
+                }
+                CommitShape::Fan => {
+                    // root -> 2-4 branches -> merge all
+                    let root = next_hash();
+                    objects.push((root, Object::Commit(CommitObject {
+                        tree: tree_hashes[0],
+                        parents: vec![],
+                        author: author.clone(),
+                        timestamp,
+                        message: next_msg(),
+                    })));
+                    commit_order.push(root);
+
+                    let fan_count = 2 + (hashes[1].0[0] as usize % 3); // 2..4
+                    let mut branch_tips = Vec::new();
+                    for i in 0..fan_count {
+                        let h = next_hash();
+                        objects.push((h, Object::Commit(CommitObject {
+                            tree: tree_hashes[(i + 1) % tree_hashes.len()],
+                            parents: vec![root],
+                            author: author.clone(),
+                            timestamp,
+                            message: next_msg(),
+                        })));
+                        commit_order.push(h);
+                        branch_tips.push(h);
+                    }
+
+                    // Merge all branches so tip reaches everything
+                    let merge = next_hash();
+                    objects.push((merge, Object::Commit(CommitObject {
+                        tree: tree_hashes[0],
+                        parents: branch_tips,
+                        author: author.clone(),
+                        timestamp,
+                        message: next_msg(),
+                    })));
+                    commit_order.push(merge);
+                }
+                CommitShape::DeepMerge => {
+                    // Two independent chains merged at tip
+                    let root_a = next_hash();
+                    objects.push((root_a, Object::Commit(CommitObject {
+                        tree: tree_hashes[0],
+                        parents: vec![],
+                        author: author.clone(),
+                        timestamp,
+                        message: next_msg(),
+                    })));
+                    commit_order.push(root_a);
+
+                    let mid_a = next_hash();
+                    objects.push((mid_a, Object::Commit(CommitObject {
+                        tree: tree_hashes[1 % tree_hashes.len()],
+                        parents: vec![root_a],
+                        author: author.clone(),
+                        timestamp,
+                        message: next_msg(),
+                    })));
+                    commit_order.push(mid_a);
+
+                    let root_b = next_hash();
+                    objects.push((root_b, Object::Commit(CommitObject {
+                        tree: tree_hashes[2 % tree_hashes.len()],
+                        parents: vec![],
+                        author: author.clone(),
+                        timestamp,
+                        message: next_msg(),
+                    })));
+                    commit_order.push(root_b);
+
+                    let mid_b = next_hash();
+                    objects.push((mid_b, Object::Commit(CommitObject {
+                        tree: tree_hashes[3 % tree_hashes.len()],
+                        parents: vec![root_b],
+                        author: author.clone(),
+                        timestamp,
+                        message: next_msg(),
+                    })));
+                    commit_order.push(mid_b);
+
+                    let merge = next_hash();
+                    objects.push((merge, Object::Commit(CommitObject {
+                        tree: tree_hashes[0],
+                        parents: vec![mid_a, mid_b],
+                        author: author.clone(),
+                        timestamp,
+                        message: next_msg(),
+                    })));
+                    commit_order.push(merge);
+                }
+                CommitShape::Octopus => {
+                    // root -> N branches -> octopus merge
+                    let root = next_hash();
+                    objects.push((root, Object::Commit(CommitObject {
+                        tree: tree_hashes[0],
+                        parents: vec![],
+                        author: author.clone(),
+                        timestamp,
+                        message: next_msg(),
+                    })));
+                    commit_order.push(root);
+
+                    let branch_count = 2 + (hashes[2].0[0] as usize % 3); // 2..4
+                    let mut branch_tips = Vec::new();
+                    for i in 0..branch_count {
+                        let h = next_hash();
+                        objects.push((h, Object::Commit(CommitObject {
+                            tree: tree_hashes[(i + 1) % tree_hashes.len()],
+                            parents: vec![root],
+                            author: author.clone(),
+                            timestamp,
+                            message: next_msg(),
+                        })));
+                        commit_order.push(h);
+                        branch_tips.push(h);
+                    }
+
+                    let merge = next_hash();
+                    objects.push((merge, Object::Commit(CommitObject {
+                        tree: tree_hashes[0],
+                        parents: branch_tips,
+                        author: author.clone(),
+                        timestamp,
+                        message: next_msg(),
+                    })));
+                    commit_order.push(merge);
+                }
+            }
+
+            let tip = *commit_order.last().unwrap();
+            (objects, tip, commit_order)
         })
 }
 

@@ -110,28 +110,67 @@ impl<S: ObjectStore + RefStore> PropStoreTester<S> {
         });
     }
 
-    /// A7: Multiple objects in one transaction are all retrievable after commit.
-    pub fn prop_multi_object_transaction(
+    /// A7: Transaction atomicity -- objects are invisible before commit,
+    /// all visible after commit, and all invisible after rollback.
+    pub fn prop_transaction_atomicity(
         &self,
         objects: Vec<(ContentHash, Object)>,
-        absent: ContentHash,
     ) {
         rt().block_on(async {
+            // Deduplicate hashes (proptest shrinking can produce duplicates)
+            let unique: std::collections::HashMap<_, _> =
+                objects.into_iter().collect();
+            let objects: Vec<_> = unique.into_iter().collect();
+            if objects.is_empty() {
+                return;
+            }
+
+            // Phase 1: put objects in a transaction but DON'T commit yet.
+            // Verify none are visible via the store.
             let mut tx = self.store.transaction().await.unwrap();
             for (h, o) in &objects {
                 tx.put(*h, o.clone()).await.unwrap();
             }
-            tx.commit().await.unwrap();
-
-            for (h, expected) in &objects {
-                let got = self.store.get(h).await.unwrap();
-                assert_eq!(got.as_ref(), Some(expected));
+            for (h, _) in &objects {
+                assert!(
+                    !self.store.contains(h).await.unwrap(),
+                    "object should NOT be visible before commit"
+                );
             }
 
-            let stored_hashes: std::collections::HashSet<_> =
-                objects.iter().map(|(h, _)| *h).collect();
-            if !stored_hashes.contains(&absent) {
-                assert_eq!(self.store.get(&absent).await.unwrap(), None);
+            // Phase 2: commit. Now ALL must be visible.
+            tx.commit().await.unwrap();
+            for (h, expected) in &objects {
+                let got = self.store.get(h).await.unwrap();
+                assert_eq!(
+                    got.as_ref(),
+                    Some(expected),
+                    "object should be visible after commit"
+                );
+            }
+
+            // Phase 3: put NEW objects in a second transaction, then rollback.
+            // The new objects must NOT be visible, and the old ones must still be.
+            let extra_hash = ContentHash::from_canonical(b"atomicity_rollback_probe");
+            let extra_obj = Object::Text(crate::object::TextObject {
+                content: "should not survive rollback".into(),
+            });
+            let mut tx2 = self.store.transaction().await.unwrap();
+            tx2.put(extra_hash, extra_obj).await.unwrap();
+            tx2.rollback().await.unwrap();
+
+            assert!(
+                !self.store.contains(&extra_hash).await.unwrap(),
+                "rolled-back object should NOT be visible"
+            );
+            // Original objects must still be intact
+            for (h, expected) in &objects {
+                let got = self.store.get(h).await.unwrap();
+                assert_eq!(
+                    got.as_ref(),
+                    Some(expected),
+                    "previously committed object should survive a later rollback"
+                );
             }
         });
     }
@@ -663,11 +702,10 @@ macro_rules! prop_store_tests {
             }
 
             #[test]
-            fn prop_multi_object_transaction(
+            fn prop_transaction_atomicity(
                 objects in prop::collection::vec(prop_strategies::arb_object(), 2..=8),
-                absent in prop_strategies::arb_content_hash(),
             ) {
-                PropStoreTester { store: $create }.prop_multi_object_transaction(objects, absent);
+                PropStoreTester { store: $create }.prop_transaction_atomicity(objects);
             }
 
             #[test]

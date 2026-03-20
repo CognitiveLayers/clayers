@@ -253,6 +253,7 @@ mod tests {
     use crate::store::memory::MemoryStore;
     use chrono::Utc;
     use proptest::prelude::*;
+    use tokio_stream::StreamExt as _;
 
     fn author() -> Author {
         Author {
@@ -1044,7 +1045,7 @@ mod tests {
         /// E4: Transfer with commit DAGs - use arb_commit_dag() for more complex
         /// topologies with trees, commits, and merge parents.
         #[test]
-        fn prop_transfer_commit_dag((dag, root) in crate::store::prop_strategies::arb_commit_dag()) {
+        fn prop_transfer_commit_dag((dag, root, _order) in crate::store::prop_strategies::arb_commit_dag()) {
             let rt = crate::store::prop_strategies::runtime();
             rt.block_on(async {
                 let src = MemoryStore::new();
@@ -1064,17 +1065,22 @@ mod tests {
                 let second = transfer_objects(&src, &dst, root).await.unwrap();
                 assert_eq!(second, 0, "second transfer should be a no-op");
 
-                // Every hash from the DAG should be present and identical
-                for (h, _) in &dag {
+                // Every object reachable from root on src must be on dst and identical.
+                // (We check reachable objects, not all dag entries, because proptest
+                // shrinking can produce duplicate hashes that overwrite earlier objects.)
+                let src_reachable: Vec<_> = src.subtree(&root)
+                    .map(|r| r.unwrap())
+                    .collect()
+                    .await;
+                for (h, src_obj) in &src_reachable {
                     assert!(
                         dst.contains(h).await.unwrap(),
                         "hash {h} should be on dst after commit-dag transfer"
                     );
-                    let src_obj = src.get(h).await.unwrap();
                     let dst_obj = dst.get(h).await.unwrap();
                     assert_eq!(
-                        src_obj, dst_obj,
-                        "object at {h} should be identical on src and dst after commit-dag transfer"
+                        dst_obj.as_ref(), Some(src_obj),
+                        "object at {h} should be identical on src and dst"
                     );
                 }
             });
