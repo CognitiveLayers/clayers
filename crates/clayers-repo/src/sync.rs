@@ -962,6 +962,120 @@ mod tests {
         assert_eq!(count, 0);
     }
 
+    /// Regression: `arb_object_dag` used to produce hash collisions when
+    /// proptest shrunk all hash pool entries to the same value. Multiple
+    /// objects (Text, Element) shared a hash, and `tx.put()` silently
+    /// overwrote earlier entries. Fixed by deriving unique hashes from
+    /// a seed + index in the generator.
+    #[tokio::test]
+    async fn regression_transfer_with_former_hash_collision_dag() {
+        use crate::object::*;
+        // Reproduce the shrunk case: a DAG where every leaf and inner
+        // element would have shared the same hash under the old generator.
+        // With the fix, each object gets a unique hash derived from a seed.
+        let seed = ContentHash::from_canonical(b"regression-seed");
+        let mut hi: u32 = 0;
+        let mut next_h = || {
+            let mut input = seed.0.to_vec();
+            input.extend_from_slice(&hi.to_le_bytes());
+            hi += 1;
+            ContentHash::from_canonical(&input)
+        };
+
+        let mut objects = Vec::new();
+
+        // 4 text leaves (would all have been hash-colliding before fix).
+        let mut leaf_hashes = Vec::new();
+        for _ in 0..4 {
+            let h = next_h();
+            objects.push((h, Object::Text(TextObject { content: String::new() })));
+            leaf_hashes.push(h);
+        }
+
+        // 2 inner elements referencing leaves.
+        let inner1_h = next_h();
+        objects.push((
+            inner1_h,
+            Object::Element(ElementObject {
+                local_name: "a".into(),
+                namespace_uri: None,
+                namespace_prefix: None,
+                extra_namespaces: vec![],
+                attributes: vec![],
+                children: vec![leaf_hashes[0], leaf_hashes[1]],
+                inclusive_hash: inner1_h,
+            }),
+        ));
+        let inner2_h = next_h();
+        objects.push((
+            inner2_h,
+            Object::Element(ElementObject {
+                local_name: "b".into(),
+                namespace_uri: None,
+                namespace_prefix: None,
+                extra_namespaces: vec![],
+                attributes: vec![],
+                children: vec![leaf_hashes[2], leaf_hashes[3]],
+                inclusive_hash: inner2_h,
+            }),
+        ));
+
+        // Root element.
+        let root_h = next_h();
+        objects.push((
+            root_h,
+            Object::Element(ElementObject {
+                local_name: "root".into(),
+                namespace_uri: None,
+                namespace_prefix: None,
+                extra_namespaces: vec![],
+                attributes: vec![],
+                children: vec![inner1_h, inner2_h],
+                inclusive_hash: root_h,
+            }),
+        ));
+
+        // Document.
+        let doc_h = next_h();
+        objects.push((
+            doc_h,
+            Object::Document(DocumentObject {
+                root: root_h,
+                prologue: vec![],
+            }),
+        ));
+
+        // All hashes must be unique.
+        let unique: std::collections::HashSet<_> = objects.iter().map(|(h, _)| *h).collect();
+        assert_eq!(
+            unique.len(),
+            objects.len(),
+            "all hashes must be unique (this was the bug)"
+        );
+
+        // Transfer and verify completeness.
+        let src = MemoryStore::new();
+        let dst = MemoryStore::new();
+
+        let mut tx = src.transaction().await.unwrap();
+        for (h, o) in &objects {
+            tx.put(*h, o.clone()).await.unwrap();
+        }
+        tx.commit().await.unwrap();
+
+        transfer_objects(&src, &dst, doc_h).await.unwrap();
+
+        for (h, _) in &objects {
+            assert!(
+                dst.contains(h).await.unwrap(),
+                "hash {h} should be on dst after transfer"
+            );
+            let src_obj = src.get(h).await.unwrap();
+            let dst_obj = dst.get(h).await.unwrap();
+            assert_eq!(src_obj, dst_obj, "object at {h} should match");
+        }
+    }
+
     // --- Group E: Sync Properties (proptest) ---
 
     proptest! {

@@ -18,6 +18,7 @@ use crate::object::{
     Attribute, Author, CommitObject, CommentObject, DocumentObject, ElementObject,
     Object, PIObject, TagObject, TextObject, TreeEntry, TreeObject,
 };
+use crate::store::ObjectStore;
 
 // ---------------------------------------------------------------------------
 // Primitive strategies
@@ -697,159 +698,36 @@ pub fn arb_xml_document() -> impl Strategy<Value = String> {
 /// Returns `(objects, document_hash)` where objects is a `Vec<(ContentHash, Object)>`
 /// suitable for insertion into a store.
 ///
-/// Generates varied shapes: flat, deep nesting, mixed children (text + element +
-/// comment), and documents with prologues (comments/PIs before root).
-#[allow(clippy::too_many_lines)]
+/// Objects have content-derived hashes (via `import_xml`), matching what
+/// the real import pipeline produces. This guarantees that hash = identity:
+/// no two distinct objects share a hash.
 pub fn arb_object_dag() -> impl Strategy<Value = (Vec<(ContentHash, Object)>, ContentHash)> {
-    (
-        // Leaf objects: text, comments, PIs
-        pvec(
-            prop_oneof![
-                arb_text_object().prop_map(Object::Text),
-                arb_comment_object().prop_map(Object::Comment),
-                arb_pi_object().prop_map(Object::PI),
-            ],
-            2..=6,
-        ),
-        // Hash pool (large enough for leaves + elements + doc + prologue)
-        pvec(arb_content_hash(), 20),
-        // Element names
-        pvec("[a-z]{1,6}", 5),
-        // Include prologue?
-        proptest::bool::weighted(0.4),
-        // Deep nesting? (element -> element -> element -> leaf)
-        proptest::bool::weighted(0.3),
-    )
-        .prop_map(|(leaf_objs, hashes, elem_names, with_prologue, deep_nesting)| {
+    use futures_core::Stream;
+    use std::pin::pin;
+
+    arb_xml_document().prop_filter_map("skip unparseable XML", |xml| {
+        let rt = runtime();
+        rt.block_on(async {
+            let store = crate::store::memory::MemoryStore::new();
+            let Ok(doc_hash) = crate::import::import_xml(&store, &xml).await else {
+                return None;
+            };
+
+            // Collect all objects from the store's subtree.
             let mut objects: Vec<(ContentHash, Object)> = Vec::new();
-            let mut hi = 0;
-            let mut next_h = || { let h = hashes[hi % hashes.len()]; hi += 1; h };
-
-            // Store leaf objects
-            let mut leaf_hashes = Vec::new();
-            for obj in leaf_objs {
-                let h = next_h();
-                objects.push((h, obj));
-                leaf_hashes.push(h);
+            let mut stream = pin!(store.subtree(&doc_hash));
+            while let Some(item) =
+                std::future::poll_fn(|cx| {
+                    stream.as_mut().poll_next(cx)
+                }).await
+            {
+                let (h, o) = item.expect("subtree iteration failed");
+                objects.push((h, o));
             }
 
-            let root_children = if deep_nesting {
-                // Deep: chain of elements, each containing the next
-                // leaf[0] -> elem_inner -> elem_mid -> elem_outer (root child)
-                let inner_h = next_h();
-                let inner = ElementObject {
-                    local_name: elem_names[0].clone(),
-                    namespace_uri: None,
-                    namespace_prefix: None,
-                    extra_namespaces: vec![],
-                    attributes: vec![],
-                    children: vec![leaf_hashes[0]],
-                    inclusive_hash: inner_h,
-                };
-                objects.push((inner_h, Object::Element(inner)));
-
-                let mid_h = next_h();
-                // Mid element has inner + a leaf sibling (mixed children)
-                let mut mid_children = vec![inner_h];
-                if leaf_hashes.len() > 1 {
-                    mid_children.push(leaf_hashes[1]);
-                }
-                let mid = ElementObject {
-                    local_name: elem_names[1 % elem_names.len()].clone(),
-                    namespace_uri: None,
-                    namespace_prefix: None,
-                    extra_namespaces: vec![],
-                    attributes: vec![],
-                    children: mid_children,
-                    inclusive_hash: mid_h,
-                };
-                objects.push((mid_h, Object::Element(mid)));
-
-                // Remaining leaves as siblings of the deep chain
-                let mut root_kids = vec![mid_h];
-                for lh in leaf_hashes.iter().skip(2) {
-                    root_kids.push(*lh);
-                }
-                root_kids
-            } else {
-                // Flat: 1-3 elements each containing a slice of leaves
-                let mut element_hashes = Vec::new();
-                let elems_to_make = 1 + (leaf_hashes.len() / 3).min(3);
-                let leaf_count = leaf_hashes.len();
-                for i in 0..elems_to_make {
-                    let start = (i * leaf_count) / elems_to_make;
-                    let end = ((i + 1) * leaf_count) / elems_to_make;
-                    let children: Vec<ContentHash> = (start..end)
-                        .map(|j| leaf_hashes[j])
-                        .collect();
-                    if children.is_empty() {
-                        continue;
-                    }
-                    let h = next_h();
-                    let elem = ElementObject {
-                        local_name: elem_names[i % elem_names.len()].clone(),
-                        namespace_uri: None,
-                        namespace_prefix: None,
-                        extra_namespaces: vec![],
-                        attributes: vec![],
-                        children,
-                        inclusive_hash: h,
-                    };
-                    objects.push((h, Object::Element(elem)));
-                    element_hashes.push(h);
-                }
-                element_hashes
-            };
-
-            // Root element
-            let root_h = next_h();
-            let root_elem = ElementObject {
-                local_name: "root".to_string(),
-                namespace_uri: None,
-                namespace_prefix: None,
-                extra_namespaces: vec![],
-                attributes: vec![],
-                children: root_children,
-                inclusive_hash: root_h,
-            };
-            objects.push((root_h, Object::Element(root_elem)));
-
-            // Prologue: comment and/or PI before the root element
-            let mut prologue_hashes = Vec::new();
-            if with_prologue {
-                let comment_h = next_h();
-                objects.push((
-                    comment_h,
-                    Object::Comment(CommentObject {
-                        content: "generated prologue comment".into(),
-                    }),
-                ));
-                prologue_hashes.push(comment_h);
-
-                // Sometimes also a PI
-                if hashes[0].0[0] % 2 == 0 {
-                    let pi_h = next_h();
-                    objects.push((
-                        pi_h,
-                        Object::PI(PIObject {
-                            target: "app".into(),
-                            data: Some("version=1".into()),
-                        }),
-                    ));
-                    prologue_hashes.push(pi_h);
-                }
-            }
-
-            // Document
-            let doc_h = next_h();
-            let doc = DocumentObject {
-                root: root_h,
-                prologue: prologue_hashes,
-            };
-            objects.push((doc_h, Object::Document(doc)));
-
-            (objects, doc_h)
+            Some((objects, doc_hash))
         })
+    })
 }
 
 /// A commit graph shape for varied topology testing.
