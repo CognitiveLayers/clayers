@@ -26,6 +26,7 @@ pub mod graph;
 pub mod hash;
 pub mod import;
 pub mod conflict;
+pub mod merge;
 pub mod object;
 pub mod query;
 pub mod refs;

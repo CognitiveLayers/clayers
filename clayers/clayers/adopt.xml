@@ -248,7 +248,7 @@
     <art:artifact repo="clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/embedded.rs">
-      <art:range hash="sha256:6b9b92c429be9e15c84b904152c6e71a32e73477e74b72d01ca4833a480cbc21"/>
+      <art:range hash="sha256:a9c9f30dbc6a18ac15dd8b5392b5625835c0212a3b13fb904640c60ff6a2389f"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>The embedded module provides build-time schema embedding
@@ -461,9 +461,9 @@
               path="crates/clayers/src/cli.rs">
       <art:range hash="sha256:5357d1d21527db2dab86c47989cd838e58691cc2c05be583b7d94ee1d2b3ab32"
                  start-line="100" end-line="111"/>
-      <art:range hash="sha256:4d6c0403c782d25b523d40f095cdae20f758e00480821d09cf24d58435569de2"
+      <art:range hash="sha256:814c503efe5be3d3bc9f95b8fc4647a74d83e39845ef48386a68cb13df18ad7e"
                  start-line="291" end-line="295"/>
-      <art:range hash="sha256:b0c53cf8e85024647c5f1f8540cc16a0e89bf52acc6b9a028afecc1b3ea06f6b"
+      <art:range hash="sha256:130935253b277bff00b2bc419ce50b3c43396b7cbd428bf9c592caa766a984c6"
                  start-line="657" end-line="659"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -478,7 +478,7 @@
     <art:artifact repo="clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/embedded.rs">
-      <art:range hash="sha256:6b9b92c429be9e15c84b904152c6e71a32e73477e74b72d01ca4833a480cbc21"/>
+      <art:range hash="sha256:a9c9f30dbc6a18ac15dd8b5392b5625835c0212a3b13fb904640c60ff6a2389f"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>AGENT_GUIDANCE_XML constant: embeds agent-guidance.xml

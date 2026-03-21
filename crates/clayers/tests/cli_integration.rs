@@ -2234,3 +2234,666 @@ fn diff_json_attribute_change() {
     assert_eq!(ac["old"], "old");
     assert_eq!(ac["new"], "new");
 }
+
+// ===========================================================================
+// merge
+// ===========================================================================
+
+/// Set up a repo with two divergent branches.
+/// Both branches share an initial commit, then each gets a separate commit.
+fn setup_divergent_branches(
+    initial: &[(&str, &str)],
+    main_changes: &[(&str, &str)],
+    feature_changes: &[(&str, &str)],
+) -> TempDir {
+    let tmp = setup_committed_repo(initial);
+    let path = tmp.path();
+
+    // Create feature branch at the same point.
+    clayers()
+        .args(["branch", "feature"])
+        .current_dir(path)
+        .assert()
+        .success();
+
+    // Commit changes on main.
+    if !main_changes.is_empty() {
+        for (name, content) in main_changes {
+            std::fs::write(path.join(name), content).unwrap();
+        }
+        clayers()
+            .args(["add", "."])
+            .current_dir(path)
+            .assert()
+            .success();
+        clayers()
+            .args(["commit", "-m", "main change"])
+            .envs(author_env())
+            .current_dir(path)
+            .assert()
+            .success();
+    }
+
+    // Switch to feature, commit changes.
+    clayers()
+        .args(["checkout", "feature"])
+        .current_dir(path)
+        .assert()
+        .success();
+    if !feature_changes.is_empty() {
+        for (name, content) in feature_changes {
+            std::fs::write(path.join(name), content).unwrap();
+        }
+        clayers()
+            .args(["add", "."])
+            .current_dir(path)
+            .assert()
+            .success();
+        clayers()
+            .args(["commit", "-m", "feature change"])
+            .envs(author_env())
+            .current_dir(path)
+            .assert()
+            .success();
+    }
+
+    // Switch back to main for merging.
+    clayers()
+        .args(["checkout", "main"])
+        .current_dir(path)
+        .assert()
+        .success();
+
+    tmp
+}
+
+#[test]
+fn merge_help_shows_strategy() {
+    let out = stdout_of(clayers().args(["merge", "--help"]));
+    assert!(
+        out.to_lowercase().contains("strategy"),
+        "merge help should mention strategy: {out}"
+    );
+}
+
+#[test]
+fn merge_fast_forward() {
+    // Feature has a commit ahead of main. Merge should fast-forward.
+    let tmp = setup_divergent_branches(
+        &[("doc.xml", "<root>base</root>")],
+        &[], // no changes on main
+        &[("doc.xml", "<root>feature-change</root>")],
+    );
+    let path = tmp.path();
+
+    let out = stdout_of(
+        clayers()
+            .args(["merge", "feature"])
+            .envs(author_env())
+            .current_dir(path),
+    );
+    assert!(
+        out.contains("Fast-forward"),
+        "should fast-forward: {out}"
+    );
+
+    // File should have feature's content.
+    let content = std::fs::read_to_string(path.join("doc.xml")).unwrap();
+    assert!(
+        content.contains("feature-change"),
+        "should have feature content: {content}"
+    );
+}
+
+#[test]
+fn merge_non_overlapping_auto() {
+    // main changes a.xml, feature changes b.xml. Should auto-merge.
+    let tmp = setup_divergent_branches(
+        &[
+            ("a.xml", "<a>base</a>"),
+            ("b.xml", "<b>base</b>"),
+        ],
+        &[("a.xml", "<a>main-edit</a>")],
+        &[("b.xml", "<b>feature-edit</b>")],
+    );
+    let path = tmp.path();
+
+    let out = stdout_of(
+        clayers()
+            .args(["merge", "feature"])
+            .envs(author_env())
+            .current_dir(path),
+    );
+    assert!(
+        out.contains("Merge commit"),
+        "should create merge commit: {out}"
+    );
+    assert!(
+        !out.contains("CONFLICT"),
+        "should not conflict: {out}"
+    );
+
+    // Both changes should be present.
+    let a = std::fs::read_to_string(path.join("a.xml")).unwrap();
+    assert!(a.contains("main-edit"), "a.xml: {a}");
+    let b = std::fs::read_to_string(path.join("b.xml")).unwrap();
+    assert!(b.contains("feature-edit"), "b.xml: {b}");
+
+    // Merge commit should have two parents (verify via log).
+    let log = stdout_of(
+        clayers()
+            .args(["log", "-n", "1"])
+            .current_dir(path),
+    );
+    assert!(
+        log.contains("Merge branch"),
+        "commit message should mention merge: {log}"
+    );
+}
+
+#[test]
+fn merge_conflict_creates_sidecar_divergence() {
+    // Both branches change the same file differently. Should conflict.
+    let tmp = setup_divergent_branches(
+        &[("doc.xml", "<root>base</root>")],
+        &[("doc.xml", "<root>main-version</root>")],
+        &[("doc.xml", "<root>feature-version</root>")],
+    );
+    let path = tmp.path();
+
+    let output = clayers()
+        .args(["merge", "feature", "--strategy", "manual"])
+        .envs(author_env())
+        .current_dir(path)
+        .output()
+        .unwrap();
+
+    let out = String::from_utf8_lossy(&output.stdout);
+    let err = String::from_utf8_lossy(&output.stderr);
+
+    // Command should exit with error (conflicts).
+    assert!(
+        !output.status.success(),
+        "should exit non-zero on conflicts. stdout: {out}, stderr: {err}"
+    );
+    assert!(
+        out.contains("CONFLICT"),
+        "should report conflict: {out}"
+    );
+    assert!(
+        out.contains(".clayers/divergence/"),
+        "should show divergence path: {out}"
+    );
+
+    // Original file should keep main's version (ours).
+    let content = std::fs::read_to_string(path.join("doc.xml")).unwrap();
+    assert!(
+        content.contains("main-version"),
+        "original doc should keep ours: {content}"
+    );
+
+    // Divergence file should exist on disk.
+    let div_dir = path.join(".clayers").join("divergence");
+    assert!(
+        div_dir.exists(),
+        ".clayers/divergence/ dir should exist on disk"
+    );
+    let div_files: Vec<_> = std::fs::read_dir(&div_dir)
+        .unwrap()
+        .filter_map(Result::ok)
+        .collect();
+    assert_eq!(div_files.len(), 1, "should have exactly one divergence file");
+
+    let div_content =
+        std::fs::read_to_string(div_files[0].path()).unwrap();
+    assert!(
+        div_content.contains("divergence"),
+        "divergence file should contain divergence element: {div_content}"
+    );
+}
+
+#[test]
+fn merge_strategy_ours() {
+    let tmp = setup_divergent_branches(
+        &[("doc.xml", "<root>base</root>")],
+        &[("doc.xml", "<root>main-version</root>")],
+        &[("doc.xml", "<root>feature-version</root>")],
+    );
+    let path = tmp.path();
+
+    clayers()
+        .args(["merge", "feature", "--strategy", "ours"])
+        .envs(author_env())
+        .current_dir(path)
+        .assert()
+        .success();
+
+    let content = std::fs::read_to_string(path.join("doc.xml")).unwrap();
+    assert!(
+        content.contains("main-version"),
+        "ours strategy should keep main: {content}"
+    );
+    // No divergence files.
+    assert!(
+        !path.join(".clayers").join("divergence").exists(),
+        "ours strategy should not create divergence dir"
+    );
+}
+
+#[test]
+fn merge_strategy_theirs() {
+    let tmp = setup_divergent_branches(
+        &[("doc.xml", "<root>base</root>")],
+        &[("doc.xml", "<root>main-version</root>")],
+        &[("doc.xml", "<root>feature-version</root>")],
+    );
+    let path = tmp.path();
+
+    clayers()
+        .args(["merge", "feature", "--strategy", "theirs"])
+        .envs(author_env())
+        .current_dir(path)
+        .assert()
+        .success();
+
+    let content = std::fs::read_to_string(path.join("doc.xml")).unwrap();
+    assert!(
+        content.contains("feature-version"),
+        "theirs strategy should take feature: {content}"
+    );
+}
+
+#[test]
+fn merge_up_to_date() {
+    let tmp = setup_committed_repo(&[("doc.xml", "<root>base</root>")]);
+    let path = tmp.path();
+    clayers()
+        .args(["branch", "feature"])
+        .current_dir(path)
+        .assert()
+        .success();
+
+    let out = stdout_of(
+        clayers()
+            .args(["merge", "feature"])
+            .envs(author_env())
+            .current_dir(path),
+    );
+    assert!(
+        out.contains("up to date"),
+        "should be up to date: {out}"
+    );
+}
+
+#[test]
+fn merge_into_self_errors() {
+    let tmp = setup_committed_repo(&[("doc.xml", "<root>base</root>")]);
+    let path = tmp.path();
+
+    clayers()
+        .args(["merge", "main"])
+        .envs(author_env())
+        .current_dir(path)
+        .assert()
+        .failure();
+}
+
+#[test]
+fn merge_nonexistent_branch_errors() {
+    let tmp = setup_committed_repo(&[("doc.xml", "<root>base</root>")]);
+    let path = tmp.path();
+
+    clayers()
+        .args(["merge", "nonexistent"])
+        .envs(author_env())
+        .current_dir(path)
+        .assert()
+        .failure();
+}
+
+#[test]
+fn merge_file_added_on_feature() {
+    // Feature adds a new file. Should appear after merge.
+    let tmp = setup_divergent_branches(
+        &[("existing.xml", "<e>base</e>")],
+        &[],
+        &[("new.xml", "<n>from-feature</n>")],
+    );
+    let path = tmp.path();
+
+    clayers()
+        .args(["merge", "feature"])
+        .envs(author_env())
+        .current_dir(path)
+        .assert()
+        .success();
+
+    assert!(
+        path.join("new.xml").exists(),
+        "new file from feature should exist on disk"
+    );
+    let content = std::fs::read_to_string(path.join("new.xml")).unwrap();
+    assert!(
+        content.contains("from-feature"),
+        "new file content: {content}"
+    );
+}
+
+#[test]
+fn merge_custom_message() {
+    let tmp = setup_divergent_branches(
+        &[("a.xml", "<a>base</a>"), ("b.xml", "<b>base</b>")],
+        &[("a.xml", "<a>main</a>")],
+        &[("b.xml", "<b>feature</b>")],
+    );
+    let path = tmp.path();
+
+    clayers()
+        .args(["merge", "feature", "-m", "custom merge msg"])
+        .envs(author_env())
+        .current_dir(path)
+        .assert()
+        .success();
+
+    let log = stdout_of(clayers().args(["log", "-n", "1"]).current_dir(path));
+    assert!(
+        log.contains("custom merge msg"),
+        "log should show custom message: {log}"
+    );
+}
+
+#[test]
+fn merge_commit_visible_in_log() {
+    let tmp = setup_divergent_branches(
+        &[("a.xml", "<a>base</a>"), ("b.xml", "<b>base</b>")],
+        &[("a.xml", "<a>main</a>")],
+        &[("b.xml", "<b>feature</b>")],
+    );
+    let path = tmp.path();
+
+    clayers()
+        .args(["merge", "feature"])
+        .envs(author_env())
+        .current_dir(path)
+        .assert()
+        .success();
+
+    // Log should show the merge commit plus the prior commits.
+    let log = stdout_of(clayers().args(["log"]).current_dir(path));
+    assert!(
+        log.contains("Merge branch"),
+        "merge commit should appear in log: {log}"
+    );
+    // Should still see the earlier commits.
+    assert!(
+        log.contains("initial"),
+        "initial commit should still be in log: {log}"
+    );
+}
+
+#[test]
+fn merge_multiple_conflicts() {
+    // Both branches change two different files. Both should conflict.
+    let tmp = setup_divergent_branches(
+        &[
+            ("a.xml", "<a>base</a>"),
+            ("b.xml", "<b>base</b>"),
+        ],
+        &[
+            ("a.xml", "<a>main-a</a>"),
+            ("b.xml", "<b>main-b</b>"),
+        ],
+        &[
+            ("a.xml", "<a>feat-a</a>"),
+            ("b.xml", "<b>feat-b</b>"),
+        ],
+    );
+    let path = tmp.path();
+
+    let output = clayers()
+        .args(["merge", "feature", "--strategy", "manual"])
+        .envs(author_env())
+        .current_dir(path)
+        .output()
+        .unwrap();
+
+    let out = String::from_utf8_lossy(&output.stdout);
+    assert!(!output.status.success(), "should fail with conflicts");
+
+    // Should report both conflicts.
+    assert!(
+        out.contains("a.xml") && out.contains("b.xml"),
+        "should report both conflicting files: {out}"
+    );
+
+    // Two divergence sidecar files.
+    let div_dir = path.join(".clayers").join("divergence");
+    let div_files: Vec<_> = std::fs::read_dir(&div_dir)
+        .unwrap()
+        .filter_map(Result::ok)
+        .collect();
+    assert_eq!(
+        div_files.len(),
+        2,
+        "should have two divergence files, got: {div_files:?}"
+    );
+}
+
+#[test]
+fn merge_divergence_contains_both_sides() {
+    let tmp = setup_divergent_branches(
+        &[("doc.xml", "<root>base</root>")],
+        &[("doc.xml", "<root>main-content</root>")],
+        &[("doc.xml", "<root>feature-content</root>")],
+    );
+    let path = tmp.path();
+
+    clayers()
+        .args(["merge", "feature", "--strategy", "manual"])
+        .envs(author_env())
+        .current_dir(path)
+        .output()
+        .unwrap();
+
+    let div_dir = path.join(".clayers").join("divergence");
+    let div_files: Vec<_> = std::fs::read_dir(&div_dir)
+        .unwrap()
+        .filter_map(Result::ok)
+        .collect();
+    assert_eq!(div_files.len(), 1);
+
+    let div_content = std::fs::read_to_string(div_files[0].path()).unwrap();
+
+    // Parse the divergence XML structurally.
+    let mut xot = xot::Xot::new();
+    let doc = xot
+        .parse(&div_content)
+        .unwrap_or_else(|e| panic!("divergence should be valid XML: {e}\n{div_content}"));
+    let root = xot.document_element(doc).expect("should have root");
+
+    // Root element must be repo:divergence.
+    let (root_local, _) = xot.name_ns_str(xot.element(root).unwrap().name());
+    assert_eq!(
+        root_local, "divergence",
+        "root should be 'divergence', got: {root_local}",
+    );
+
+    // Must have children: repo:ancestor and at least two repo:side.
+    let children: Vec<_> = xot.children(root).collect();
+    let mut ancestor_count = 0;
+    let mut side_count = 0;
+    for child in &children {
+        if let Some(el) = xot.element(*child) {
+            let (local, _) = xot.name_ns_str(el.name());
+            match local {
+                "ancestor" => ancestor_count += 1,
+                "side" => side_count += 1,
+                _ => {}
+            }
+        }
+    }
+    assert_eq!(ancestor_count, 1, "should have exactly one repo:ancestor");
+    assert_eq!(side_count, 2, "should have exactly two repo:side elements");
+
+    // Content from all three sides should be embedded.
+    assert!(
+        div_content.contains("main-content"),
+        "divergence should contain ours: {div_content}"
+    );
+    assert!(
+        div_content.contains("feature-content"),
+        "divergence should contain theirs: {div_content}"
+    );
+    assert!(
+        div_content.contains("base"),
+        "divergence should contain ancestor: {div_content}"
+    );
+}
+
+#[test]
+fn merge_conflict_lifecycle_resolve_and_commit() {
+    // Full lifecycle: merge → conflict → resolve → commit → clean.
+    let tmp = setup_divergent_branches(
+        &[("doc.xml", "<root>base</root>")],
+        &[("doc.xml", "<root>main-version</root>")],
+        &[("doc.xml", "<root>feature-version</root>")],
+    );
+    let path = tmp.path();
+
+    // 1. Merge with conflicts.
+    clayers()
+        .args(["merge", "feature", "--strategy", "manual"])
+        .envs(author_env())
+        .current_dir(path)
+        .output()
+        .unwrap();
+
+    // Verify divergence exists.
+    let div_dir = path.join(".clayers").join("divergence");
+    assert!(div_dir.exists(), "divergence dir should exist");
+
+    // 2. Resolve: edit the file to the desired content.
+    std::fs::write(path.join("doc.xml"), "<root>resolved</root>").unwrap();
+
+    // 3. Remove the divergence file (resolution).
+    for entry in std::fs::read_dir(&div_dir).unwrap() {
+        std::fs::remove_file(entry.unwrap().path()).unwrap();
+    }
+    std::fs::remove_dir(&div_dir).unwrap();
+    // Also remove the parent .clayers/divergence if empty.
+    let clayers_dir = path.join(".clayers");
+    if clayers_dir.join("divergence").exists() {
+        std::fs::remove_dir(clayers_dir.join("divergence")).ok();
+    }
+
+    // 4. Stage and commit the resolution.
+    clayers()
+        .args(["add", "doc.xml"])
+        .current_dir(path)
+        .assert()
+        .success();
+    clayers()
+        .args(["commit", "-m", "resolve conflict"])
+        .envs(author_env())
+        .current_dir(path)
+        .assert()
+        .success();
+
+    // 5. Verify: file has resolved content.
+    let content = std::fs::read_to_string(path.join("doc.xml")).unwrap();
+    assert!(
+        content.contains("resolved"),
+        "file should have resolved content: {content}"
+    );
+
+    // Log should show the resolution commit after the merge commit.
+    let log = stdout_of(clayers().args(["log"]).current_dir(path));
+    assert!(log.contains("resolve conflict"), "resolution in log: {log}");
+    assert!(log.contains("Merge branch"), "merge still in log: {log}");
+}
+
+#[test]
+fn merge_auto_element_level_non_overlapping() {
+    // Same file, but different children edited on each side.
+    // AutoMerge should handle this at the element level.
+    let base = r#"<root><a id="a">base-a</a><b id="b">base-b</b></root>"#;
+    let main_ver = r#"<root><a id="a">main-a</a><b id="b">base-b</b></root>"#;
+    let feat_ver = r#"<root><a id="a">base-a</a><b id="b">feat-b</b></root>"#;
+
+    let tmp = setup_divergent_branches(
+        &[("doc.xml", base)],
+        &[("doc.xml", main_ver)],
+        &[("doc.xml", feat_ver)],
+    );
+    let path = tmp.path();
+
+    let out = stdout_of(
+        clayers()
+            .args(["merge", "feature", "--strategy", "auto"])
+            .envs(author_env())
+            .current_dir(path),
+    );
+    assert!(
+        !out.contains("CONFLICT"),
+        "auto should merge non-overlapping element edits: {out}"
+    );
+
+    let content = std::fs::read_to_string(path.join("doc.xml")).unwrap();
+    assert!(
+        content.contains("main-a"),
+        "should have ours' change: {content}"
+    );
+    assert!(
+        content.contains("feat-b"),
+        "should have theirs' change: {content}"
+    );
+}
+
+#[test]
+fn merge_file_deleted_on_feature_unchanged_on_main() {
+    // Feature deletes b.xml. Main doesn't touch it. After merge, b.xml should be gone.
+    let tmp = setup_committed_repo(&[
+        ("a.xml", "<a>shared</a>"),
+        ("b.xml", "<b>to-delete</b>"),
+    ]);
+    let path = tmp.path();
+
+    // Create feature, remove b.xml.
+    clayers()
+        .args(["checkout", "-b", "feature"])
+        .current_dir(path)
+        .assert()
+        .success();
+    clayers()
+        .args(["rm", "b.xml"])
+        .current_dir(path)
+        .assert()
+        .success();
+    clayers()
+        .args(["commit", "-m", "delete b"])
+        .envs(author_env())
+        .current_dir(path)
+        .assert()
+        .success();
+
+    // Back to main, merge.
+    clayers()
+        .args(["checkout", "main"])
+        .current_dir(path)
+        .assert()
+        .success();
+    clayers()
+        .args(["merge", "feature"])
+        .envs(author_env())
+        .current_dir(path)
+        .assert()
+        .success();
+
+    // a.xml should still be there.
+    assert!(path.join("a.xml").exists(), "a.xml should remain");
+    // b.xml should be deleted from disk after merge.
+    assert!(
+        !path.join("b.xml").exists(),
+        "b.xml should be removed from disk after merge"
+    );
+}

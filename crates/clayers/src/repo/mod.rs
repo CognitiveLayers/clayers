@@ -10,6 +10,7 @@ pub mod commit;
 pub mod diff;
 pub mod history;
 pub mod init;
+pub mod merge;
 pub mod remote;
 pub mod revert;
 pub mod schema;

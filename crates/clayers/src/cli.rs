@@ -199,6 +199,23 @@ enum Command {
         #[command(subcommand)]
         action: RemoteAction,
     },
+    /// Merge a branch into the current branch.
+    Merge {
+        /// Branch to merge.
+        branch: String,
+        /// Merge strategy (auto, ours, theirs, manual).
+        #[arg(long, default_value = "auto")]
+        strategy: String,
+        /// Commit message.
+        #[arg(short, long)]
+        message: Option<String>,
+        /// Author name.
+        #[arg(long)]
+        author: Option<String>,
+        /// Author email.
+        #[arg(long)]
+        email: Option<String>,
+    },
     /// Restore files to their committed state.
     Revert {
         /// Files to revert.
@@ -415,6 +432,19 @@ fn run(cli: &Cli) -> Result<()> {
                 }
             }
         }
+        Command::Merge {
+            branch,
+            strategy,
+            message,
+            author,
+            email,
+        } => crate::repo::merge::cmd_merge(
+            branch,
+            strategy,
+            message.as_deref(),
+            author.as_deref(),
+            email.as_deref(),
+        ),
         Command::Revert { files } => crate::repo::revert::cmd_revert(files),
         Command::Diff { rev_a, rev_b, json } => {
             crate::repo::diff::cmd_diff(rev_a.as_deref(), rev_b.as_deref(), *json)

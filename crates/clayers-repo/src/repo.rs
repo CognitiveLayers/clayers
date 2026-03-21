@@ -7,12 +7,13 @@ use clayers_xml::ContentHash;
 use chrono::Utc;
 
 use crate::diff::{self, TreeDiff};
-use crate::error::Result;
+use crate::error::{Error, Result};
 use crate::graph;
 use crate::hash;
 use crate::import;
 use crate::export;
 use crate::conflict::{self, ConflictInfo};
+use crate::merge::{self, MergeOutcome, MergePolicy};
 use crate::object::{Author, CommitObject, Object, TagObject, TreeEntry, TreeObject};
 use crate::query::{self, QueryStore, QueryMode, QueryResult, NamespaceMap, RefQueryResult};
 use crate::refs;
@@ -296,6 +297,136 @@ impl<S: ObjectStore + RefStore + QueryStore> Repo<S> {
     /// Returns an error if objects cannot be loaded.
     pub async fn list_conflicts(&self, document: ContentHash) -> Result<Vec<ConflictInfo>> {
         conflict::list_conflicts(&self.store, document).await
+    }
+
+    // --- Merge ---
+
+    /// Three-way merge of a target branch into the current branch.
+    ///
+    /// Finds the common ancestor, performs file-level and element-level
+    /// three-way merge using the given policy, and creates a merge commit
+    /// with two parents.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if branches cannot be resolved, objects cannot be
+    /// loaded, or storage fails.
+    pub async fn merge(
+        &self,
+        current_branch: &str,
+        target_branch: &str,
+        author: &Author,
+        message: &str,
+        policy: &MergePolicy,
+    ) -> Result<MergeOutcome> {
+        // Resolve branch tips.
+        let ours_commit = refs::get_branch(&self.store, current_branch)
+            .await?
+            .ok_or(Error::Ref(format!(
+                "branch '{current_branch}' has no commits"
+            )))?;
+        let theirs_commit = refs::get_branch(&self.store, target_branch)
+            .await?
+            .ok_or(Error::Ref(format!("branch '{target_branch}' not found")))?;
+
+        if ours_commit == theirs_commit {
+            return Ok(MergeOutcome::UpToDate);
+        }
+
+        // Find lowest common ancestor.
+        let ancestor =
+            graph::common_ancestor(&self.store, ours_commit, theirs_commit).await?;
+        let Some(ancestor_commit) = ancestor else {
+            return Ok(MergeOutcome::NoCommonAncestor);
+        };
+
+        // Fast-forward: HEAD is behind target.
+        if ancestor_commit == ours_commit {
+            self.store
+                .set_ref(&refs::branch_ref(current_branch), theirs_commit)
+                .await?;
+            refs::set_head(&self.store, theirs_commit).await?;
+            return Ok(MergeOutcome::FastForward {
+                commit: theirs_commit,
+            });
+        }
+
+        // Already up to date: target is behind HEAD.
+        if ancestor_commit == theirs_commit {
+            return Ok(MergeOutcome::UpToDate);
+        }
+
+        // Load trees.
+        let ours_tree = self.load_tree_from_commit(ours_commit).await?;
+        let theirs_tree = self.load_tree_from_commit(theirs_commit).await?;
+        let ancestor_tree = self.load_tree_from_commit(ancestor_commit).await?;
+
+        // Three-way file-level merge.
+        let ours_ref = refs::branch_ref(current_branch);
+        let theirs_ref = refs::branch_ref(target_branch);
+        let result = merge::merge_trees(
+            &self.store,
+            &ancestor_tree,
+            &ours_tree,
+            &theirs_tree,
+            policy,
+            &ours_ref,
+            &theirs_ref,
+            ours_commit,
+            theirs_commit,
+            ancestor_commit,
+        )
+        .await?;
+
+        // Create merge commit (two parents).
+        let commit = CommitObject {
+            tree: result.tree,
+            parents: vec![ours_commit, theirs_commit],
+            author: author.clone(),
+            timestamp: Utc::now(),
+            message: message.to_string(),
+        };
+        let commit_xml = commit.to_xml();
+        let commit_hash = hash::hash_exclusive(&commit_xml)?;
+
+        let mut tx = self.store.transaction().await?;
+        tx.put(commit_hash, Object::Commit(commit)).await?;
+        tx.commit().await?;
+
+        // Update branch and HEAD.
+        self.store
+            .set_ref(&refs::branch_ref(current_branch), commit_hash)
+            .await?;
+        refs::set_head(&self.store, commit_hash).await?;
+
+        Ok(MergeOutcome::Merged {
+            commit: commit_hash,
+            result,
+        })
+    }
+
+    /// Load a tree from a commit hash.
+    async fn load_tree_from_commit(
+        &self,
+        commit_hash: ContentHash,
+    ) -> Result<TreeObject> {
+        let obj = self
+            .store
+            .get(&commit_hash)
+            .await?
+            .ok_or(Error::NotFound(commit_hash))?;
+        let Object::Commit(commit) = obj else {
+            return Err(Error::InvalidObject("expected Commit".into()));
+        };
+        let tree_obj = self
+            .store
+            .get(&commit.tree)
+            .await?
+            .ok_or(Error::NotFound(commit.tree))?;
+        let Object::Tree(tree) = tree_obj else {
+            return Err(Error::InvalidObject("expected Tree".into()));
+        };
+        Ok(tree)
     }
 
     // --- Query ---

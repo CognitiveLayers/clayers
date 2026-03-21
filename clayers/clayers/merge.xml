@@ -1,0 +1,513 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Merge Framework: Three-way merge with pluggable strategies.
+  File-level and element-level merge for XML documents in the
+  content-addressed Merkle DAG, with sidecar divergence documents.
+-->
+<spec:clayers xmlns:spec="urn:clayers:spec"
+       xmlns:pr="urn:clayers:prose"
+       xmlns:trm="urn:clayers:terminology"
+       xmlns:org="urn:clayers:organization"
+       xmlns:rel="urn:clayers:relation"
+       xmlns:art="urn:clayers:artifact"
+       xmlns:llm="urn:clayers:llm"
+       spec:index="index.xml">
+
+  <!-- ================================================================== -->
+  <!-- Vocabulary                                                          -->
+  <!-- ================================================================== -->
+
+  <trm:term id="term-merge-strategy">
+    <trm:name>Merge Strategy</trm:name>
+    <trm:definition>A pluggable algorithm for resolving file-level merge
+    conflicts. Strategies implement the MergeStrategy trait and return either
+    a resolved <trm:ref term="term-content-hash">content hash</trm:ref> or a
+    <trm:ref term="term-divergence">divergence</trm:ref> signal. Built-in
+    strategies are Ours, Theirs, AutoMerge, and Manual.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-merge-policy">
+    <trm:name>Merge Policy</trm:name>
+    <trm:definition>A dispatcher that selects a
+    <trm:ref term="term-merge-strategy">merge strategy</trm:ref> per file
+    path. Holds a default strategy and optional per-file overrides matched
+    by path suffix. Enables different resolution approaches for different
+    parts of a specification.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-child-key">
+    <trm:name>Child Key</trm:name>
+    <trm:definition>An identity key assigned to each child
+    <trm:ref term="term-node">node</trm:ref> in the Merkle DAG for
+    three-way merge matching. Elements with an id attribute are keyed by
+    (local_name, id_value); elements without id are keyed by
+    (local_name, positional_index). Text, comment, and PI nodes are keyed
+    by type-specific occurrence index. This prevents cascading mismatches
+    when children are inserted or deleted on different sides.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-divergence">
+    <trm:name>Divergence</trm:name>
+    <trm:definition>A conflict representation stored as a sidecar document
+    under .clayers/divergence/ in the repository tree. Contains the ancestor
+    version and both sides' content as repo:divergence XML. The original
+    document stays valid at its path (keeping ours' version). The divergence
+    filename encodes a hash of the three sides to allow multiple unresolved
+    conflicts per file. Resolution is a subsequent commit that removes the
+    divergence entry.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-merge-outcome">
+    <trm:name>Merge Outcome</trm:name>
+    <trm:definition>The result of a merge operation on a repository. Four
+    variants: FastForward (target was ahead, HEAD moved forward), Merged
+    (a merge commit with two parents was created), UpToDate (nothing to do),
+    and NoCommonAncestor (disjoint histories).</trm:definition>
+  </trm:term>
+
+  <!-- ================================================================== -->
+  <!-- Content                                                             -->
+  <!-- ================================================================== -->
+
+  <pr:section id="merge-framework">
+    <pr:title>Merge Framework</pr:title>
+    <pr:shortdesc>Three-way merge with pluggable strategies for XML
+    documents in the content-addressed Merkle DAG.</pr:shortdesc>
+
+    <pr:p>The merge framework provides file-level and element-level
+    three-way merge for divergent branches. Given a common ancestor
+    (found via LCA in the commit graph), two trees are compared to the
+    ancestor to classify each file path as unchanged, one-side-changed,
+    convergent, or conflicting. Conflicts are routed to a pluggable
+    strategy for resolution.</pr:p>
+
+    <pr:p>Merge commits have two parents, recording both lineages in the
+    DAG. Objects are immutable: merge creates new tree and commit objects
+    rather than modifying existing ones.</pr:p>
+  </pr:section>
+
+  <pr:section id="merge-strategies">
+    <pr:title>Strategy Framework</pr:title>
+    <pr:shortdesc>Trait-based strategy dispatch with per-file
+    overrides.</pr:shortdesc>
+
+    <pr:p>The MergeStrategy trait defines a single async resolve method
+    that receives a MergeConflict (path, ancestor, ours, theirs, ref
+    names, deletion flags) and returns either a resolved content hash
+    or a divergence signal. Four built-in implementations cover common
+    resolution approaches: Ours always takes our version, Theirs always
+    takes theirs, Manual always produces divergence markers, and AutoMerge
+    attempts element-level three-way merge before falling back to
+    divergence. All strategies treat delete-vs-modify conflicts as
+    divergence: when one side deletes a file and the other modifies it,
+    no strategy silently resurrects the deleted file.</pr:p>
+
+    <pr:p>MergePolicy dispatches strategies per file path. It holds a
+    default strategy and optional overrides matched by path suffix,
+    enabling different resolution approaches for different files within
+    a single merge operation.</pr:p>
+  </pr:section>
+
+  <pr:section id="merge-file-level">
+    <pr:title>File-Level Merge</pr:title>
+    <pr:shortdesc>Three-way triage of tree entries using
+    diff_trees.</pr:shortdesc>
+
+    <pr:p>The merge_trees function compares ancestor, ours, and theirs
+    tree objects by building path-to-hash maps and iterating the union
+    of all paths. Each path is classified by comparing its hash across
+    the three sides: unchanged (all same), one-side-changed (take that
+    side), convergent (both changed to same hash), or conflicting
+    (both changed differently). Delete-vs-modify conflicts are detected
+    when one side removes a file and the other modifies it.</pr:p>
+
+    <pr:p>For conflicts, the configured strategy is invoked. If the
+    strategy returns divergence, a sidecar divergence document is
+    created and added to the merged tree alongside the original file
+    (which retains ours' content).</pr:p>
+  </pr:section>
+
+  <pr:section id="merge-element-level">
+    <pr:title>Element-Level Merge</pr:title>
+    <pr:shortdesc>Recursive three-way merge of XML elements in the
+    Merkle DAG using identity-based child matching.</pr:shortdesc>
+
+    <pr:p>When AutoMerge encounters a file-level conflict, it delegates
+    to merge_documents which loads the three document objects, extracts
+    their root elements, and calls merge_elements recursively.
+    merge_elements exploits the Merkle property for short-circuiting:
+    if ours equals theirs, return either; if one side equals the ancestor,
+    return the other side.</pr:p>
+
+    <pr:p>When all three sides differ, the algorithm merges attributes
+    per-attribute (three-way comparison by local name and namespace URI)
+    and children per-child (using ChildKey for identity-based matching).
+    Children are keyed by id attribute when present, or by
+    (local_name, positional_index) otherwise. The merged child list
+    preserves ours' ordering with theirs-only additions appended.</pr:p>
+
+    <pr:p>Merged elements are stored as new objects in the DAG. Their
+    hashes are computed by collecting the full subtree into a map,
+    building the XML representation via the export pipeline, and
+    hashing it with hash_element_xml.</pr:p>
+  </pr:section>
+
+  <pr:section id="merge-divergence-sidecar">
+    <pr:title>Sidecar Divergence</pr:title>
+    <pr:shortdesc>Conflict documents stored alongside originals to
+    keep spec files valid during resolution.</pr:shortdesc>
+
+    <pr:p>When a conflict cannot be auto-resolved, the merge framework
+    creates a divergence document at .clayers/divergence/path.hash in
+    the merged tree. The original file keeps ours' content and remains
+    valid XML. The divergence document wraps the ancestor and both sides'
+    content in a repo:divergence element.</pr:p>
+
+    <pr:p>The divergence filename encodes a hash of all three sides'
+    content hashes (16 hex characters), ensuring uniqueness when
+    multiple merges conflict on the same file. tree_has_divergences
+    and list_divergence_entries provide tree-level conflict detection
+    by scanning for entries under the DIVERGENCE_PREFIX.</pr:p>
+
+    <pr:p>Resolution follows a simple workflow: edit the original file
+    to the desired content, remove the divergence file, stage and commit.
+    The merge commit with divergence entries remains in history permanently
+    (append-only DAG).</pr:p>
+  </pr:section>
+
+  <pr:section id="merge-cli-command">
+    <pr:title>CLI Command</pr:title>
+    <pr:shortdesc>clayers merge with strategy selection and conflict
+    reporting.</pr:shortdesc>
+
+    <pr:p>The merge subcommand accepts a target branch name and an
+    optional --strategy flag (auto, ours, theirs, manual). It discovers
+    the repository, resolves the author, constructs a MergePolicy, and
+    delegates to Repo::merge. After the merge, it exports the merged
+    tree to disk and refreshes the working copy table. Conflict output
+    includes the divergence sidecar paths. The command exits non-zero
+    when unresolved conflicts remain.</pr:p>
+  </pr:section>
+
+  <!-- ================================================================== -->
+  <!-- Topic typing                                                        -->
+  <!-- ================================================================== -->
+
+  <org:concept ref="merge-framework">
+    <org:purpose>Provides the top-level architecture for three-way merge
+    in the content-addressed VCS.</org:purpose>
+  </org:concept>
+
+  <org:concept ref="merge-strategies">
+    <org:purpose>Defines the pluggable strategy abstraction and built-in
+    implementations.</org:purpose>
+  </org:concept>
+
+  <org:concept ref="merge-file-level">
+    <org:purpose>Describes the file-level triage that classifies each
+    path before delegating to strategies.</org:purpose>
+  </org:concept>
+
+  <org:concept ref="merge-element-level">
+    <org:purpose>Describes the recursive element-level merge that enables
+    auto-merging of non-overlapping edits within a single XML
+    document.</org:purpose>
+  </org:concept>
+
+  <org:concept ref="merge-divergence-sidecar">
+    <org:purpose>Explains the sidecar approach to conflict storage that
+    keeps original documents valid.</org:purpose>
+  </org:concept>
+
+  <org:reference ref="merge-cli-command">
+    <org:purpose>Documents the CLI interface for invoking merges.</org:purpose>
+  </org:reference>
+
+  <!-- ================================================================== -->
+  <!-- Relations                                                           -->
+  <!-- ================================================================== -->
+
+  <rel:relation type="refines" from="merge-strategies" to="merge-framework">
+    <rel:note>Strategies are the pluggable resolution mechanism within the
+    merge framework.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="merge-file-level" to="merge-framework">
+    <rel:note>File-level merge is the first tier of the merge
+    algorithm.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="merge-element-level" to="merge-framework">
+    <rel:note>Element-level merge is the second tier, invoked for
+    file-level conflicts by AutoMerge.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="merge-divergence-sidecar" to="merge-framework">
+    <rel:note>Sidecar divergence is the conflict representation mechanism
+    within the framework.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="merge-framework" to="term-drift">
+    <rel:note>Merge reuses the commit graph (LCA), diff, and conflict
+    infrastructure built for drift detection.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="merge-element-level" to="term-c14n">
+    <rel:note>Element hashes for merged objects are computed via C14N
+    through the export pipeline.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="references" from="merge-cli-command" to="merge-framework">
+    <rel:note>The CLI command is the user-facing interface to the merge
+    framework.</rel:note>
+  </rel:relation>
+
+  <!-- ================================================================== -->
+  <!-- LLM descriptions                                                    -->
+  <!-- ================================================================== -->
+
+  <llm:node ref="merge-framework">
+    Three-way merge framework for the content-addressed XML VCS. Finds the
+    lowest common ancestor of two branches, compares file-level trees to
+    classify paths as unchanged/one-side/convergent/conflict, then delegates
+    conflicts to pluggable strategies (Ours/Theirs/AutoMerge/Manual).
+    AutoMerge recursively merges XML elements using identity-based child
+    matching (ChildKey). Creates merge commits with two parents. Unresolved
+    conflicts are stored as sidecar divergence documents under
+    .clayers/divergence/ so original files stay valid.
+  </llm:node>
+
+  <llm:node ref="merge-strategies">
+    MergeStrategy trait with async resolve method returning Resolution
+    (Resolved hash or Divergence signal). MergePolicy dispatches per file
+    path with default + overrides. Built-in: Ours (take ours), Theirs
+    (take theirs), Manual (always diverge), AutoMerge (element-level merge,
+    falls back to divergence). AutoMerge detects delete-vs-modify and
+    rejects without ancestor as immediate divergence.
+  </llm:node>
+
+  <llm:node ref="merge-file-level">
+    merge_trees function: builds path-to-hash maps from ancestor/ours/theirs
+    TreeObjects, iterates union of paths. Classifies: unchanged (same hash),
+    one-side-changed (take it), convergent (both same), conflict (strategy).
+    Handles additions, deletions, delete-vs-modify. Builds merged TreeObject,
+    stores it, returns MergeResult with auto_merged/conflicts/ours_only/
+    theirs_only lists.
+  </llm:node>
+
+  <llm:node ref="merge-element-level">
+    merge_elements: recursive async function on ContentHash triples. Short-
+    circuits via Merkle equality. Loads ElementObjects, merges attributes
+    (per local_name+ns_uri), keys children via ChildKey (ElementById for
+    @id, ElementByPos for positional, Text/Comment/Other by type index).
+    Recurses on both-changed children. Builds new ElementObject, hashes via
+    export pipeline (collect_subtree + build_xml_from_objects +
+    hash_element_xml), stores with correct identity and inclusive hashes.
+  </llm:node>
+
+  <llm:node ref="merge-divergence-sidecar">
+    Sidecar divergence: conflicts stored at .clayers/divergence/{path}.{hash}
+    in the tree. Original file keeps ours' content (valid XML). Hash is
+    SHA-256 of concatenated ancestor+ours+theirs content hashes, truncated
+    to 16 hex chars. tree_has_divergences and list_divergence_entries scan
+    tree entries for DIVERGENCE_PREFIX. Resolution: edit original, remove
+    sidecar, commit. Merge commit with divergences stays in history.
+  </llm:node>
+
+  <llm:node ref="merge-cli-command">
+    CLI: clayers merge &lt;branch&gt; [--strategy ours|theirs|auto|manual]
+    [-m message]. Discovers repo, resolves author, builds MergePolicy,
+    calls Repo::merge. Exports merged tree to disk via export_merged_tree.
+    Reports auto-merged files, ours/theirs-only, conflicts with divergence
+    paths. Exits 1 on unresolved conflicts.
+  </llm:node>
+
+  <llm:node ref="term-merge-strategy">
+    Async trait for file-level conflict resolution. resolve() takes store
+    and MergeConflict, returns Resolution::Resolved(hash) or
+    Resolution::Divergence. Object-safe via async_trait. Four built-in
+    implementations: Ours, Theirs, Manual, AutoMerge.
+  </llm:node>
+
+  <llm:node ref="term-merge-policy">
+    Strategy dispatcher. default field + file_overrides vec of
+    (path_suffix, strategy). strategy_for(path) checks overrides first,
+    falls back to default. Stored as Box&lt;dyn MergeStrategy&gt;.
+  </llm:node>
+
+  <llm:node ref="term-child-key">
+    Enum for identity-based child matching in Merkle DAG three-way merge.
+    Variants: ElementById(name, id), ElementByPos(name, idx), Text(idx),
+    Comment(idx), Other(idx). key_children async function loads objects
+    from store to assign keys. Matches @id (no namespace or xml:id
+    namespace).
+  </llm:node>
+
+  <llm:node ref="term-divergence">
+    Conflict sidecar stored at .clayers/divergence/{path}.{hash} in tree.
+    Contains repo:divergence XML with ancestor and both sides. Original
+    file unchanged. Hash from ContentHash::from_canonical of concatenated
+    side hashes. Detected by tree_has_divergences scanning entry paths.
+  </llm:node>
+
+  <llm:node ref="term-merge-outcome">
+    Enum: FastForward { commit }, Merged { commit, result: MergeResult },
+    UpToDate, NoCommonAncestor. MergeResult contains tree hash,
+    auto_merged/conflicts/ours_only/theirs_only path lists. FileConflict
+    has path, divergence_path, conflict_count, description.
+  </llm:node>
+
+  <!-- ================================================================== -->
+  <!-- Artifact mappings                                                   -->
+  <!-- ================================================================== -->
+
+  <art:mapping id="map-merge-types">
+    <art:spec-ref node="merge-framework"
+              revision="draft-1"
+              node-hash="sha256:91a842b8a69d06aa154dd949b8797b15d07f4c82ac2fabe6070dbd955650d569"/>
+    <art:artifact repo="main"
+              repo-revision="HEAD"
+              path="crates/clayers-repo/src/merge.rs">
+      <art:range hash="sha256:f7b671ac9fd2b30cc706ad21c559534060145452e818e3b714434d205d267711"
+                 start-line="27" end-line="115"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>MergeOutcome, MergeResult, FileConflict, DIVERGENCE_PREFIX,
+    tree_has_divergences, list_divergence_entries, divergence_entry_path.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-merge-strategy-trait">
+    <art:spec-ref node="merge-strategies"
+              revision="draft-1"
+              node-hash="sha256:5223e159164a6e9a29cbe33ed9afdb6f1bb5d179cea1251f425933fe98c6b849"/>
+    <art:artifact repo="main"
+              repo-revision="HEAD"
+              path="crates/clayers-repo/src/merge.rs">
+      <art:range hash="sha256:411e55f95017314af55ef25e20d23acd24b1a54847964e1021adade5b84d95de"
+                 start-line="122" end-line="182"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Resolution enum, MergeConflict struct, MergeStrategy trait,
+    MergePolicy struct.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-merge-builtin-strategies">
+    <art:spec-ref node="merge-strategies"
+              revision="draft-1"
+              node-hash="sha256:5223e159164a6e9a29cbe33ed9afdb6f1bb5d179cea1251f425933fe98c6b849"/>
+    <art:artifact repo="main"
+              repo-revision="HEAD"
+              path="crates/clayers-repo/src/merge.rs">
+      <art:range hash="sha256:242d4eeca8bad7037892699b9f788a86001a584aa34823cede5c96f68a59aa73"
+                 start-line="188" end-line="253"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Ours, Theirs, Manual, AutoMerge strategy
+    implementations.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-merge-child-key">
+    <art:spec-ref node="term-child-key"
+              revision="draft-1"
+              node-hash="sha256:6d9b6c76087cf96b4d9c54b042cca885a2373da8e86116e0e43bddba44eca8d1"/>
+    <art:artifact repo="main"
+              repo-revision="HEAD"
+              path="crates/clayers-repo/src/merge.rs">
+      <art:range hash="sha256:0a242336d9ff8ddafd9bf2ccf516ea329a120ef4960de2f7114452ebef87c27c"
+                 start-line="258" end-line="340"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>ChildKey enum and key_children async function.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-merge-documents">
+    <art:spec-ref node="merge-element-level"
+              revision="draft-1"
+              node-hash="sha256:46ea6a7b11405f02ca86c59885a9abdb1d4d6ac523c506b5304ba80e3f10f8ba"/>
+    <art:artifact repo="main"
+              repo-revision="HEAD"
+              path="crates/clayers-repo/src/merge.rs">
+      <art:range hash="sha256:e7ff9ca1be511b4e1a088a612ac9e381bd7a4ae0082b5ec8bbd9a66cb05929a5"
+                 start-line="349" end-line="614"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>merge_documents, merge_elements recursive algorithm,
+    collect_subtree, merge_attributes.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-merge-trees">
+    <art:spec-ref node="merge-file-level"
+              revision="draft-1"
+              node-hash="sha256:c37882a75c351f23c5c11e7a23658d6b338c7091af07ea8b00a44b3d5e405321"/>
+    <art:artifact repo="main"
+              repo-revision="HEAD"
+              path="crates/clayers-repo/src/merge.rs">
+      <art:range hash="sha256:d72b4532979e5fc9bd92d3743b322cad414a3eb13362f724d7ee037330433dc4"
+                 start-line="707" end-line="1038"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>merge_trees function, resolve_file_conflict helper,
+    generate_divergence_doc.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-merge-repo-method">
+    <art:spec-ref node="merge-framework"
+              revision="draft-1"
+              node-hash="sha256:91a842b8a69d06aa154dd949b8797b15d07f4c82ac2fabe6070dbd955650d569"/>
+    <art:artifact repo="main"
+              repo-revision="HEAD"
+              path="crates/clayers-repo/src/repo.rs">
+      <art:range hash="sha256:0a0bcccce0da65470ab01208610464a8275910f7600fcd5d65f3e33d80d6fee4"
+                 start-line="303" end-line="430"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Repo::merge method and load_tree_from_commit helper.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-merge-cli">
+    <art:spec-ref node="merge-cli-command"
+              revision="draft-1"
+              node-hash="sha256:5a13bef5fae19b258c04dc882007ce3eec23e1f64331a0b7857a4237eba063da"/>
+    <art:artifact repo="main"
+              repo-revision="HEAD"
+              path="crates/clayers/src/repo/merge.rs">
+      <art:range hash="sha256:18007402b77abbb7bdeaa2197030230036df76cb3bfdf662d47de1e1f2e7c1cd"
+                 start-line="1" end-line="157"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>cmd_merge function and export_merged_tree helper.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-merge-cli-command-variant">
+    <art:spec-ref node="merge-cli-command"
+              revision="draft-1"
+              node-hash="sha256:5a13bef5fae19b258c04dc882007ce3eec23e1f64331a0b7857a4237eba063da"/>
+    <art:artifact repo="main"
+              repo-revision="HEAD"
+              path="crates/clayers/src/cli.rs">
+      <art:range hash="sha256:07202942e2bf097edfc365050cae636e95ab31ee3c650950102104e8930f6e89"
+                 start-line="197" end-line="222"/>
+      <art:range hash="sha256:e07b07231e15bbc8f0281d4d9ef85abb560e37dfb531a1951569a5a2426eb915"
+                 start-line="435" end-line="447"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Merge variant in the Command enum and dispatch in
+    run().</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-merge-delete-vs-modify-tests">
+    <art:spec-ref node="merge-strategies"
+              revision="draft-1"
+              node-hash="sha256:5223e159164a6e9a29cbe33ed9afdb6f1bb5d179cea1251f425933fe98c6b849"/>
+    <art:artifact repo="main"
+              repo-revision="HEAD"
+              path="crates/clayers-repo/src/merge.rs">
+      <art:range hash="sha256:7f6dfeeb821429651bb7fd81a73e3ccbbe9e3c4def8a89fc4fdad2952cc87806"
+                 start-line="1452" end-line="1517"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Tests verifying all strategies produce divergence for
+    delete-vs-modify conflicts (AutoMerge, Ours, Theirs).</art:note>
+  </art:mapping>
+
+</spec:clayers>
