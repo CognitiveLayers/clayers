@@ -614,7 +614,7 @@ print(count_terms(repo))</pr:codeblock>
     <art:artifact repo="clayers"
               repo-revision="69ddfa1"
               path="crates/clayers-py/src/lib.rs">
-      <art:range hash="sha256:08c3f10c376ee7f1285fac63fbd9ecf4a6bc0abf8a85cce960c6dd6119d54578"
+      <art:range hash="sha256:c16ab825a660431a3b84f529d99588e569e47956314d378ab3d8dbe7bb04fd6c"
                  start-line="1" end-line="31"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -1230,7 +1230,7 @@ print(count_terms(repo))</pr:codeblock>
     <art:artifact repo="clayers"
               repo-revision="9191483"
               path="crates/clayers-py/src/repo/mod.rs">
-      <art:range hash="sha256:585916aa8ac5d5651c15b9f7316d28dd846b1988347fc42f1c37b8f7e55546aa"
+      <art:range hash="sha256:3d30a7fe5492ad3774f44d9c1c5f953b8b0ed96b89d777b9a631aa18824d07fb"
                  start-line="1" end-line="33"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -1260,7 +1260,7 @@ print(count_terms(repo))</pr:codeblock>
     <art:artifact repo="clayers"
               repo-revision="9191483"
               path="crates/clayers-py/src/lib.rs">
-      <art:range hash="sha256:08c3f10c376ee7f1285fac63fbd9ecf4a6bc0abf8a85cce960c6dd6119d54578"
+      <art:range hash="sha256:c16ab825a660431a3b84f529d99588e569e47956314d378ab3d8dbe7bb04fd6c"
                  start-line="1" end-line="31"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -1290,7 +1290,7 @@ print(count_terms(repo))</pr:codeblock>
     <art:artifact repo="clayers"
               repo-revision="9191483"
               path="crates/clayers-py/src/lib.rs">
-      <art:range hash="sha256:08c3f10c376ee7f1285fac63fbd9ecf4a6bc0abf8a85cce960c6dd6119d54578"
+      <art:range hash="sha256:c16ab825a660431a3b84f529d99588e569e47956314d378ab3d8dbe7bb04fd6c"
                  start-line="1" end-line="31"/>
     </art:artifact>
     <art:coverage>partial</art:coverage>
@@ -1312,6 +1312,300 @@ print(count_terms(repo))</pr:codeblock>
     <art:note>KnowledgeModel implementation: constructor, properties
     (name, files, schema_dir, combined_xml), and methods (validate,
     check_drift, coverage, connectivity, query, fix_*_hashes).</art:note>
+  </art:mapping>
+
+  <!-- =================================================================== -->
+  <!-- Store Compliance Testing                                             -->
+  <!-- =================================================================== -->
+
+  <trm:term id="term-store-compliance">
+    <trm:name>Store Compliance</trm:name>
+    <trm:definition>A test suite that verifies whether a
+    <trm:ref term="term-python-binding">Python</trm:ref> store
+    implementation correctly satisfies the ObjectStore, RefStore, and
+    QueryStore trait contracts. The suite re-uses the same deterministic,
+    property-based, and query tests that validate the built-in Rust backends,
+    exercising them through the PyStore bridge against any user-provided
+    Python class.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-py-store">
+    <trm:name>PyStore</trm:name>
+    <trm:definition>A Rust struct that implements the ObjectStore, RefStore,
+    and QueryStore async traits by delegating every method call to a Python
+    object through the GIL. Each trait method acquires the GIL via
+    Python::attach, invokes the corresponding Python method, converts the
+    result between StoreObject and the Rust Object enum, and releases the
+    GIL. Transactions are bridged via a companion PyTransaction struct.
+    The subtree method uses a built-in DAG walk via get() rather than
+    requiring the Python store to implement streaming.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-store-object-types">
+    <trm:name>Store Object Types</trm:name>
+    <trm:definition>A set of frozen PyO3 classes that mirror every variant
+    of the Rust Object enum: StoreElementObject, StoreTextObject,
+    StoreCommentObject, StorePIObject, StoreDocumentObject, StoreTreeObject,
+    StoreCommitObject, StoreTagObject, plus StoreAttribute, StoreAuthor,
+    NamespaceDecl, and StoreTreeEntry. Each type supports bidirectional
+    conversion between Python and Rust via From and to_rust() methods.
+    The StoreObject wrapper provides a kind discriminator and typed accessor
+    methods (as_element, as_text, etc.).</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-compliance-memory-store">
+    <trm:name>ComplianceMemoryStore</trm:name>
+    <trm:definition>A Python class backed by the Rust MemoryStore that
+    implements the full store protocol (get, contains, transaction,
+    get_by_inclusive_hash, get_ref, set_ref, delete_ref, list_refs,
+    cas_ref, query_document). Used as the reference implementation for
+    validating that the compliance test runner and the
+    <trm:ref term="term-py-store">PyStore</trm:ref> bridge work correctly.
+    Since it delegates to a known-good Rust backend, any test failure
+    indicates a bridge defect rather than a store bug.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-store-protocol">
+    <trm:name>Store Protocol</trm:name>
+    <trm:definition>A set of Python typing.Protocol classes that define the
+    contract a custom store must implement: ObjectStore (get, contains,
+    transaction, get_by_inclusive_hash), RefStore (get_ref, set_ref,
+    delete_ref, list_refs, cas_ref), QueryStore (query_document),
+    Transaction (put, commit, rollback), and the combined Store protocol.
+    All are runtime_checkable. Users implement these protocols to create
+    custom backends (e.g., Cloudflare Workers, HTTP proxies) and validate
+    them with the compliance suite.</trm:definition>
+  </trm:term>
+
+  <pr:section id="store-compliance-testing">
+    <pr:title>Store Compliance Testing</pr:title>
+    <pr:shortdesc>A Python-accessible test suite that exercises the full
+    store contract against any Python-implemented backend.</pr:shortdesc>
+
+    <pr:p>Alternative repository backends (such as Cloudflare Workers with
+    Durable Objects, or HTTP proxy stores) need a way to prove they
+    correctly implement the ObjectStore, RefStore, and QueryStore contracts.
+    The compliance tester bridges the existing Rust test battery to Python:
+    users write a Python class implementing the
+    <trm:ref term="term-store-protocol">store protocols</trm:ref>, and the
+    suite runs 88 tests against it: 20 deterministic store tests, 21
+    property-based tests via proptest (256 cases each), and 47 query tests.</pr:p>
+
+    <pr:p>The architecture has four layers. First,
+    <trm:ref term="term-store-object-types">store object types</trm:ref>
+    provide frozen PyO3 classes for every Object variant with bidirectional
+    Rust/Python conversion. Second, the
+    <trm:ref term="term-py-store">PyStore</trm:ref> bridge implements the
+    Rust store traits by calling back into Python through the GIL. Third,
+    the compliance runner creates a fresh PyStore from the user's factory
+    for each test, runs the test inside catch_unwind (for deterministic
+    tests) or proptest's TestRunner (for property tests), and collects
+    structured pass/fail results. Fourth, the Python compliance module
+    provides protocol classes and a pytest integration layer via the
+    compliance_tests() class factory.</pr:p>
+  </pr:section>
+
+  <pr:section id="store-object-bridge">
+    <pr:title>Object Type Bridge</pr:title>
+    <pr:p>The py_objects module defines 12 PyO3 classes corresponding to
+    every node in the Merkle DAG object model. Each class is
+    #[pyclass(frozen)] with #[pyo3(get)] field access and a #[new]
+    constructor. Rust-to-Python conversion uses From implementations;
+    Python-to-Rust uses to_rust() methods that return Result for types
+    containing timestamps (CommitObject, TagObject parse ISO 8601 strings
+    back to DateTime). The StoreObject enum wrapper carries a kind
+    discriminator string and typed accessor methods (as_element, as_text,
+    as_comment, as_pi, as_document, as_tree, as_commit, as_tag).</pr:p>
+  </pr:section>
+
+  <pr:section id="py-store-bridge">
+    <pr:title>PyStore Bridge</pr:title>
+    <pr:p>PyStore holds a Py&lt;PyAny&gt; pointing to a Python store
+    instance and implements ObjectStore, RefStore, and QueryStore via
+    #[async_trait]. Each trait method acquires the GIL through
+    Python::attach, calls the corresponding Python method by name,
+    extracts StoreObject or ContentHash results, and converts them to
+    Rust types. Errors from Python (PyErr) are mapped to
+    Error::Storage(msg). The subtree method replicates the subtree_walk
+    DAG traversal algorithm rather than requiring the Python store to
+    implement streaming. Transactions are bridged via PyTransaction,
+    which delegates put, commit, and rollback through the same GIL
+    callback pattern.</pr:p>
+  </pr:section>
+
+  <pr:section id="compliance-runner">
+    <pr:title>Compliance Runner</pr:title>
+    <pr:p>The run_store_compliance function accepts a Python callable
+    (store factory) and returns a list of ComplianceResult objects. For
+    each test, it calls the factory to get a fresh store, wraps it in
+    PyStore, constructs a StoreTester or QueryTester, and runs the test
+    method. Deterministic tests use catch_unwind around block_on to
+    capture panics as failures. Property tests use proptest's TestRunner
+    with 256 cases to avoid panic-based control flow across the FFI
+    boundary. The GIL is released for the bulk of test execution via
+    py.detach(); PyStore methods re-acquire it as needed for individual
+    Python calls.</pr:p>
+
+    <pr:p>The <trm:ref term="term-compliance-memory-store">ComplianceMemoryStore</trm:ref>
+    class provides a reference implementation for self-testing. It wraps the
+    Rust MemoryStore and implements every store protocol method by delegating
+    to the Rust backend via tokio::task::block_in_place and
+    Handle::current().block_on(). This avoids nested runtime creation since
+    the compliance runner already has an active tokio runtime.</pr:p>
+  </pr:section>
+
+  <pr:section id="python-store-protocols">
+    <pr:title>Python Store Protocols</pr:title>
+    <pr:p>The clayers.compliance package exports five typing.Protocol
+    classes: Transaction (put, commit, rollback), ObjectStore (get,
+    contains, transaction, get_by_inclusive_hash), RefStore (get_ref,
+    set_ref, delete_ref, list_refs, cas_ref), QueryStore
+    (query_document), and the combined Store. All are @runtime_checkable.
+    The compliance_tests(store_factory) function generates a Python class
+    whose test methods each call run_store_compliance and assert individual
+    results, enabling pytest to report each of the 88 Rust tests as a
+    separate test case.</pr:p>
+  </pr:section>
+
+  <org:concept ref="store-compliance-testing">
+    <org:purpose>Enable validation of custom Python store backends against the
+    same contract that governs the built-in Rust implementations.</org:purpose>
+  </org:concept>
+
+  <org:reference ref="python-store-protocols">
+    <org:purpose>Define the method signatures and type contracts that custom
+    store implementations must satisfy.</org:purpose>
+  </org:reference>
+
+  <rel:relation type="depends-on" from="store-compliance-testing" to="python-repo-api">
+    <rel:note>The compliance tester exercises the same store traits that the
+    repository API wraps, bridging them to Python through PyStore.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="store-compliance-testing" to="term-store-object-types">
+    <rel:note>The PyStore bridge and compliance runner require typed Python
+    wrappers for all Object variants to marshal data across FFI.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="py-store-bridge" to="store-compliance-testing">
+    <rel:note>PyStore is the core mechanism that makes compliance testing
+    possible by bridging Python store method calls to Rust trait methods.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="store-object-bridge" to="store-compliance-testing">
+    <rel:note>Object types provide the data conversion layer required by
+    the PyStore bridge.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="compliance-runner" to="store-compliance-testing">
+    <rel:note>The runner orchestrates test execution, factory invocation,
+    and result collection.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="python-store-protocols" to="store-compliance-testing">
+    <rel:note>Protocols define the Python-side contract and pytest integration
+    layer.</rel:note>
+  </rel:relation>
+
+  <llm:node ref="store-compliance-testing">
+    Store compliance testing enables validation of custom Python store
+    backends against the clayers repository contract. It bridges 88 existing
+    Rust tests (20 deterministic, 21 property-based via proptest, 47 query)
+    to Python through the PyStore bridge. Users implement Python Protocol
+    classes (ObjectStore, RefStore, QueryStore, Transaction) and run the
+    compliance suite via run_store_compliance() or pytest integration.
+    The ComplianceMemoryStore provides a reference implementation backed
+    by the Rust MemoryStore for self-testing the bridge.
+  </llm:node>
+
+  <llm:node ref="term-py-store">
+    PyStore is a Rust struct implementing ObjectStore, RefStore, and
+    QueryStore by delegating to a Python object via GIL callbacks. Each
+    async trait method acquires the GIL, calls the Python method, converts
+    StoreObject/ContentHash between Python and Rust types, and releases
+    the GIL. Subtree uses a built-in DAG walk via get(). PyTransaction
+    bridges write operations similarly.
+  </llm:node>
+
+  <llm:node ref="term-store-object-types">
+    Twelve frozen PyO3 classes wrapping every variant of the Rust Object
+    enum: StoreElementObject, StoreTextObject, StoreCommentObject,
+    StorePIObject, StoreDocumentObject, StoreTreeObject, StoreCommitObject,
+    StoreTagObject, plus StoreAttribute, StoreAuthor, NamespaceDecl, and
+    StoreTreeEntry. Support bidirectional conversion via From (Rust to
+    Python) and to_rust() (Python to Rust). StoreObject provides a kind
+    discriminator and typed accessors.
+  </llm:node>
+
+  <llm:node ref="python-store-protocols">
+    Five Python typing.Protocol classes defining the store contract:
+    Transaction (put/commit/rollback), ObjectStore (get/contains/transaction/
+    get_by_inclusive_hash), RefStore (get_ref/set_ref/delete_ref/list_refs/
+    cas_ref), QueryStore (query_document), and the combined Store.
+    All are @runtime_checkable. The compliance_tests() factory generates
+    pytest-compatible test classes.
+  </llm:node>
+
+  <!-- Artifact mappings for compliance testing -->
+
+  <art:mapping id="map-py-store-objects">
+    <art:spec-ref node="term-store-object-types"
+              revision="draft-1"
+              node-hash="sha256:1dd5ceb7bfc46b332a066cb0e18d16d658d86cfe74afbe209b10bef970b68399"/>
+    <art:artifact repo="clayers"
+              repo-revision="HEAD"
+              path="crates/clayers-py/src/repo/py_objects.rs">
+      <art:range hash="sha256:8d3802b5eebb45e1dadcdce808bb00ecd13b860bb71a4c935d3b34473292fc37"
+                 start-line="1" end-line="910"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>All 12 PyO3 store object wrapper classes with bidirectional
+    conversion.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-py-store-bridge">
+    <art:spec-ref node="py-store-bridge"
+              revision="draft-1"
+              node-hash="sha256:d709f163b280f3be0312d195080a74cb99f4947ab963edf104f3f2719b5876c2"/>
+    <art:artifact repo="clayers"
+              repo-revision="HEAD"
+              path="crates/clayers-py/src/repo/py_store.rs">
+      <art:range hash="sha256:4b208a1dcf5fce2169debf342bc1c655b2ed2f7a34ff5fb6b5bc9b4d10ace2fa"
+                 start-line="1" end-line="359"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>PyStore and PyTransaction implementing store traits via
+    Python GIL callbacks.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-compliance-runner">
+    <art:spec-ref node="compliance-runner"
+              revision="draft-1"
+              node-hash="sha256:6e724adefc53900c208d97d3b779c0b74772c8bafa2dc65e7b49a36291fa4ab2"/>
+    <art:artifact repo="clayers"
+              repo-revision="HEAD"
+              path="crates/clayers-py/src/repo/compliance.rs">
+      <art:range hash="sha256:4413cf5e6b629841a35fea5c4008d0a72047332e2f6e4f6c211f0a3f56d64509"
+                 start-line="1" end-line="913"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Compliance runner, ComplianceResult, ComplianceMemoryStore,
+    and ComplianceTransaction.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-python-store-protocols">
+    <art:spec-ref node="python-store-protocols"
+              revision="draft-1"
+              node-hash="sha256:29f6c9e0cfaac2b1d9b20df10e77cbcad08c17edff9a53bfc61ff922f6e9d6a5"/>
+    <art:artifact repo="clayers"
+              repo-revision="HEAD"
+              path="crates/clayers-py/python/clayers/compliance/__init__.py">
+      <art:range hash="sha256:022d930d8362f1b80d0545e2855ab27a5f279d0d6b391634a7ee442b81ec6ae6"
+                 start-line="1" end-line="419"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Python Protocol classes, compliance_tests() factory, and
+    run_compliance() convenience function.</art:note>
   </art:mapping>
 
 </spec:clayers>
