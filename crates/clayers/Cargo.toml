@@ -3,6 +3,8 @@ name = "clayers"
 version = "0.1.0"
 edition = "2024"
 license = "Apache-2.0"
+description = "Cognitive layers: structured XML specifications with version control and machine-verifiable traceability"
+repository = "https://github.com/CognitiveLayers/clayers"
 
 [lib]
 name = "clayers"
@@ -17,9 +19,9 @@ anyhow = "1"
 base64 = "0.22"
 reqwest = { version = "0.13", features = ["blocking"] }
 clap = { version = "4", features = ["derive"] }
-clayers-spec = { path = "../clayers-spec" }
-clayers-repo = { path = "../clayers-repo", features = ["sqlite", "websocket"] }
-clayers-xml = { path = "../clayers-xml" }
+clayers-spec = { version = "0.1.0", path = "../clayers-spec" }
+clayers-repo = { version = "0.1.0", path = "../clayers-repo", features = ["sqlite", "websocket"] }
+clayers-xml = { version = "0.1.0", path = "../clayers-xml" }
 tokio = { version = "1", features = ["rt", "rt-multi-thread", "net", "signal"] }
 rusqlite = { version = "0.39", features = ["bundled"] }
 serde = { version = "1", features = ["derive"] }

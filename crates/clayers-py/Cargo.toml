@@ -3,6 +3,8 @@ name = "clayers-py"
 version = "0.1.0"
 edition = "2024"
 license = "Apache-2.0"
+description = "Python bindings for clayers"
+repository = "https://github.com/CognitiveLayers/clayers"
 
 [lib]
 name = "clayers_py"
