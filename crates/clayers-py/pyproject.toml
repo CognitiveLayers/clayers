@@ -7,11 +7,14 @@ name = "clayers"
 version = "0.1.0"
 requires-python = ">=3.9"
 
+[project.scripts]
+clayers = "clayers._cli:main"
+
 [project.optional-dependencies]
 test = ["pytest"]
 compliance = ["pytest"]
 
 [tool.maturin]
-features = ["pyo3/extension-module", "compliance"]
+features = ["pyo3/extension-module", "compliance", "cli"]
 python-source = "python"
 module-name = "clayers._clayers"

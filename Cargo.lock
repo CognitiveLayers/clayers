@@ -516,6 +516,7 @@ dependencies = [
  "async-stream",
  "async-trait",
  "chrono",
+ "clayers",
  "clayers-repo",
  "clayers-spec",
  "clayers-xml",

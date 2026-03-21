@@ -279,6 +279,18 @@ pub fn cli_main() {
     }
 }
 
+pub fn cli_main_from<I, T>(args: I)
+where
+    I: IntoIterator<Item = T>,
+    T: Into<std::ffi::OsString> + Clone,
+{
+    let cli = Cli::parse_from(args);
+    if let Err(e) = run(&cli) {
+        eprintln!("error: {e:#}");
+        process::exit(1);
+    }
+}
+
 #[allow(clippy::too_many_lines)]
 fn run(cli: &Cli) -> Result<()> {
     match &cli.command {

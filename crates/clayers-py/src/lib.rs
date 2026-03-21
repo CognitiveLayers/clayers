@@ -27,5 +27,19 @@ fn _clayers(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Repo submodule
     repo::register(m)?;
 
+    // CLI entry point (optional feature)
+    #[cfg(feature = "cli")]
+    m.add_function(wrap_pyfunction!(cli_main, m)?)?;
+
+    Ok(())
+}
+
+/// Run the clayers CLI, parsing arguments from sys.argv.
+#[cfg(feature = "cli")]
+#[pyfunction]
+fn cli_main(py: Python<'_>) -> PyResult<()> {
+    let sys = py.import("sys")?;
+    let argv: Vec<String> = sys.getattr("argv")?.extract()?;
+    clayers_cli::cli_main_from(argv);
     Ok(())
 }

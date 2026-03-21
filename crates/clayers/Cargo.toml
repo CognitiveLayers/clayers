@@ -3,6 +3,10 @@ name = "clayers"
 version = "0.1.0"
 edition = "2024"
 
+[lib]
+name = "clayers"
+path = "src/lib.rs"
+
 [[bin]]
 name = "clayers"
 path = "src/main.rs"
