@@ -5,13 +5,8 @@ mod embedded;
 mod repo;
 mod serve;
 
-fn install_crypto_provider() {
-    let _ = rustls::crypto::ring::default_provider().install_default();
-}
-
 /// Run the clayers CLI, parsing arguments from `std::env::args`.
 pub fn cli_main() {
-    install_crypto_provider();
     cli::cli_main();
 }
 
@@ -21,6 +16,5 @@ where
     I: IntoIterator<Item = T>,
     T: Into<std::ffi::OsString> + Clone,
 {
-    install_crypto_provider();
     cli::cli_main_from(args);
 }

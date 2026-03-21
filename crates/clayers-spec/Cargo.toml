@@ -1,13 +1,13 @@
 [package]
 name = "clayers-spec"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 license = "Apache-2.0"
 description = "Spec-aware logic for clayers (validate, drift, coverage, connectivity)"
 repository = "https://github.com/CognitiveLayers/clayers"
 
 [dependencies]
-clayers-xml = { version = "0.1.1", path = "../clayers-xml" }
+clayers-xml = { version = "0.1.2", path = "../clayers-xml" }
 petgraph = "0.8"
 sha2 = "0.10"
 thiserror = "2"
