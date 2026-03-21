@@ -1,6 +1,6 @@
 [package]
 name = "clayers-repo"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 license = "Apache-2.0"
 description = "Content-addressed Merkle DAG repository for XML documents"
@@ -15,7 +15,7 @@ websocket = ["remote", "dep:serde_json", "dep:tokio-tungstenite", "dep:futures-u
 compliance = ["serde", "dep:proptest", "dep:tokio-stream", "tokio/rt-multi-thread"]
 
 [dependencies]
-clayers-xml = { version = "0.1.0", path = "../clayers-xml" }
+clayers-xml = { version = "0.1.1", path = "../clayers-xml" }
 xot = "0.31"
 async-trait = "0.1"
 tokio = { version = "1", features = ["sync", "rt", "macros"] }
