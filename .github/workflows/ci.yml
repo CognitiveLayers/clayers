@@ -32,7 +32,8 @@ jobs:
         working-directory: crates/clayers-py
         run: |
           uv sync --extra test --extra compliance
-          uv run maturin develop --features compliance,cli
+          uv tool install maturin
+          maturin develop --features compliance,cli
           uv run pytest tests/ -v
 
   clippy:
