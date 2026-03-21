@@ -64,7 +64,7 @@ jobs:
           args: --release --out dist --find-interpreter
           working-directory: crates/clayers-py
           manylinux: "2_28"
-          before-script-linux: dnf install -y openssl-devel || yum install -y openssl-devel || (apt-get update && apt-get install -y pkg-config libssl-dev) || true
+          before-script-linux: dnf install -y perl-IPC-Cmd perl-FindBin || yum install -y perl-IPC-Cmd perl-core || (apt-get update && apt-get install -y perl) || true
       - uses: actions/upload-artifact@v4
         with:
           name: wheel-${{ matrix.os }}-${{ matrix.target }}
