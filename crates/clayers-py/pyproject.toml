@@ -6,6 +6,7 @@ build-backend = "maturin"
 name = "clayers"
 version = "0.1.0"
 requires-python = ">=3.9"
+license = "Apache-2.0"
 
 [project.scripts]
 clayers = "clayers._cli:main"
