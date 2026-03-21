@@ -8,3 +8,4 @@ __pycache__/
 *.swo
 *~
 .DS_Store
+docs/superpowers/
