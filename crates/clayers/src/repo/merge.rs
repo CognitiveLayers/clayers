@@ -72,14 +72,14 @@ pub fn cmd_merge(
             // Export working copy to disk.
             export_merged_tree(&db_path, &repo_root, &current)?;
             refresh_working_copy_table(&conn, &db_path, &current)?;
-            println!("Fast-forward merge to {}", &commit.to_string()[..8]);
+            println!("Fast-forward merge to {commit}");
         }
         MergeOutcome::Merged { commit, result } => {
             // Export working copy to disk.
             export_merged_tree(&db_path, &repo_root, &current)?;
             refresh_working_copy_table(&conn, &db_path, &current)?;
 
-            println!("Merge commit: {}", &commit.to_string()[..8]);
+            println!("Merge commit: {commit}");
             if !result.auto_merged.is_empty() {
                 println!("Auto-merged:");
                 for f in &result.auto_merged {

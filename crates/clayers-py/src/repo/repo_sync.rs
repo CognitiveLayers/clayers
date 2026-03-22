@@ -202,7 +202,7 @@ impl Repo {
             rt.block_on(async { dispatch!(&*inner, repo, repo.log(from, limit).await) })
                 .map_err(repo_err)
         })?;
-        Ok(commits.into_iter().map(Into::into).collect())
+        Ok(commits.into_iter().map(|(_, c)| c.into()).collect())
     }
 
     fn diff_trees(

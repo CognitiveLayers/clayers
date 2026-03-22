@@ -446,7 +446,7 @@ mod tests {
                 );
 
                 // History is newest-first; verify messages match in reverse
-                for (i, commit) in history.iter().enumerate() {
+                for (i, (_, commit)) in history.iter().enumerate() {
                     let expected_msg = &messages[messages.len() - 1 - i];
                     prop_assert_eq!(
                         &commit.message, expected_msg,
@@ -459,7 +459,7 @@ mod tests {
                     // The i-th commit's parent should be the (i-1)-th commit
                     let history_pos = commit_hashes.len() - 1 - i;
                     prop_assert_eq!(
-                        history[history_pos].parents.clone(), vec![commit_hashes[i - 1]],
+                        history[history_pos].1.parents.clone(), vec![commit_hashes[i - 1]],
                         "commit {} should have commit {} as parent",
                         i, i - 1
                     );
@@ -467,7 +467,7 @@ mod tests {
 
                 // First commit should have no parents
                 prop_assert!(
-                    history.last().unwrap().parents.is_empty(),
+                    history.last().unwrap().1.parents.is_empty(),
                     "first commit should have no parents"
                 );
 
@@ -519,7 +519,7 @@ mod tests {
                         "branch alpha history length wrong"
                     );
                     // All messages should be alpha-*
-                    for c in &log_a {
+                    for (_, c) in &log_a {
                         prop_assert!(
                             c.message.starts_with("alpha-"),
                             "branch alpha has foreign commit: {}", c.message
@@ -534,7 +534,7 @@ mod tests {
                         log_b.len(), branch_b_hashes.len(),
                         "branch beta history length wrong"
                     );
-                    for c in &log_b {
+                    for (_, c) in &log_b {
                         prop_assert!(
                             c.message.starts_with("beta-"),
                             "branch beta has foreign commit: {}", c.message
@@ -609,7 +609,7 @@ mod tests {
                         "history length differs between stores"
                     );
 
-                    for (mc, sc) in mem_log.iter().zip(sql_log.iter()) {
+                    for ((_, mc), (_, sc)) in mem_log.iter().zip(sql_log.iter()) {
                         prop_assert_eq!(
                             &mc.message, &sc.message,
                             "message differs between stores"

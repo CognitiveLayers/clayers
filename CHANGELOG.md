@@ -34,6 +34,13 @@ fixes and additions.
   - Exports merged working copy to disk
   - Exits non-zero when unresolved conflicts remain
 
+### Fixed
+
+- `clayers log` now shows real content-addressed commit hashes instead
+  of fake hashes derived from timestamp/index/string lengths
+- `clayers merge` commit hash display no longer truncates into the
+  `sha256:` prefix (was showing `sha256:9` instead of hex digits)
+
 ## [0.1.3] - 2025-03-19
 
 ### Fixed

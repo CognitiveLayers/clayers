@@ -180,7 +180,7 @@ impl AsyncRepo {
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let commits = dispatch!(&*inner, repo, repo.log(from, limit).await)
                 .map_err(|e| RepoError::new_err(e.to_string()))?;
-            let result: Vec<CommitObject> = commits.into_iter().map(Into::into).collect();
+            let result: Vec<CommitObject> = commits.into_iter().map(|(_, c)| c.into()).collect();
             Ok(result)
         })
     }

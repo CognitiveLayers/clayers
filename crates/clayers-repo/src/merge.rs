@@ -1778,7 +1778,7 @@ mod tests {
         if let MergeOutcome::Merged { commit, result } = outcome {
             assert!(result.conflicts.is_empty());
             // Verify merge commit has two parents.
-            let obj = repo
+            let (_, obj) = repo
                 .log(commit, Some(1))
                 .await
                 .unwrap()

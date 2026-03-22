@@ -209,9 +209,8 @@ impl<S: ObjectStore + RefStore + QueryStore> Repo<S> {
         &self,
         from: ContentHash,
         limit: Option<usize>,
-    ) -> Result<Vec<CommitObject>> {
-        let history = graph::walk_history(&self.store, from, limit).await?;
-        Ok(history.into_iter().map(|(_, commit)| commit).collect())
+    ) -> Result<Vec<(ContentHash, CommitObject)>> {
+        graph::walk_history(&self.store, from, limit).await
     }
 
     // --- Diff ---
@@ -516,7 +515,7 @@ mod tests {
         // Verify commit is in history.
         let history = repo.log(commit_hash, None).await.unwrap();
         assert_eq!(history.len(), 1);
-        assert_eq!(history[0].message, "Initial commit");
+        assert_eq!(history[0].1.message, "Initial commit");
     }
 
     #[tokio::test]
@@ -568,7 +567,7 @@ mod tests {
         let commit_hash = repo.commit("main", tree_hash, &author, "multi").await.unwrap();
         let history = repo.log(commit_hash, None).await.unwrap();
         assert_eq!(history.len(), 1);
-        assert_eq!(history[0].message, "multi");
+        assert_eq!(history[0].1.message, "multi");
     }
 
     #[tokio::test]

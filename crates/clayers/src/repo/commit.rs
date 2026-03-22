@@ -79,14 +79,7 @@ pub fn cmd_commit(
             .await
             .context("failed to create commit")?;
 
-        let short_hash = commit_hash.0[..4]
-            .iter()
-            .fold(String::new(), |mut s, b| {
-                use std::fmt::Write;
-                let _ = write!(s, "{b:02x}");
-                s
-            });
-        println!("[{branch} {short_hash}] {message}");
+        println!("[{branch} {commit_hash}] {message}");
         Ok(())
     })?;
 

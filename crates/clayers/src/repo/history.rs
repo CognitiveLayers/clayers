@@ -27,17 +27,10 @@ pub fn cmd_log(limit: Option<usize>) -> Result<()> {
         };
 
         let repo = clayers_repo::Repo::init(store);
-        let commits: Vec<clayers_repo::CommitObject> = repo.log(tip, limit).await.context("failed to walk history")?;
+        let commits = repo.log(tip, limit).await.context("failed to walk history")?;
 
-        for (i, commit) in commits.iter().enumerate() {
-            // Derive a short hash from the commit content.
-            let hash_short = format!("{:x}{:x}{:x}{:x}",
-                commit.timestamp.timestamp() & 0xf,
-                i,
-                commit.author.name.len() & 0xf,
-                commit.message.len() & 0xf,
-            );
-            println!("commit {hash_short}...");
+        for (hash, commit) in &commits {
+            println!("commit {hash}");
             println!("Author: {} <{}>", commit.author.name, commit.author.email);
             println!("Date:   {}", commit.timestamp.format("%a %b %e %H:%M:%S %Y %z"));
             println!();

@@ -645,6 +645,18 @@ fn log_order_newest_first() {
     );
 }
 
+#[test]
+fn log_shows_real_content_hash() {
+    let tmp = setup_committed_repo(&[("doc.xml", "<r/>")]);
+    let out = stdout_of(clayers().args(["log"]).current_dir(tmp.path()));
+    // Real content hashes are "commit sha256:<64 hex chars>".
+    let re = regex::Regex::new(r"commit sha256:[0-9a-f]{64}").unwrap();
+    assert!(
+        re.is_match(&out),
+        "log should show real sha256 content hashes, got: {out}"
+    );
+}
+
 // ===========================================================================
 // remote
 // ===========================================================================
@@ -2336,6 +2348,11 @@ fn merge_fast_forward() {
         out.contains("Fast-forward"),
         "should fast-forward: {out}"
     );
+    // Merge output should show a full content hash.
+    assert!(
+        out.contains("sha256:"),
+        "merge output should show full content hash, got: {out}"
+    );
 
     // File should have feature's content.
     let content = std::fs::read_to_string(path.join("doc.xml")).unwrap();
@@ -2367,6 +2384,11 @@ fn merge_non_overlapping_auto() {
     assert!(
         out.contains("Merge commit"),
         "should create merge commit: {out}"
+    );
+    // Merge output should show a full content hash.
+    assert!(
+        out.contains("sha256:"),
+        "merge output should show full content hash, got: {out}"
     );
     assert!(
         !out.contains("CONFLICT"),
