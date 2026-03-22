@@ -77,7 +77,7 @@
     <art:spec-ref node="authorization-flow"
               revision="draft-1"
               node-hash="sha256:7ee0575880263afabebe1e8d5de9fc9818b1f9e56da06d735c019a4e364d0431"/>
-    <art:artifact repo="payment-service"
+    <art:artifact repo="repo-payment-service"
               repo-revision="abc1234"
               path="src/services/authorization.py">
       <art:range hash="sha256:ddeeff0011223344556677889900aabbccddeeff0011223344556677889900aa"

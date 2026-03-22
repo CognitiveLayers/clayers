@@ -182,7 +182,7 @@ fn check_references(file_paths: &[impl AsRef<Path>]) -> Result<Vec<ValidationErr
         collect_all_ids(&xot, root, id_attr, xml_id_attr, &mut all_ids);
     }
 
-    // Check that relation from/to reference existing IDs
+    // Check relation and artifact references
     for file_path in file_paths {
         let content = std::fs::read_to_string(file_path.as_ref())?;
         let mut xot = Xot::new();
@@ -202,6 +202,20 @@ fn check_references(file_paths: &[impl AsRef<Path>]) -> Result<Vec<ValidationErr
             from_attr,
             to_attr,
             to_spec_attr,
+            &all_ids,
+            &mut errors,
+        );
+
+        // Check art:artifact/@repo references a known ID (typically vcs:git/@id)
+        let art_ns = xot.add_namespace(namespace::ARTIFACT);
+        let artifact_tag = xot.add_name_ns("artifact", art_ns);
+        let repo_attr = xot.add_name("repo");
+
+        check_artifact_repo_refs(
+            &xot,
+            root,
+            artifact_tag,
+            repo_attr,
             &all_ids,
             &mut errors,
         );
@@ -227,6 +241,31 @@ fn collect_all_ids(
     }
     for child in xot.children(node) {
         collect_all_ids(xot, child, id_attr, xml_id_attr, ids);
+    }
+}
+
+fn check_artifact_repo_refs(
+    xot: &Xot,
+    node: xot::Node,
+    artifact_tag: xot::NameId,
+    repo_attr: xot::NameId,
+    all_ids: &std::collections::HashSet<String>,
+    errors: &mut Vec<ValidationError>,
+) {
+    if xot.is_element(node)
+        && xot.element(node).is_some_and(|e| e.name() == artifact_tag)
+        && let Some(repo) = xot.get_attribute(node, repo_attr)
+        && !all_ids.contains(repo)
+    {
+        errors.push(ValidationError {
+            message: format!(
+                "art:artifact repo=\"{repo}\" references unknown id \
+                 (add a vcs:git or other element with id=\"{repo}\")"
+            ),
+        });
+    }
+    for child in xot.children(node) {
+        check_artifact_repo_refs(xot, child, artifact_tag, repo_attr, all_ids, errors);
     }
 }
 

@@ -96,8 +96,8 @@
   <art:mapping id="map-xpath-query-tooling">
     <art:spec-ref node="xpath-query-tooling"
               revision="draft-1"
-              node-hash="sha256:5fab35d8d1987ae4bd15a0ad3061039ae18093d024ffeffd0aac514babbe17bc"/>
-    <art:artifact repo="clayers"
+              node-hash="sha256:acd4d1a653f5948b74106549b11f5939ae04720b2b7aa5bcc2744b26db25deb4"/>
+    <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/query.rs">
         <art:range hash="sha256:c8618847d502ce85dfeb06acd80b1fb49bbbc416b46ea69ff3430757cb90cf4e"
@@ -111,8 +111,8 @@
   <art:mapping id="map-term-xpath-query">
     <art:spec-ref node="term-xpath-query"
               revision="draft-1"
-              node-hash="sha256:b8d3e83abeedf5695a3b15044ccfa238c9b0c9f7541ff63b191d87b46f6bf21b"/>
-    <art:artifact repo="clayers"
+              node-hash="sha256:2aa862c47dda0f54af437bd4b6fc06a277ae1cb47ee195ef6749816295cf8e6d"/>
+    <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/query.rs">
         <art:range hash="sha256:c8618847d502ce85dfeb06acd80b1fb49bbbc416b46ea69ff3430757cb90cf4e"

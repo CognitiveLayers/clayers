@@ -581,8 +581,8 @@
   <art:mapping id="map-type-decision-schema">
     <art:spec-ref node="type-decision"
               revision="draft-1"
-              node-hash="sha256:4f43e9861abac224ffcb85a5ed74381dc5ef8e3c1f13ddd8bfd4f3240ec1b83c"/>
-    <art:artifact repo="clayers"
+              node-hash="sha256:23804d36b7cdb8fbf9d74d0a130bbde3687d5375359f973d70eac81a9914d5df"/>
+    <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/decision.xsd">
         <art:range hash="sha256:67a7e4253344be92301abc951b69ed96d09cbc47169ce44804b2aa6f0c1c9eca" start-line="50" end-line="78"/>
@@ -595,8 +595,8 @@
   <art:mapping id="map-type-supersedes-schema">
     <art:spec-ref node="type-supersedes"
               revision="draft-1"
-              node-hash="sha256:28f04be9431c2113369f3b89a68dcefde26915dc10a6252a63402710845aa86e"/>
-    <art:artifact repo="clayers"
+              node-hash="sha256:e0b2ae38e4f1d90c9160fa8bd714ddc57077f8f0e5f30ec14b179913a8c778d3"/>
+    <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/decision.xsd">
         <art:range hash="sha256:2d7e2aaf43627fc5dedb2ec6c9693d692a3989b6b24899cf5e79b6d772cb9f1e" start-line="129" end-line="162"/>
@@ -609,8 +609,8 @@
   <art:mapping id="map-decision-layer-schema-header">
     <art:spec-ref node="decision-layer"
               revision="draft-1"
-              node-hash="sha256:c8014273edf4c48375d7497f9b3681c9553aa7b5af5e9c7123bb2e853f5a5ed8"/>
-    <art:artifact repo="clayers"
+              node-hash="sha256:464d32d34d5e476b7a3aa46df1741a9050f4725b38369b3cbe6769d6eae6c9ea"/>
+    <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/decision.xsd">
         <art:range hash="sha256:2b63923990d27ee089167d74319643e212cede7fc824a54df6833876c28551a8" start-line="1" end-line="78"/>
@@ -622,8 +622,8 @@
   <art:mapping id="map-decision-layer-schema-types">
     <art:spec-ref node="decision-layer"
               revision="draft-1"
-              node-hash="sha256:c8014273edf4c48375d7497f9b3681c9553aa7b5af5e9c7123bb2e853f5a5ed8"/>
-    <art:artifact repo="clayers"
+              node-hash="sha256:464d32d34d5e476b7a3aa46df1741a9050f4725b38369b3cbe6769d6eae6c9ea"/>
+    <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/decision.xsd">
         <art:range hash="sha256:67c4eaaefe49f38a3a5f37e97edcbdc08a98d2969383f4fc5453fb8575c6daea" start-line="80" end-line="162"/>

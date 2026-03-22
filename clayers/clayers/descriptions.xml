@@ -64,8 +64,8 @@
   <art:mapping id="map-llm-layer">
     <art:spec-ref node="llm-layer"
               revision="draft-1"
-              node-hash="sha256:128006a05ee8c878351cc452711de4cd4e9a1777b6186158b989a0555992701e"/>
-    <art:artifact repo="clayers"
+              node-hash="sha256:0055ce1cd432eff66616720cdd5379779a43426cbb6663521147c6378251a9e5"/>
+    <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="schemas/llm.xsd">
         <art:range hash="sha256:77d4c8fee44bfcad36365d51af8919c1e3f25470c95dfeb055b0c9b0e2b364a3"/>

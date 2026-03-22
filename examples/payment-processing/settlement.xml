@@ -60,7 +60,7 @@
     <art:spec-ref node="capture-and-clearing"
               revision="draft-1"
               node-hash="sha256:58e69c54a654a59d1a1297315c985c30ef15c6ec83b0d36f5c0e9cbe72bed513"/>
-    <art:artifact repo="payment-service"
+    <art:artifact repo="repo-payment-service"
               repo-revision="abc1234"
               path="src/handlers/capture.py">
       <art:range hash="sha256:4455667788990011223344556677889900aabbccddeeff001122334455667788"
@@ -73,7 +73,7 @@
     <art:spec-ref node="settlement"
               revision="draft-1"
               node-hash="sha256:29a2d51d4a790beb61b8adf0d05fc996b94aa5c991079278417403dc117a3fd1"/>
-    <art:artifact repo="payment-service"
+    <art:artifact repo="repo-payment-service"
               repo-revision="abc1234"
               path="src/jobs/settlement_batch.py">
       <art:range hash="sha256:aabb1122334455667788990011223344556677889900aabbccddeeff00112233"

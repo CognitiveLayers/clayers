@@ -41,7 +41,7 @@
     <art:spec-ref node="disputes"
               revision="draft-1"
               node-hash="sha256:e6344e88ce4118638d0a42c380c1e318abffeb68852569f7a2bf65c292d345be"/>
-    <art:artifact repo="payment-service"
+    <art:artifact repo="repo-payment-service"
               repo-revision="abc1234"
               path="src/handlers/disputes.py">
       <art:range hash="sha256:0000000000000000000000000000000000000000000000000000000000000000"

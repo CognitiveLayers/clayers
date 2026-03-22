@@ -357,8 +357,8 @@
   <art:mapping id="map-type-plan-schema">
     <art:spec-ref node="type-plan"
               revision="draft-1"
-              node-hash="sha256:eb34abc91ac27f47d4dce5d23d8cb60303dc522f6065e5c1b221b19c7be58949"/>
-    <art:artifact repo="clayers"
+              node-hash="sha256:81a02188fe53909d2a15f8c771a41967f1142c04057db75052dabebdfc4d284a"/>
+    <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/plan.xsd">
         <art:range hash="sha256:d6ba5e078f45afc3a01df3946e7967d0341e26f6f320ec9c596090c8e3ffa519" start-line="74" end-line="115"/>
@@ -371,8 +371,8 @@
   <art:mapping id="map-type-revises-schema">
     <art:spec-ref node="type-revises"
               revision="draft-1"
-              node-hash="sha256:c5f1913ea727f62a6816a7ef3e54a7c342ba1a2687d2cbf97f4319fcdece7285"/>
-    <art:artifact repo="clayers"
+              node-hash="sha256:49294e15b97b7a52d046e173b6c2e35d01c6e7b0dcbd78f352ac49c11af8da60"/>
+    <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/plan.xsd">
         <art:range hash="sha256:aa72cfba1aa683db8e775ae0cff518ae03524f2ab9f4645d18399b5ce5a4ba85" start-line="333" end-line="365"/>
@@ -385,8 +385,8 @@
   <art:mapping id="map-type-witness-kind-schema">
     <art:spec-ref node="type-witness-kind"
               revision="draft-1"
-              node-hash="sha256:bd3ae6a5837f1c29e5ee7e3d914511ce42e03b011343bfaf680747ffc83d1a4f"/>
-    <art:artifact repo="clayers"
+              node-hash="sha256:a2618ccd8dcba5fbe662aac9057d2c6894114ed75f934231ed0e19dfd1ebc776"/>
+    <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/plan.xsd">
         <art:range hash="sha256:0df7217433b481b22454d7511b4cf95f131d4c39bf13ccd77e6b5c6ff68935d3" start-line="246" end-line="270"/>
@@ -399,8 +399,8 @@
   <art:mapping id="map-plan-layer-schema-core">
     <art:spec-ref node="plan-layer"
               revision="draft-1"
-              node-hash="sha256:8f9cdc8465afe48956293fa84cdaf05ba3ce76cf48380b5a48c6593e2a30c988"/>
-    <art:artifact repo="clayers"
+              node-hash="sha256:4ab417a384189ba49b8d3ea63560e7942291721a72ef79fea10ee5e50e5293d2"/>
+    <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/plan.xsd">
         <art:range hash="sha256:8918231ba60c3d4186e60c3983d309d1379e57f3f4ecc74dee4cc1d116c3b086" start-line="1" end-line="73"/>
@@ -412,8 +412,8 @@
   <art:mapping id="map-plan-layer-schema-plan-type">
     <art:spec-ref node="plan-layer"
               revision="draft-1"
-              node-hash="sha256:8f9cdc8465afe48956293fa84cdaf05ba3ce76cf48380b5a48c6593e2a30c988"/>
-    <art:artifact repo="clayers"
+              node-hash="sha256:4ab417a384189ba49b8d3ea63560e7942291721a72ef79fea10ee5e50e5293d2"/>
+    <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/plan.xsd">
         <art:range hash="sha256:ff1b23b052ffc1df6fa7dcfc1d7678481fb27c48ccf452c137b57f64fcff73c6" start-line="74" end-line="167"/>
@@ -425,8 +425,8 @@
   <art:mapping id="map-plan-layer-schema-acceptance-types">
     <art:spec-ref node="plan-layer"
               revision="draft-1"
-              node-hash="sha256:8f9cdc8465afe48956293fa84cdaf05ba3ce76cf48380b5a48c6593e2a30c988"/>
-    <art:artifact repo="clayers"
+              node-hash="sha256:4ab417a384189ba49b8d3ea63560e7942291721a72ef79fea10ee5e50e5293d2"/>
+    <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/plan.xsd">
         <art:range hash="sha256:8662aee6c4547f43ebd08acf8da94b94207f2c6d374bd88efc73f4db22373801" start-line="168" end-line="218"/>
@@ -438,8 +438,8 @@
   <art:mapping id="map-plan-layer-schema-witness">
     <art:spec-ref node="plan-layer"
               revision="draft-1"
-              node-hash="sha256:8f9cdc8465afe48956293fa84cdaf05ba3ce76cf48380b5a48c6593e2a30c988"/>
-    <art:artifact repo="clayers"
+              node-hash="sha256:4ab417a384189ba49b8d3ea63560e7942291721a72ef79fea10ee5e50e5293d2"/>
+    <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/plan.xsd">
         <art:range hash="sha256:fc50fdc4cb7a2bebd6cc97a94c897acff9ffac020a0d591754136b58ff60aa4d" start-line="220" end-line="270"/>
@@ -451,8 +451,8 @@
   <art:mapping id="map-plan-layer-schema-revises">
     <art:spec-ref node="plan-layer"
               revision="draft-1"
-              node-hash="sha256:8f9cdc8465afe48956293fa84cdaf05ba3ce76cf48380b5a48c6593e2a30c988"/>
-    <art:artifact repo="clayers"
+              node-hash="sha256:4ab417a384189ba49b8d3ea63560e7942291721a72ef79fea10ee5e50e5293d2"/>
+    <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/plan.xsd">
         <art:range hash="sha256:1de14cab38982a697ef364217ec0e4934a2c97551987435c33fe25ff57413e7c" start-line="271" end-line="365"/>
@@ -465,8 +465,8 @@
   <art:mapping id="map-plan-acceptance-schema">
     <art:spec-ref node="plan-acceptance-criteria"
               revision="draft-1"
-              node-hash="sha256:ec92b30f98689e3c41762a9b9a15ef010986c9d2e20b648ad691c93ee20ac509"/>
-    <art:artifact repo="clayers"
+              node-hash="sha256:b8b7a769f988faffdb00e651126b9161b425bc0faeeaae62344e2858088ebd89"/>
+    <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/plan.xsd">
         <art:range hash="sha256:34e9c0884e6299272be3a6e2e03ec2b2ba5352c2c968a019e17199f0ea4964a5" start-line="168" end-line="244"/>

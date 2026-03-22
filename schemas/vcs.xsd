@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:vcs="urn:clayers:vcs"
+           xmlns:spec="urn:clayers:spec"
+           xmlns:llm="urn:clayers:llm"
+           targetNamespace="urn:clayers:vcs"
+           elementFormDefault="qualified"
+           version="1.0">
+
+  <xs:annotation>
+    <xs:documentation>
+      VCS Layer Schema.
+      Declares version control system repositories referenced by
+      artifact mappings. Each element type represents a different
+      VCS backend (git first, others extensible).
+
+      Specs declare their repositories once, then artifact mappings
+      reference them by ID via art:artifact/@repo.
+    </xs:documentation>
+    <xs:appinfo>
+      <llm:describe>
+        The VCS schema declares version control repositories that
+        artifact mappings reference. vcs:git declares a git repository
+        with a remote URL and optional default branch. The element's
+        @id is referenced by art:artifact/@repo to establish which
+        repository an artifact lives in. Extensible: new VCS types
+        (svn, hg, etc.) would be additional elements in this namespace.
+      </llm:describe>
+    </xs:appinfo>
+  </xs:annotation>
+
+  <!-- Git repository declaration -->
+  <xs:element name="git" type="vcs:GitRepoType">
+    <xs:annotation>
+      <xs:appinfo><spec:content-element/></xs:appinfo>
+      <xs:documentation>
+        Declares a git repository. The id attribute is referenced
+        by art:artifact/@repo in artifact mappings.
+      </xs:documentation>
+    </xs:annotation>
+  </xs:element>
+
+  <xs:complexType name="GitRepoType">
+    <xs:attribute name="id" type="xs:ID" use="required">
+      <xs:annotation>
+        <xs:documentation>Unique identifier referenced by art:artifact/@repo.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="remote" type="xs:anyURI" use="required">
+      <xs:annotation>
+        <xs:documentation>Canonical remote URL (e.g., https://github.com/org/repo.git).</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="default-branch" type="xs:string" use="optional">
+      <xs:annotation>
+        <xs:documentation>Default branch name (e.g., main, master).</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+</xs:schema>

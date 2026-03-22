@@ -242,8 +242,8 @@
   <art:mapping id="map-type-source-kind-schema">
     <art:spec-ref node="type-source-kind"
               revision="draft-1"
-              node-hash="sha256:9868206ce42c0a9fb7bdf5bfcc3356f34ac509dfada4716a4e571c13e2292a8a"/>
-    <art:artifact repo="clayers"
+              node-hash="sha256:34fffc1c9e5fa5af77220e07dafa6b1da8de81b4b8964cc13dc6badeac12a9d1"/>
+    <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/source.xsd">
         <art:range hash="sha256:f8fe882d8ec12cee9facf695ea64cc29bb418670d8e473191235e268d6a25b51" start-line="172" end-line="243"/>
@@ -256,8 +256,8 @@
   <art:mapping id="map-source-layer-schema-elements">
     <art:spec-ref node="source-layer"
               revision="draft-1"
-              node-hash="sha256:4e7daafa62d28fe06d2ae5f4290487fadab238f6211d462f1ffed33099a8b58a"/>
-    <art:artifact repo="clayers"
+              node-hash="sha256:3c929c8f54ef3f799b64eaa93bef98c705fefb9258c814dbfb5851eb3e7ef486"/>
+    <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/source.xsd">
         <art:range hash="sha256:eae51f54007900dd06dfcedc97077bc05ff1baf071f7188a49f4e7f88282dea7" start-line="1" end-line="90"/>
@@ -269,8 +269,8 @@
   <art:mapping id="map-source-layer-schema-types">
     <art:spec-ref node="source-layer"
               revision="draft-1"
-              node-hash="sha256:4e7daafa62d28fe06d2ae5f4290487fadab238f6211d462f1ffed33099a8b58a"/>
-    <art:artifact repo="clayers"
+              node-hash="sha256:3c929c8f54ef3f799b64eaa93bef98c705fefb9258c814dbfb5851eb3e7ef486"/>
+    <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/source.xsd">
         <art:range hash="sha256:1d58b0b383f60077b7f113d4ce6d651fe2a8a2ff131b1a4ef158eca29a8ab1a2" start-line="91" end-line="170"/>
@@ -282,8 +282,8 @@
   <art:mapping id="map-source-layer-schema-kinds">
     <art:spec-ref node="source-layer"
               revision="draft-1"
-              node-hash="sha256:4e7daafa62d28fe06d2ae5f4290487fadab238f6211d462f1ffed33099a8b58a"/>
-    <art:artifact repo="clayers"
+              node-hash="sha256:3c929c8f54ef3f799b64eaa93bef98c705fefb9258c814dbfb5851eb3e7ef486"/>
+    <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/source.xsd">
         <art:range hash="sha256:f8fe882d8ec12cee9facf695ea64cc29bb418670d8e473191235e268d6a25b51" start-line="172" end-line="243"/>

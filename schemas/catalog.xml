@@ -19,6 +19,7 @@
   <uri name="urn:clayers:llm"           uri="llm.xsd"/>
   <uri name="urn:clayers:python"       uri="python.xsd"/>
   <uri name="urn:clayers:repository"   uri="repository.xsd"/>
+  <uri name="urn:clayers:vcs"          uri="vcs.xsd"/>
 
   <!-- External standard schemas: XMI and UML model integration -->
 

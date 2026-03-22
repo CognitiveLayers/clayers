@@ -6,7 +6,13 @@
        xmlns:pr="urn:clayers:prose"
        xmlns:trm="urn:clayers:terminology"
        xmlns:org="urn:clayers:organization"
+       xmlns:vcs="urn:clayers:vcs"
        spec:index="index.xml">
+
+  <!-- VCS repository declarations -->
+  <vcs:git id="repo-payment-service"
+           remote="https://github.com/example/payment-service.git"
+           default-branch="main"/>
 
   <trm:term id="term-transaction">
     <trm:name>Transaction</trm:name>
