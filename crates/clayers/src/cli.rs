@@ -5,7 +5,7 @@ use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
-#[command(name = "clayers", about = "Cognitive layers spec tooling")]
+#[command(name = "clayers", about = "Cognitive layers spec tooling", version = env!("CLAYERS_VERSION"))]
 struct Cli {
     #[command(subcommand)]
     command: Command,
