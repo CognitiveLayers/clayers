@@ -2,6 +2,11 @@
   <img src="assets/logo.png" alt="clayers logo" width="120">
 </p>
 
+<p align="center">
+  <img src="assets/inferal.svg" alt="Inferal" width="12">
+  <strong>by Inferal</strong>
+</p>
+
 <h1 align="center">clayers</h1>
 
 <p align="center">
@@ -262,3 +267,9 @@ cargo install --path crates/clayers
 - [Website](https://claye.rs)
 - [Changelog](CHANGELOG.md)
 - [License](LICENSE) (Apache-2.0)
+
+---
+
+<p align="center">
+  Built by <a href="https://inferal.com"><strong>Inferal</strong></a>
+</p>
