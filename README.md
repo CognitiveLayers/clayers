@@ -1,98 +1,210 @@
-# Clayers: Cognitive Layers for Structured Specifications
+<p align="center">
+  <img src="assets/logo.png" alt="clayers logo" width="120">
+</p>
 
-Version control and tooling for layered XML specifications with
-machine-verifiable traceability between specs and code.
+<h1 align="center">clayers</h1>
 
-## The Problem
+<p align="center">
+  <strong>A structured knowledge base your AI agents can actually use.</strong><br>
+  Not another pile of markdown files. A layered, schema-validated, content-addressed<br>
+  specification format with machine-verifiable traceability to code.
+</p>
 
-Software specifications are either implicit (in developers' heads), scattered
-across disconnected documentation, or maintained in heavyweight tools that
-drift from reality. Code becomes the de facto spec, but code only captures
-*how*, not *why*.
+<p align="center">
+  <a href="https://crates.io/crates/clayers"><img src="https://img.shields.io/crates/v/clayers.svg" alt="crates.io"></a>
+  <a href="https://pypi.org/project/clayers/"><img src="https://img.shields.io/pypi/v/clayers.svg" alt="PyPI"></a>
+  <a href="https://github.com/CognitiveLayers/clayers/actions/workflows/ci.yml"><img src="https://github.com/CognitiveLayers/clayers/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" alt="License"></a>
+</p>
 
-Tracking XML specifications in git compounds the problem: git treats XML as
-opaque text, producing unreadable diffs, meaningless merge conflicts, and
-no structural awareness.
+---
 
-## What Clayers Does
+## Why clayers?
 
-Clayers provides two things:
+AI agents working with your codebase deserve better than grepping through scattered
+docs. Clayers gives them a **structured knowledge model** where every concept has a
+definition, every definition links to implementing code, and every link is
+machine-verified against content hashes.
 
-1. **A layered XML format** for writing specifications where each concern
-   (prose, terminology, relations, artifact mappings, etc.) lives in its own
-   namespace and can evolve independently.
+**For AI/LLM tooling builders** - Your agents get XPath-queryable specifications
+with typed layers (prose, terminology, relations, plans) instead of unstructured
+text. Every node carries an LLM description layer purpose-built for machine
+consumption.
 
-2. **A content-addressed version control system** purpose-built for XML. It
-   decomposes documents into a Merkle DAG of XML Infoset nodes, enabling
-   structural diffs, element-level deduplication, and drift detection between
-   specs and code.
+**For teams fighting documentation drift** - Content hashes on both sides (spec
+and code) mean drift is detected automatically, not discovered during an
+incident. Run `clayers artifact --drift` in CI and know immediately when specs
+and code diverge.
 
-## Quick Start
+**For spec-first developers** - Write the spec, implement the code, map one to
+the other. Coverage analysis tells you what's specified but unbuilt, what's built
+but unspecified, and what's drifted since last review.
+
+## See it in action
+
+`clayers doc` generates a single-file knowledge explorer from any spec, with
+navigable concepts, artifact coverage badges, inline code fragments, and an
+interactive knowledge graph:
+
+<p align="center">
+  <img src="assets/docs-screenshot.png" alt="clayers doc output showing knowledge explorer with sidebar navigation, concept viewer, artifact coverage badges, and interactive knowledge graph" width="900">
+</p>
+
+## Quick start
 
 ```bash
-# Install
-cargo install --path crates/clayers
+# Install via Cargo
+cargo install clayers
+
+# Or via pip (includes CLI)
+pip install clayers
 
 # Bootstrap clayers in your project
 clayers adopt .
 
-# Validate a specification
+# Validate your specification
 clayers validate clayers/my-project/
 
 # Check for drift between spec and code
 clayers artifact --drift clayers/my-project/
+
+# Generate browsable documentation
+clayers doc clayers/my-project/
 ```
 
-### Repository Workflow
+## How it works
+
+A clayers spec is a set of XML documents. Each document can mix content from
+independent **layers**, each with its own namespace and schema. Layers are
+orthogonal: editing prose doesn't require touching artifact mappings.
+
+The layer model is **open**: clayers ships with a set of built-in layers, but
+anyone can define new ones. Add a namespace, write a schema, and your custom
+layer works alongside the built-ins with full validation, querying, and
+tooling support.
+
+**Built-in layers:**
+
+| Layer | What it captures |
+|-------|-----------------|
+| **Prose** | Technical writing: sections, paragraphs, steps, notes |
+| **Terminology** | Controlled vocabulary with canonical definitions |
+| **Organization** | Topic typing: concept, task, reference |
+| **Relation** | Typed semantic links: depends-on, refines, implements |
+| **Plan** | Implementation plans with acceptance criteria and witnesses |
+| **Artifact** | Bidirectional code traceability with content-hash drift detection |
+| **LLM** | Machine-readable descriptions optimized for agent consumption |
+| **Decision** | Decision records with status and rationale |
+| **Source** | External references and citations |
+| **Revision** | Named snapshots for temporal anchoring |
+
+All layers share a common ID space enforced by the index. Nodes reference each
+other by ID across files and layers. Custom layers participate in the same ID
+space and can reference or be referenced by any built-in layer.
+
+## Key features
+
+### Drift detection
+
+Both spec nodes and code ranges carry SHA-256 content hashes. When either side
+changes, `--drift` catches it:
+
+```
+$ clayers artifact --drift clayers/my-project/
+drift: my-project (23 mappings, 1 drifted)
+
+  map-auth-handler: ARTIFACT DRIFTED
+    file: src/auth/handler.rs:42-98
+    stored:  sha256:d4ca047eaa97...
+    current: sha256:abc123def456...
+```
+
+### Coverage analysis
+
+See what's specified but unbuilt, and what's built but unspecified:
 
 ```bash
-# Initialize an XML repository
-clayers init
+clayers artifact --coverage clayers/my-project/
+clayers artifact --coverage clayers/my-project/ --code-path src/
+```
 
-# Stage and commit XML files
+### Connectivity analysis
+
+Graph metrics across your knowledge model: density, hubs, bridges, isolated
+nodes, cycles.
+
+```bash
+clayers connectivity clayers/my-project/
+```
+
+### XPath queries
+
+Query the assembled spec as a structured knowledge base:
+
+```bash
+# Find a term's definition
+clayers query clayers/my-project/ '//trm:term[@id="term-drift"]/trm:definition' --text
+
+# Locate code implementing a concept
+clayers query clayers/my-project/ '//art:mapping[art:spec-ref/@node="auth-flow"]/art:artifact/@path'
+
+# Get the LLM description for a node
+clayers query clayers/my-project/ '//llm:node[@ref="auth-flow"]' --text
+```
+
+### Content-addressed version control
+
+A purpose-built VCS that understands XML structure. Documents are decomposed
+into a Merkle DAG of XML Infoset nodes, enabling structural diffs,
+element-level deduplication, and meaningful merge operations.
+
+```bash
+clayers init
 clayers add *.xml
 clayers commit -m "initial specification"
-
-# Branch, modify, commit
 clayers checkout -b feature-auth
-# ... edit XML files ...
-clayers add auth.xml
-clayers commit -m "add authentication spec"
-
-# Push to a bare repository
-clayers init --bare /path/to/shared.db
-clayers remote add origin /path/to/shared.db
-clayers push origin
-
-# Clone and query
-clayers clone /path/to/shared.db my-copy
-cd my-copy
-clayers query '//trm:term/trm:name' --text
+# ... edit, commit, merge ...
+clayers merge main --strategy auto
 ```
 
-### Remote Server Workflow
+### Remote collaboration
+
+Push and pull specs over WebSocket. One server hosts multiple named
+repositories with per-user authentication and daisy-chain proxying.
 
 ```bash
-# Generate a server config with auto-generated token
 clayers serve init --repo myspec:/path/to/myspec.db -o server.yaml
-
-# Start the server
 clayers serve run server.yaml
-# => clayers server listening on ws://0.0.0.0:9100
-
-# Clone from the server (use the token from server.yaml)
 clayers clone ws://server:9100/myspec --token <token>
-
-# Push/pull over WebSocket
-clayers remote add origin ws://server:9100/myspec --token <token>
-clayers push
-clayers pull
-
-# List available repos on a server
-clayers remote list-repos ws://server:9100 --token <token>
 ```
 
-## Spec Commands
+## Architecture
+
+Four Rust crates, each with a clear responsibility:
+
+```
+crates/
+  clayers-xml/     XML utilities: C14N, content hashing, OASIS catalog, RNC export
+  clayers-repo/    Content-addressed Merkle DAG with async SQLite storage
+  clayers-spec/    Spec-aware tooling: validation, drift, coverage, connectivity
+  clayers/         CLI combining spec and repository commands
+```
+
+Storage is a single `.clayers.db` SQLite file per repository.
+
+## Python bindings
+
+The `clayers` PyPI package provides the full CLI plus a Python API via PyO3:
+
+```bash
+pip install clayers
+clayers validate clayers/my-project/
+```
+
+## Commands
+
+<details>
+<summary><strong>Spec commands</strong></summary>
 
 | Command | Description |
 |---------|-------------|
@@ -100,195 +212,53 @@ clayers remote list-repos ws://server:9100 --token <token>
 | `artifact <path>` | List artifact mappings |
 | `artifact --drift <path>` | Detect spec/code drift via content hashes |
 | `artifact --coverage <path>` | Analyze spec-to-code coverage |
-| `artifact --fix-node-hash <path>` | Recompute spec-side hashes after editing |
-| `artifact --fix-artifact-hash <path>` | Recompute code-side hashes after editing |
+| `artifact --fix-node-hash <path>` | Recompute spec-side hashes |
+| `artifact --fix-artifact-hash <path>` | Recompute code-side hashes |
 | `connectivity <path>` | Graph metrics: density, hubs, bridges, cycles |
 | `schema [path]` | Export XSD schemas as RELAX NG Compact |
-| `query <xpath> [path]` | XPath query against assembled spec |
+| `query <path> <xpath>` | XPath query against assembled spec |
+| `doc <path>` | Generate HTML documentation |
 | `adopt [path]` | Bootstrap clayers in a project |
 
-## Repository Commands
+</details>
+
+<details>
+<summary><strong>Repository commands</strong></summary>
 
 | Command | Description |
 |---------|-------------|
 | `init [path]` | Create a new repository (`.clayers.db`) |
-| `init --bare <file.db>` | Create a bare repository (no working copy) |
-| `clone <source> [target]` | Clone a repository (local path or `ws://` URL) |
-| `add <files...>` | Stage files for commit (`.` for all XML) |
-| `rm <files...>` | Stage deletion (or `--cached` to unstage) |
+| `init --bare <path>` | Create a bare repository (no working copy) |
+| `clone <source> [target]` | Clone from local path or `ws://` URL |
+| `add <files...>` | Stage files for commit |
+| `rm <files...>` | Stage deletion |
 | `status` | Show staged, modified, and untracked files |
-| `commit -m <msg>` | Record staged changes as a commit |
+| `commit -m <msg>` | Record staged changes |
 | `log [-n N]` | Show commit history |
 | `branch [name]` | List or create branches |
-| `branch --delete <name>` | Delete a branch |
-| `checkout <branch>` | Switch branches (updates files on disk) |
-| `checkout -b <branch>` | Create and switch to a new branch |
-| `checkout --orphan <branch>` | Create a branch with no history |
-| `remote add <name> <url> [--token T]` | Add a remote (local path or `ws://` URL) |
-| `remote remove <name>` | Remove a remote |
-| `remote list` | List remotes |
-| `remote list-repos <url> [--token T]` | List repos on a remote server |
-| `push [remote]` | Push to a remote (local or WebSocket) |
-| `pull [remote]` | Pull from a remote (local or WebSocket) |
+| `checkout <branch>` | Switch branches |
+| `merge <branch>` | Three-way merge with strategy selection |
+| `remote add <name> <url>` | Add a remote |
+| `push [remote]` | Push to a remote |
+| `pull [remote]` | Pull from a remote |
+| `serve run <config>` | Start a WebSocket repository server |
+| `serve init` | Generate a server config |
+| `query <xpath>` | XPath query against repository |
+| `diff` | Show structural diff between commits |
 | `revert <files...>` | Restore files to committed state |
-| `query <xpath>` | XPath query against committed repository |
-| `serve run <config.yaml>` | Start a WebSocket repository server |
-| `serve init [--repo name:path]` | Generate a server config file |
 
-### Author Resolution
-
-Commit author is resolved in order: `--author`/`--email` flags,
-`CLAYERS_AUTHOR_NAME`/`CLAYERS_AUTHOR_EMAIL` environment variables,
-`git config user.name`/`user.email`.
-
-### Query Modes
-
-`query` works in two modes:
-
-- **Repo mode** (default): queries all documents in the current branch's tree.
-  Supports `--count`, `--text`, `--rev`, `--branch`, `--all`, `--db`.
-- **Spec mode**: when given a directory path, falls back to spec-level query
-  against the assembled combined document.
-
-## Layers
-
-| Layer | Namespace | Purpose |
-|-------|-----------|---------|
-| **Index** | `urn:clayers:index` | File manifest, ID uniqueness domain |
-| **Revision** | `urn:clayers:revision` | Named snapshots for temporal anchoring |
-| **Prose** | `urn:clayers:prose` | DITA-style technical writing (sections, paragraphs, steps) |
-| **Terminology** | `urn:clayers:terminology` | Controlled vocabulary with canonical definitions |
-| **Organization** | `urn:clayers:organization` | Topic typing: concept, task, reference |
-| **Relation** | `urn:clayers:relation` | Typed semantic links (depends-on, refines, implements, ...) |
-| **Decision** | `urn:clayers:decision` | Decision records |
-| **Source** | `urn:clayers:source` | External references and citations |
-| **Plan** | `urn:clayers:plan` | Implementation plans with acceptance criteria |
-| **Artifact** | `urn:clayers:artifact` | Code traceability with drift detection |
-| **LLM** | `urn:clayers:llm` | Machine-readable descriptions for LLM consumption |
-
-Layers are orthogonal: editing prose doesn't require touching artifact
-mappings. All layers share a common ID space (enforced by the index) and
-reference each other by node ID.
-
-## Architecture
-
-The Rust workspace contains four crates:
-
-```
-crates/
-  clayers-xml/     XML utilities: C14N, content hashing, OASIS catalog, RNC export
-  clayers-repo/    Content-addressed Merkle DAG for XML with async SQLite storage
-  clayers-spec/    Spec-aware tooling: validation, drift, coverage, connectivity
-  clayers/         CLI binary combining spec and repository commands
-```
-
-### Object Model
-
-The repository stores XML as a content-addressed Merkle DAG:
-
-```
-Branch ("main")
-  -> Commit (author, timestamp, message)
-    -> Tree { "overview.xml": hash, "auth.xml": hash, ... }
-      -> Document (root element hash)
-        -> Element (local name, namespace, prefix, attributes, children)
-          -> Text / Comment / PI (leaf nodes)
-```
-
-Each object's identity is `SHA-256(ExclusiveC14N(xml_representation))`.
-Namespace prefixes are preserved through the import/export cycle for
-faithful round-tripping.
-
-### Storage
-
-Repositories use a single `.clayers.db` SQLite file containing:
-- **Object store**: content-addressed blobs (clayers-repo)
-- **Ref store**: branch and tag pointers (clayers-repo)
-- **CLI tables**: `cli_meta`, `working_copy`, `staging`, `remotes`
-
-### Server
-
-`clayers serve run` starts a WebSocket server from a YAML config:
-
-```yaml
-listen: '0.0.0.0:9100'
-users:
-- name: alice
-  token: <generated-by-serve-init>
-repos:
-  myspec:
-    path: /data/myspec.db              # local SQLite backend
-  upstream:
-    path: ws://other:9100/original     # proxy to another server (daisy-chain)
-    token: upstream-server-token       # auth for the upstream connection
-```
-
-Use `clayers serve init` to generate a config with cryptographic tokens:
-
-```bash
-clayers serve init --repo myspec:/path/to/myspec.db -o server.yaml
-# Resolves paths to absolute, generates a 32-byte CSPRNG token
-```
-
-Features:
-- **Multi-repo**: one server hosts multiple named repositories
-- **Per-user auth**: bearer tokens validated during WebSocket handshake
-- **Hot-reload**: config file changes are picked up automatically (debounced)
-- **Daisy-chaining**: repos can proxy to upstream servers via `ws://` paths
+</details>
 
 ## Development
 
 ```bash
-# Build
 cargo build --workspace
-
-# Run tests
 cargo test --workspace
-
-# Install from source
 cargo install --path crates/clayers
 ```
 
-## Drift Detection Workflow
+## Links
 
-```bash
-# After editing spec prose
-clayers validate clayers/my-project/
-clayers artifact --fix-node-hash clayers/my-project/
-clayers artifact --drift clayers/my-project/
-
-# After editing code
-clayers artifact --drift clayers/my-project/
-# ... update line ranges in artifact mappings if needed ...
-clayers artifact --fix-artifact-hash clayers/my-project/
-clayers artifact --drift clayers/my-project/
-
-# Check coverage
-clayers artifact --coverage clayers/my-project/
-```
-
-## File Structure
-
-```
-clayers/
-  schemas/                    XSD 1.1 schemas (one per layer)
-    catalog.xml               OASIS XML Catalog (namespace-to-file mapping)
-    spec.xsd                  Root element, annotation markers
-    index.xsd                 File manifest
-    prose.xsd                 Writing elements
-    terminology.xsd           Controlled vocabulary
-    organization.xsd          Topic typing
-    relation.xsd              Semantic links
-    decision.xsd              Decision records
-    source.xsd                External references
-    plan.xsd                  Implementation plans
-    artifact.xsd              Code traceability
-    llm.xsd                   LLM descriptions
-    revision.xsd              Named snapshots
-    repository.xsd            Repository objects (commits, trees, tags)
-  clayers/                    Specification instances
-    clayers/                  Self-referential spec (describes the format itself)
-  examples/                   Example specifications
-    payment-processing/       Fintech domain example
-  crates/                     Rust workspace
-```
+- [Website](https://claye.rs)
+- [Changelog](CHANGELOG.md)
+- [License](LICENSE) (Apache-2.0)
