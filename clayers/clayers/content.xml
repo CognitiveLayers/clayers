@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Content: Content-addressed reference layer for the clayers format.
+  Describes the content layer and its role as a foundation primitive
+  for integrity-verified references to external or embedded content.
+-->
+<spec:clayers xmlns:spec="urn:clayers:spec"
+       xmlns:pr="urn:clayers:prose"
+       xmlns:trm="urn:clayers:terminology"
+       xmlns:cnt="urn:clayers:content"
+       xmlns:org="urn:clayers:organization"
+       xmlns:rel="urn:clayers:relation"
+       xmlns:art="urn:clayers:artifact"
+       xmlns:llm="urn:clayers:llm"
+       spec:index="index.xml">
+
+  <!-- ================================================================== -->
+  <!-- Content Layer                                                       -->
+  <!-- ================================================================== -->
+
+  <pr:section id="content-layer">
+    <pr:title>Content Layer</pr:title>
+    <pr:shortdesc>General-purpose content-addressed references with hash
+    integrity and three access modes.</pr:shortdesc>
+
+    <pr:p>Specifications refer to content beyond their own XML: test fixtures,
+    configuration fragments, images, external documents. The content layer
+    provides a uniform mechanism for these references. Each
+    <pr:code>cnt:content</pr:code> node identifies content by a cryptographic
+    hash, guaranteeing integrity regardless of where the content lives.</pr:p>
+
+    <pr:p>Three modes cover the spectrum of content locality. In
+    <pr:b>referenced</pr:b> mode, a URL points to the canonical external
+    location and the hash verifies its integrity on fetch. In
+    <pr:b>embedded</pr:b> mode, a <pr:code>cnt:body</pr:code> child contains
+    the content inline and the hash verifies the embedded copy. In
+    <pr:b>both</pr:b> mode, the URL provides the canonical location while the
+    body holds a local copy, with the hash binding both to the same content.
+    An XSD 1.1 assertion enforces that at least one of URL or body is present,
+    making empty content nodes structurally impossible.</pr:p>
+
+    <pr:p>The <pr:code>cnt:ref</pr:code> element enables inline references to
+    content nodes from within prose, parallel to <pr:code>trm:ref</pr:code>
+    for terminology and <pr:code>src:cite</pr:code> for sources. Its
+    <pr:code>content</pr:code> attribute is an IDREF pointing to a
+    <pr:code>cnt:content</pr:code> element's ID, and its mixed content provides
+    display text.</pr:p>
+
+    <pr:p>The content layer is a foundation primitive. The testing layer builds
+    on it to attach test fixtures and expected outputs to spec nodes. The source
+    layer will eventually use it to embed or reference cited material with
+    integrity guarantees. Any layer that needs to point at content beyond inline
+    XML text can use <pr:code>cnt:content</pr:code> as its substrate.</pr:p>
+  </pr:section>
+
+  <org:concept ref="content-layer">
+    <org:purpose>Understanding the content layer as a general-purpose,
+    content-addressed reference mechanism with three access modes (referenced,
+    embedded, both), hash integrity, and inline references via cnt:ref.</org:purpose>
+  </org:concept>
+
+  <!-- ================================================================== -->
+  <!-- Terminology                                                         -->
+  <!-- ================================================================== -->
+
+  <trm:term id="type-content">
+    <trm:name>ContentType</trm:name>
+    <trm:definition>The XSD complexType that defines the structure of content
+    nodes in the content layer: id, url, hash, optional media-type, and an
+    optional body child for embedded content.</trm:definition>
+  </trm:term>
+
+  <!-- ================================================================== -->
+  <!-- Relations                                                           -->
+  <!-- ================================================================== -->
+
+  <!-- Content layer refines the layered architecture -->
+  <rel:relation type="refines" from="content-layer" to="layered-architecture">
+    <rel:note>The content layer adds content-addressed references as a
+    semantic dimension within the layered architecture.</rel:note>
+  </rel:relation>
+
+  <!-- Schema type node connects to the content layer -->
+  <rel:relation type="refines" from="type-content" to="content-layer">
+    <rel:note>The ContentType complexType (id="type-content") is the schema
+    definition for content nodes in the content layer.</rel:note>
+  </rel:relation>
+
+  <!-- ================================================================== -->
+  <!-- LLM descriptions                                                    -->
+  <!-- ================================================================== -->
+
+  <llm:node ref="content-layer">
+    Describes the content layer: general-purpose content-addressed references
+    with hash integrity. Three modes: referenced (url + hash for external
+    canonical locations), embedded (body + hash for inline content), or both
+    (url for canonical, body for local copy). The cnt:ref element enables
+    inline references to content nodes from prose, parallel to trm:ref and
+    src:cite. Foundation primitive used by the testing layer for test fixtures
+    and eventually by the source layer for cited material with integrity
+    guarantees.
+  </llm:node>
+
+  <!-- Out-of-band schema descriptions for the content layer -->
+  <llm:schema namespace="urn:clayers:content">
+    The content schema provides content-addressed references with integrity
+    guarantees. Each &lt;cnt:content&gt; node identifies content by hash with
+    three modes: referenced (url + hash for external canonical locations),
+    embedded (body + hash for inline content), or both. The hash attribute
+    ensures integrity regardless of mode. The &lt;cnt:ref&gt; element enables
+    inline references to content nodes from prose, parallel to trm:ref and
+    src:cite. BodyType supports text, CDATA, base64 (via encoding attribute),
+    and structured XML via xs:any.
+  </llm:schema>
+
+  <llm:schema namespace="urn:clayers:content" element="content">
+    A content-addressed reference node. The id makes it addressable in the
+    spec graph. The hash attribute provides integrity verification. Three
+    modes: referenced (url points to external canonical location), embedded
+    (body child contains inline content), or both (url for canonical location,
+    body for local copy). At least one of url or body must be present,
+    enforced by XSD 1.1 assertion. The optional media-type classifies the
+    content format.
+  </llm:schema>
+
+  <!-- ================================================================== -->
+  <!-- Artifact mappings and exemptions                                    -->
+  <!-- ================================================================== -->
+
+  <!-- Documentation-only concept -->
+  <art:exempt node="content-layer">Conceptual documentation describing the
+  content layer's purpose and design. No code implements this concept.</art:exempt>
+
+  <!-- Type to schema mapping -->
+  <art:mapping id="map-type-content-schema">
+    <art:spec-ref node="type-content"
+              revision="draft-1"
+              node-hash="sha256:5e63873120f9951c0a7b7371110d06ed741c8d3049b40f50aa2dfa9d95b6b977"/>
+    <art:artifact repo="repo-clayers"
+              repo-revision="e5fa37e"
+              path="schemas/content.xsd">
+        <art:range hash="sha256:4ac06806fded45b09bc6848860cfcb7e63a7213d0e3e5622db00652c6a722af8" start-line="55" end-line="99"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>ContentType complexType: id, url, hash, media-type, optional body child.</art:note>
+  </art:mapping>
+
+</spec:clayers>

@@ -1511,7 +1511,7 @@ clayers validate clayers/{{PROJECT_NAME}}/
   <art:mapping id="map-skill-clayers-review-artifacts">
     <art:spec-ref node="skill-clayers-review-artifacts"
               revision="draft-1"
-              node-hash="sha256:cf6c1bda6710c5d188447dc4f5819409944f658a880ac73b83bf2cf82cf35c30"/>
+              node-hash="sha256:d0db28cd5302dae4248a635a8597daecd1506a34c19e3ff1813c7229bfc4ae4b"/>
     <art:artifact repo="repo-clayers"
               repo-revision="9191483"
               path="crates/clayers/src/adopt.rs">
@@ -1526,7 +1526,7 @@ clayers validate clayers/{{PROJECT_NAME}}/
   <art:mapping id="map-skill-clayers-onboard">
     <art:spec-ref node="skill-clayers-onboard"
               revision="draft-1"
-              node-hash="sha256:63122c8ef8a5bd601e576e1427fe906ea28c66f7980cbd2d89ee004ef90e1fe5"/>
+              node-hash="sha256:b18c1ea1444ace2ffcd5ea8d1c4dbdee568f8cd28cbd54eb40045943e7872fc3"/>
     <art:artifact repo="repo-clayers"
               repo-revision="9191483"
               path="crates/clayers/src/adopt.rs">
@@ -1541,7 +1541,7 @@ clayers validate clayers/{{PROJECT_NAME}}/
   <art:mapping id="map-agent-workflow-instructions">
     <art:spec-ref node="agent-workflow-instructions"
               revision="draft-1"
-              node-hash="sha256:92fe7aef50683bab3a0b7c195ea4d982e6f5ab0cd4c56e439352949a5ac63eca"/>
+              node-hash="sha256:917c9c30b04a4a53c39068e9fa21b5840a28ac9b312094dce519a6cae624f2db"/>
     <art:artifact repo="repo-clayers"
               repo-revision="9191483"
               path="crates/clayers/src/adopt.rs">

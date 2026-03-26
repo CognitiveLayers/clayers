@@ -6,7 +6,7 @@
            xmlns:spec="urn:clayers:spec"
            targetNamespace="urn:clayers:plan"
            elementFormDefault="qualified"
-           version="1.1">
+           version="1.2">
 
   <xs:import namespace="urn:clayers:relation"
              schemaLocation="relation.xsd"/>
@@ -14,29 +14,31 @@
   <xs:annotation>
     <xs:documentation>
       Plan Layer Schema.
-      Implementation plans with itemized steps, testable acceptance criteria,
-      and a witness model for verification. Plans are self-contained: they
-      embed their own title, overview, and item descriptions directly rather
-      than referencing external prose sections. Plans support embedded prose
-      layer elements via xs:any for rich content when needed. The revises
-      element is an extension relation type for plan succession chains.
+      Implementation plans with itemized steps and testable acceptance
+      criteria. Plans are self-contained: they embed their own title,
+      overview, and item descriptions directly rather than referencing
+      external prose sections. Plans support embedded prose layer elements
+      via xs:any for rich content when needed. Criteria reference tests
+      from the testing layer via the test attribute. The revises element
+      is an extension relation type for plan succession chains.
     </xs:documentation>
     <xs:appinfo>
       <llm:describe>
         The plan schema captures implementation plans as structured metadata.
         Each pln:plan is self-contained with an embedded title, optional
         overview, status, and one or more items. Items have titles, optional
-        descriptions, acceptance criteria with witnesses, and status tracking.
-        Plans and items support xs:any namespace="##other" for embedding prose
-        layer elements (pr:section, pr:p, trm:ref, src:cite, etc.) directly
-        inside the plan for rich content. The witness model defines how
-        criteria are verified: commands produce exit codes, scripts run
-        executable verification, manual requires human sign-off. The
-        pln:revises element is an extension relation type for plan revision
-        chains, activated via a refines edge to type-relation-kind.
+        descriptions, acceptance criteria, and status tracking. Plans and
+        items support xs:any namespace="##other" for embedding prose layer
+        elements (pr:section, pr:p, trm:ref, src:cite, etc.) directly
+        inside the plan for rich content. Criteria reference tests from the
+        testing layer via the optional test attribute, replacing the
+        previous embedded witness model. The pln:revises element is an
+        extension relation type for plan revision chains, activated via a
+        refines edge to type-relation-kind.
       </llm:describe>
       <spec:keyref name="revises-from-refs" selector=".//pln:revises" field="@from"/>
       <spec:keyref name="revises-to-refs" selector=".//pln:revises" field="@to"/>
+      <spec:keyref name="criterion-test-refs" selector=".//pln:criterion" field="@test"/>
     </xs:appinfo>
   </xs:annotation>
 
@@ -48,26 +50,6 @@
   <!-- Global revises element (extension relation type) -->
   <xs:element name="revises" type="pln:RevisesType">
     <xs:annotation><xs:appinfo><spec:content-element/></xs:appinfo></xs:annotation>
-  </xs:element>
-
-  <!-- Extension annotation element: declares a type as a witness type -->
-  <xs:element name="witness-type-properties">
-    <xs:annotation>
-      <xs:documentation>
-        Placed in xs:appinfo of an extension complexType to declare it as a
-        witness type. Tooling discovers these annotations and treats instances
-        of the annotated element as witness entries. Activated via a
-        rel:relation type="refines" edge from the extension type's id to
-        type-witness-kind.
-      </xs:documentation>
-    </xs:annotation>
-    <xs:complexType>
-      <xs:attribute name="type-name" type="xs:string" use="required">
-        <xs:annotation>
-          <xs:documentation>Canonical name for this witness type in reports and queries.</xs:documentation>
-        </xs:annotation>
-      </xs:attribute>
-    </xs:complexType>
   </xs:element>
 
   <!-- Plan: self-contained implementation plan with embedded content -->
@@ -120,8 +102,8 @@
         <llm:describe>
           A discrete step within a plan. Self-contained with its own title
           and optional description. Items have testable acceptance criteria
-          with witnesses, status tracking, optional notes, and support for
-          nested sub-items. Items also support xs:any for embedding prose
+          with test references, status tracking, optional notes, and support
+          for nested sub-items. Items also support xs:any for embedding prose
           layer elements when the simple description field is insufficient.
         </llm:describe>
       </xs:appinfo>
@@ -171,7 +153,7 @@
         <llm:describe>
           Container for one or more testable criteria. Each criterion
           defines what must be true for an item to be considered complete,
-          with optional witnesses that prove the criterion is met.
+          with optional test references for verification.
         </llm:describe>
       </xs:appinfo>
     </xs:annotation>
@@ -184,93 +166,29 @@
     </xs:sequence>
   </xs:complexType>
 
-  <!-- Criterion: a testable condition with optional witnesses -->
+  <!-- Criterion: a testable condition with optional test reference -->
   <xs:complexType name="CriterionType" id="type-criterion" mixed="true">
     <xs:annotation>
       <xs:appinfo>
         <llm:describe>
           A testable criterion. Mixed content: inline text describes what
           must be true. Optional ref attribute links to the spec node
-          verified by this criterion. Zero or more witness children provide
-          evidence that the criterion is met.
+          verified by this criterion. Optional test attribute references
+          a test node from the testing layer that proves the criterion.
         </llm:describe>
       </xs:appinfo>
     </xs:annotation>
-    <xs:sequence>
-      <xs:element name="witness" type="pln:WitnessType"
-                  minOccurs="0" maxOccurs="unbounded">
-        <xs:annotation>
-          <xs:documentation>Evidence that proves this criterion is met.</xs:documentation>
-        </xs:annotation>
-      </xs:element>
-    </xs:sequence>
     <xs:attribute name="ref" type="xs:string" use="optional">
       <xs:annotation>
         <xs:documentation>Optional node ID of the spec node this criterion verifies.</xs:documentation>
       </xs:annotation>
     </xs:attribute>
-  </xs:complexType>
-
-  <!-- Witness: evidence that a criterion is met -->
-  <xs:complexType name="WitnessType" id="type-witness" mixed="true">
-    <xs:annotation>
-      <xs:appinfo>
-        <llm:describe>
-          Evidence that proves a criterion is met. The type attribute
-          classifies the witness: command (shell command, exit code is
-          pass/fail), script (executable script with lang attribute),
-          manual (human verification with optional role attribute). Mixed
-          content holds the witness evidence: the command to run, script
-          content, or manual instructions.
-        </llm:describe>
-      </xs:appinfo>
-    </xs:annotation>
-    <xs:attribute name="type" type="pln:WitnessKind" use="required">
+    <xs:attribute name="test" type="xs:string" use="optional">
       <xs:annotation>
-        <xs:documentation>Classification of this witness.</xs:documentation>
-      </xs:annotation>
-    </xs:attribute>
-    <xs:attribute name="lang" type="xs:string" use="optional">
-      <xs:annotation>
-        <xs:documentation>Language for script witnesses (e.g., "python", "bash").</xs:documentation>
-      </xs:annotation>
-    </xs:attribute>
-    <xs:attribute name="role" type="xs:string" use="optional">
-      <xs:annotation>
-        <xs:documentation>Who performs verification for manual witnesses.</xs:documentation>
+        <xs:documentation>References a test node ID from the testing layer.</xs:documentation>
       </xs:annotation>
     </xs:attribute>
   </xs:complexType>
-
-  <!-- WitnessKind: classification of witness types -->
-  <xs:simpleType name="WitnessKind" id="type-witness-kind">
-    <xs:annotation>
-      <xs:documentation>
-        Enumeration of witness type classifications. Extensible via the
-        witness-type-properties annotation mechanism: define an extension
-        element annotated with pln:witness-type-properties, then activate
-        it via rel:relation type="refines" from the extension type's id
-        to type-witness-kind.
-      </xs:documentation>
-    </xs:annotation>
-    <xs:restriction base="xs:string">
-      <xs:enumeration value="command">
-        <xs:annotation>
-          <xs:documentation>Shell command whose exit code indicates pass (0) or fail (non-zero).</xs:documentation>
-        </xs:annotation>
-      </xs:enumeration>
-      <xs:enumeration value="script">
-        <xs:annotation>
-          <xs:documentation>Executable script. Use lang attribute to specify language.</xs:documentation>
-        </xs:annotation>
-      </xs:enumeration>
-      <xs:enumeration value="manual">
-        <xs:annotation>
-          <xs:documentation>Human verification step. Use role attribute to specify who performs it.</xs:documentation>
-        </xs:annotation>
-      </xs:enumeration>
-    </xs:restriction>
-  </xs:simpleType>
 
   <!-- Plan status lifecycle -->
   <xs:simpleType name="PlanStatusKind">

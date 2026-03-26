@@ -17,6 +17,8 @@
   <uri name="urn:clayers:plan"          uri="plan.xsd"/>
   <uri name="urn:clayers:artifact"      uri="artifact.xsd"/>
   <uri name="urn:clayers:llm"           uri="llm.xsd"/>
+  <uri name="urn:clayers:content"      uri="content.xsd"/>
+  <uri name="urn:clayers:testing"      uri="testing.xsd"/>
   <uri name="urn:clayers:python"       uri="python.xsd"/>
   <uri name="urn:clayers:repository"   uri="repository.xsd"/>
   <uri name="urn:clayers:vcs"          uri="vcs.xsd"/>

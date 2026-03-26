@@ -242,7 +242,7 @@
   <art:mapping id="map-remote-store-protocol">
     <art:spec-ref node="remote-store-protocol"
               revision="draft-1"
-              node-hash="sha256:d9336f164f0597f56a60f4d0f7bdbb10fefa6aa13e384d38cbd5d8b7c936064e"/>
+              node-hash="sha256:a0262c244f6fb49fc87a0f315290f9e917635609f7580cd53aa1424dae994851"/>
     <art:artifact repo="repo-clayers"
               repo-revision="1934036"
               path="crates/clayers-repo/src/store/remote/mod.rs">
@@ -257,7 +257,7 @@
   <art:mapping id="map-term-transport">
     <art:spec-ref node="term-transport"
               revision="draft-1"
-              node-hash="sha256:9079e0e3df6194ef038e17deeccab7351ce3f028cbb83f99d5ffaea527e6fed2"/>
+              node-hash="sha256:1580b540152d43998a5da876530b60e971162a7f7e4e3ee471dd2b7efd09d45b"/>
     <art:artifact repo="repo-clayers"
               repo-revision="1934036"
               path="crates/clayers-repo/src/store/remote/transport.rs">
@@ -271,7 +271,7 @@
   <art:mapping id="map-term-codec">
     <art:spec-ref node="term-codec"
               revision="draft-1"
-              node-hash="sha256:f9f1d2467dbd4a4f28a485c12344e2bc1c0beede8e7980aa86f686913413ec1b"/>
+              node-hash="sha256:ba7bb53c290a4316a98f604f0fbe6c864f0d489c18dfdbcd33ff69fc3392560a"/>
     <art:artifact repo="repo-clayers"
               repo-revision="1934036"
               path="crates/clayers-repo/src/store/remote/codec.rs">
@@ -285,7 +285,7 @@
   <art:mapping id="map-remote-store-client">
     <art:spec-ref node="remote-store-client"
               revision="draft-1"
-              node-hash="sha256:70779f5cce3a9b595a8bc2fb43b557cf1e7aee0206f15f93a75254bbc2123319"/>
+              node-hash="sha256:546b90a7d16cf63fd81711bfa3e02b0a3f3b5922e931cb3800e1f7a608b8ccc4"/>
     <art:artifact repo="repo-clayers"
               repo-revision="1934036"
               path="crates/clayers-repo/src/store/remote/client.rs">
@@ -301,7 +301,7 @@
   <art:mapping id="map-remote-store-server">
     <art:spec-ref node="remote-store-server"
               revision="draft-1"
-              node-hash="sha256:f6e81e038c072a054c703533b1e2a63d92c0209820075bba74d23a4b48fbfc9a"/>
+              node-hash="sha256:e3f28af4f785e1ed91872752506fcdc020d671e54f743a63672d19ebbdb24e6d"/>
     <art:artifact repo="repo-clayers"
               repo-revision="1934036"
               path="crates/clayers-repo/src/store/remote/server.rs">
@@ -316,7 +316,7 @@
   <art:mapping id="map-term-repository-provider">
     <art:spec-ref node="term-repository-provider"
               revision="draft-1"
-              node-hash="sha256:beda21cea39ee6c6a4568fb654ac436a8c54a61e837760fc95825577a6b25e53"/>
+              node-hash="sha256:35a3ae679ab072edbecad7fc213262433d149dfd8399b78769a70e011149119d"/>
     <art:artifact repo="repo-clayers"
               repo-revision="1934036"
               path="crates/clayers-repo/src/store/remote/server.rs">
@@ -330,7 +330,7 @@
   <art:mapping id="map-term-store-supertrait">
     <art:spec-ref node="term-store-supertrait"
               revision="draft-1"
-              node-hash="sha256:7ec4ffc954ec39119fdcbd9dd9d9b95c26adf09ff486e3e927e69d57eb8ae546"/>
+              node-hash="sha256:1e909537faaf17b8c41fd594fd96093afcdf558721de291e3b0458c26acabbb3"/>
     <art:artifact repo="repo-clayers"
               repo-revision="1934036"
               path="crates/clayers-repo/src/store/remote/transport.rs">
@@ -344,7 +344,7 @@
   <art:mapping id="map-websocket-transport">
     <art:spec-ref node="websocket-transport"
               revision="draft-1"
-              node-hash="sha256:351d534e2a207184e3ea455f66dd99168afb6adae6910fb250b0d9ffcf56063d"/>
+              node-hash="sha256:2fb628162e7150930837a634b9e3a214161cb0af6c5b5e2b2c8a07a1f986f70d"/>
     <art:artifact repo="repo-clayers"
               repo-revision="1934036"
               path="crates/clayers-repo/src/store/remote/websocket.rs">
@@ -582,7 +582,7 @@
   <art:mapping id="map-serve-command">
     <art:spec-ref node="serve-command"
               revision="draft-1"
-              node-hash="sha256:9a02500cec0c7b72597601ef749f6dc51bdffa22c56a7360b3de05a7ccfa697a"/>
+              node-hash="sha256:ea8e245e801530af4f352b290d0f068f08d5b3e20eeff80c6a15a254de046383"/>
     <art:artifact repo="repo-clayers"
               repo-revision="1934036"
               path="crates/clayers/src/serve.rs">
@@ -596,7 +596,7 @@
   <art:mapping id="map-url-dispatch">
     <art:spec-ref node="url-dispatch-section"
               revision="draft-1"
-              node-hash="sha256:a1440c87c1397b8a75219955f9a4e96a77e3d842fdacf39a89b86563941a250d"/>
+              node-hash="sha256:5f59bff433c1971e28420439ba4cf53d2ae9b0974c05426d995c898c9f185782"/>
     <art:artifact repo="repo-clayers"
               repo-revision="1934036"
               path="crates/clayers/src/repo/remote.rs">
@@ -610,7 +610,7 @@
   <art:mapping id="map-term-multi-token-validator">
     <art:spec-ref node="term-server-config"
               revision="draft-1"
-              node-hash="sha256:0426da891bc441ecea2abbdb47bd9d1d7f7736d935fba98278be02d472ca77ae"/>
+              node-hash="sha256:1fdd6a7a2a3472010cdac32dd4908010d9c999507d1fefed8ded2d4d3b56f5ec"/>
     <art:artifact repo="repo-clayers"
               repo-revision="1934036"
               path="crates/clayers-repo/src/store/remote/websocket.rs">
@@ -672,7 +672,7 @@
   <art:mapping id="map-term-remote-store">
     <art:spec-ref node="term-remote-store"
               revision="draft-1"
-              node-hash="sha256:c2f29189caed1cf4d34f7519ec1216b49d68ea9079dbfcf3604aa93771d62853"/>
+              node-hash="sha256:081b027fa0c18531cc8f502c8438e8ff6e87d32b2545e5c27475991da81ce070"/>
     <art:artifact repo="repo-clayers"
               repo-revision="9191483"
               path="crates/clayers-repo/src/store/remote/client.rs">
@@ -687,7 +687,7 @@
   <art:mapping id="map-term-protocol-message">
     <art:spec-ref node="term-protocol-message"
               revision="draft-1"
-              node-hash="sha256:ad271dfabbe59892ac033981caf2cb89827e5eaa92f0f8579f63eea977f8bebb"/>
+              node-hash="sha256:6ea026e86c5a56453c0b5487f0244b616e8611908002d680eae1fafc5e1cd5f4"/>
     <art:artifact repo="repo-clayers"
               repo-revision="9191483"
               path="crates/clayers-repo/src/store/remote/mod.rs">
@@ -702,7 +702,7 @@
   <art:mapping id="map-term-ref-updated">
     <art:spec-ref node="term-ref-updated"
               revision="draft-1"
-              node-hash="sha256:402e0fb1bd2d9ded5a8fd58f7086cdc2f5da1ef8a42acbb0b91793f8b821372e"/>
+              node-hash="sha256:d557ce13b7768deda039cfd94c10731d154f77d66701c83d6238ce1a20eaea4b"/>
     <art:artifact repo="repo-clayers"
               repo-revision="9191483"
               path="crates/clayers-repo/src/store/remote/server.rs">
@@ -718,7 +718,7 @@
   <art:mapping id="map-term-url-dispatch">
     <art:spec-ref node="term-url-dispatch"
               revision="draft-1"
-              node-hash="sha256:d2a05162afae520000438b3cf7eca8ce14d8fad7ddf522674547d6560f988e92"/>
+              node-hash="sha256:da8e566f819ca33b5303832d8ab5ab4c00ae41a2b2d4cf99969c8215a46c1640"/>
     <art:artifact repo="repo-clayers"
               repo-revision="9191483"
               path="crates/clayers/src/repo/remote.rs">
@@ -733,7 +733,7 @@
   <art:mapping id="map-term-config-hot-reload">
     <art:spec-ref node="term-config-hot-reload"
               revision="draft-1"
-              node-hash="sha256:6a5c9c6209ccf9bfc517404aa249bdcb4bbea8208e083a9c15197093d4d59d5d"/>
+              node-hash="sha256:e1caf0dfd2c9078f40af5542ede6867d38e3e3cf1a79e75c0eb0844b36df0864"/>
     <art:artifact repo="repo-clayers"
               repo-revision="9191483"
               path="crates/clayers/src/serve.rs">
@@ -749,7 +749,7 @@
   <art:mapping id="map-daisy-chain-proxy">
     <art:spec-ref node="daisy-chain-proxy"
               revision="draft-1"
-              node-hash="sha256:151373ee66de219c1eb96bf19c4146d7580d8e770258f107a04186009ade782f"/>
+              node-hash="sha256:938fcd274905b49a8f70eb1eed47b611e1aaf7d6eb5643bf1c1b48b59f681d06"/>
     <art:artifact repo="repo-clayers"
               repo-revision="9191483"
               path="crates/clayers/src/serve.rs">
@@ -765,7 +765,7 @@
   <art:mapping id="map-term-daisy-chain">
     <art:spec-ref node="term-daisy-chain"
               revision="draft-1"
-              node-hash="sha256:f7c9713f4dcda55ddcdfda46bc8bf69fff114a2695576468c48c82a306b26bd3"/>
+              node-hash="sha256:60889af00c3da6f4e49aab2b5a8f22f7a6dd5bcc6437579ad07c0f2506cc2bec"/>
     <art:artifact repo="repo-clayers"
               repo-revision="9191483"
               path="crates/clayers/src/serve.rs">

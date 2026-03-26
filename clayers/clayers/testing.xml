@@ -1,0 +1,649 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Testing: First-class test definitions as spec nodes.
+  Describes the testing layer and its distinct test types.
+-->
+<spec:clayers xmlns:spec="urn:clayers:spec"
+       xmlns:pr="urn:clayers:prose"
+       xmlns:trm="urn:clayers:terminology"
+       xmlns:tst="urn:clayers:testing"
+       xmlns:cnt="urn:clayers:content"
+       xmlns:org="urn:clayers:organization"
+       xmlns:rel="urn:clayers:relation"
+       xmlns:art="urn:clayers:artifact"
+       xmlns:llm="urn:clayers:llm"
+       spec:index="index.xml">
+
+  <!-- ================================================================== -->
+  <!-- Testing Layer                                                       -->
+  <!-- ================================================================== -->
+
+  <pr:section id="testing-layer">
+    <pr:title>Testing Layer</pr:title>
+    <pr:shortdesc>First-class test definitions as spec nodes, with distinct
+    test types, content references, test suites, and an extensible witness
+    model.</pr:shortdesc>
+
+    <pr:p>Specifications declare what a system should do. Plans decompose that
+    intent into steps. But neither captures how to verify that the implementation
+    is correct. The testing layer fills this gap: it elevates tests from external
+    scripts and ad hoc shell commands into first-class spec nodes with IDs,
+    relations, and artifact mappings. Tests become part of the knowledge base,
+    queryable and traceable like any other spec element.</pr:p>
+
+    <pr:p>The layer defines distinct test types, each modeling a different
+    verification paradigm:</pr:p>
+
+    <pr:ul>
+      <pr:li><pr:b>manual</pr:b>: human-executed procedures with expected
+      results and optional role assignment.</pr:li>
+      <pr:li><pr:b>vectors</pr:b>: structured input/output data pairs, with
+      each value referencing a <pr:code>cnt:content</pr:code> node for the
+      actual data.</pr:li>
+      <pr:li><pr:b>property</pr:b>: generative/property-based tests declaring
+      invariants that must hold over generated inputs, with optional bounds
+      on sample count and timeout.</pr:li>
+      <pr:li><pr:b>program</pr:b>: executable test code referenced through
+      <pr:code>cnt:content</pr:code>, with a language attribute for
+      runtime selection.</pr:li>
+      <pr:li><pr:b>witness</pr:b>: blackbox external verification via shell
+      commands, executable scripts, or API calls.</pr:li>
+    </pr:ul>
+
+    <pr:p>Tests reference data through <pr:code>cnt:content</pr:code> nodes
+    rather than embedding it inline. This separation keeps test definitions
+    declarative (what to verify) while the content layer holds the actual data
+    (the inputs, outputs, and source code). A single content node can be
+    referenced by multiple tests, avoiding duplication.</pr:p>
+
+    <pr:p>The <pr:code>tst:suite</pr:code> element groups tests into logical
+    collections. Each suite references test nodes by ID, enabling selective
+    execution and reporting without duplicating test definitions.</pr:p>
+
+    <pr:p>The testing layer absorbs the plan layer's witness concept. Where
+    plans previously embedded <pr:code>pln:witness</pr:code> elements inside
+    acceptance criteria, they now reference tests via a
+    <pr:code>test</pr:code> attribute on <pr:code>pln:criterion</pr:code>.
+    This means a single test definition can serve as the witness for multiple
+    plan criteria, and tests exist independently of any particular plan. The
+    witness type enumeration (<pr:code>tst:WitnessKind</pr:code>) is
+    extensible: extension layers define new witness types annotated with
+    <pr:code>tst:witness-type-properties</pr:code>, activated via a
+    <pr:code>rel:relation type="refines"</pr:code> edge to
+    <pr:code>type-witness-kind</pr:code>.</pr:p>
+  </pr:section>
+
+  <org:concept ref="testing-layer">
+    <org:purpose>Understanding how the testing layer provides first-class test
+    definitions with five distinct types, content references, suites, and an
+    extensible witness model that replaces embedded plan witnesses.</org:purpose>
+  </org:concept>
+
+  <!-- ================================================================== -->
+  <!-- Manual Tests                                                        -->
+  <!-- ================================================================== -->
+
+  <pr:section id="test-type-manual">
+    <pr:title>Manual Tests</pr:title>
+    <pr:shortdesc>Human-executed test procedures with structured steps and
+    expected results.</pr:shortdesc>
+
+    <pr:p>Manual tests capture verification procedures that require human
+    judgment: visual inspections, UX assessments, security reviews, or any
+    check that cannot be reduced to a deterministic program. Each manual test
+    has a procedure (the steps to follow) and an expected result (what should
+    be observed). Both fields support mixed content with
+    <pr:code>xs:any</pr:code> for embedding prose, terminology references,
+    and source citations.</pr:p>
+
+    <pr:p>The optional <pr:code>role</pr:code> element specifies who should
+    perform the test (e.g., "security engineer", "QA lead"), enabling
+    assignment and filtering in test management workflows.</pr:p>
+
+    <pr:codeblock>
+&lt;tst:manual id="test-accessibility-review"&gt;
+  &lt;tst:title&gt;Screen reader navigation&lt;/tst:title&gt;
+  &lt;tst:procedure&gt;
+    &lt;pr:steps&gt;
+      &lt;pr:step&gt;Enable VoiceOver on macOS&lt;/pr:step&gt;
+      &lt;pr:step&gt;Navigate to the document list view&lt;/pr:step&gt;
+      &lt;pr:step&gt;Tab through all interactive elements&lt;/pr:step&gt;
+    &lt;/pr:steps&gt;
+  &lt;/tst:procedure&gt;
+  &lt;tst:expected&gt;
+    &lt;pr:p&gt;All interactive elements are reachable and announce
+    their purpose. No focus traps.&lt;/pr:p&gt;
+  &lt;/tst:expected&gt;
+  &lt;tst:role&gt;accessibility-engineer&lt;/tst:role&gt;
+&lt;/tst:manual&gt;
+    </pr:codeblock>
+  </pr:section>
+
+  <org:concept ref="test-type-manual">
+    <org:purpose>Understanding manual test structure: procedure steps,
+    expected results, role assignment, and mixed content support.</org:purpose>
+  </org:concept>
+
+  <!-- ================================================================== -->
+  <!-- Test Vectors                                                        -->
+  <!-- ================================================================== -->
+
+  <pr:section id="test-type-vectors">
+    <pr:title>Test Vectors</pr:title>
+    <pr:shortdesc>Structured input/output test data pairs referencing content
+    nodes.</pr:shortdesc>
+
+    <pr:p>Vector tests define concrete input/output pairs for deterministic
+    verification. Each <pr:code>tst:vectors</pr:code> element contains one
+    or more <pr:code>tst:vector</pr:code> children, each with labeled
+    <pr:code>input</pr:code> and <pr:code>output</pr:code> data references.
+    The actual data lives in <pr:code>cnt:content</pr:code> nodes, referenced
+    by the <pr:code>content</pr:code> attribute. This indirection keeps test
+    structure separate from test data, and allows the same data to be reused
+    across multiple tests.</pr:p>
+
+    <pr:p>Vectors support multiple inputs and outputs per test case, enabling
+    multi-parameter scenarios. Each <pr:code>input</pr:code> and
+    <pr:code>output</pr:code> carries an optional <pr:code>label</pr:code>
+    attribute that names what the data represents (e.g., "query", "stdin",
+    "response-body"). Labels disambiguate when a vector has more than one
+    input or output.</pr:p>
+
+    <pr:p>Each vector has an expected <pr:code>outcome</pr:code>: pass
+    (output matches, the default), fail (system rejects the input), error
+    (system signals an error condition), or skip (vector is disabled).
+    This enables negative testing: vectors where the correct behavior is
+    rejection or failure, not just successful output matching.</pr:p>
+
+    <pr:p>Individual vectors carry their own IDs, making each test case
+    independently addressable for cross-referencing, artifact mapping, and
+    selective execution. Space-separated <pr:code>tags</pr:code> on each
+    vector enable categorization (edge-case, regression, boundary, smoke)
+    for filtering and reporting. A rich <pr:code>description</pr:code>
+    element with mixed content provides context for what the case
+    exercises.</pr:p>
+
+    <pr:codeblock>
+&lt;!-- Content nodes for test data --&gt;
+&lt;cnt:content id="cnt-valid-xml" media-type="application/xml"
+             hash="sha256:abc..."&gt;
+  &lt;cnt:body&gt;&amp;lt;root&amp;gt;&amp;lt;child/&amp;gt;&amp;lt;/root&amp;gt;&lt;/cnt:body&gt;
+&lt;/cnt:content&gt;
+&lt;cnt:content id="cnt-valid-parse-tree" media-type="application/json"
+             hash="sha256:def..."&gt;
+  &lt;cnt:body&gt;{"tag":"root","children":[{"tag":"child"}]}&lt;/cnt:body&gt;
+&lt;/cnt:content&gt;
+&lt;cnt:content id="cnt-malformed-xml" media-type="application/xml"
+             hash="sha256:ghi..."&gt;
+  &lt;cnt:body&gt;&amp;lt;root&amp;gt;&amp;lt;unclosed&lt;/cnt:body&gt;
+&lt;/cnt:content&gt;
+&lt;cnt:content id="cnt-parse-error-msg" media-type="text/plain"
+             hash="sha256:jkl..."&gt;
+  &lt;cnt:body&gt;expected closing tag at line 1&lt;/cnt:body&gt;
+&lt;/cnt:content&gt;
+
+&lt;!-- Vector test with multiple cases --&gt;
+&lt;tst:vectors id="test-xml-parser"&gt;
+  &lt;tst:title&gt;XML parser conformance&lt;/tst:title&gt;
+  &lt;tst:description&gt;
+    Verifies correct parsing of well-formed XML and proper
+    error reporting for malformed input.
+  &lt;/tst:description&gt;
+
+  &lt;tst:vector id="vec-simple-doc" tags="happy-path"&gt;
+    &lt;tst:input content="cnt-valid-xml" label="document"/&gt;
+    &lt;tst:output content="cnt-valid-parse-tree" label="ast"/&gt;
+  &lt;/tst:vector&gt;
+
+  &lt;tst:vector id="vec-malformed" tags="edge-case error"&gt;
+    &lt;tst:input content="cnt-malformed-xml" label="document"/&gt;
+    &lt;tst:output content="cnt-parse-error-msg" label="error-message"/&gt;
+    &lt;tst:outcome&gt;error&lt;/tst:outcome&gt;
+    &lt;tst:description&gt;Unclosed tag should produce a clear error
+    message with line number.&lt;/tst:description&gt;
+  &lt;/tst:vector&gt;
+&lt;/tst:vectors&gt;
+    </pr:codeblock>
+  </pr:section>
+
+  <org:concept ref="test-type-vectors">
+    <org:purpose>Understanding vector test structure: input/output pairs,
+    content node references, per-vector IDs, and data reuse.</org:purpose>
+  </org:concept>
+
+  <!-- ================================================================== -->
+  <!-- Property Tests                                                      -->
+  <!-- ================================================================== -->
+
+  <pr:section id="test-type-property">
+    <pr:title>Property Tests</pr:title>
+    <pr:shortdesc>Generative/property-based tests declaring invariants over
+    generated inputs.</pr:shortdesc>
+
+    <pr:p>Property tests specify invariants that must hold for any valid input,
+    rather than enumerating specific cases. Each <pr:code>tst:property</pr:code>
+    element declares an <pr:code>invariant</pr:code> (the condition that must
+    hold), an optional <pr:code>generator</pr:code> (how to produce test
+    inputs), and optional <pr:code>bounds</pr:code> constraining the test
+    execution (sample count, timeout duration).</pr:p>
+
+    <pr:p>Property tests complement vector tests: vectors verify known cases
+    exhaustively, while properties verify general laws across a potentially
+    infinite input space. Both the invariant and generator fields support
+    mixed content for rich descriptions with embedded prose and terminology
+    references.</pr:p>
+
+    <pr:codeblock>
+&lt;tst:property id="test-c14n-roundtrip"&gt;
+  &lt;tst:title&gt;Canonicalization is idempotent&lt;/tst:title&gt;
+  &lt;tst:invariant&gt;
+    For any well-formed XML document d,
+    c14n(c14n(d)) == c14n(d).
+  &lt;/tst:invariant&gt;
+  &lt;tst:generator&gt;
+    Well-formed XML documents with varying namespace declarations,
+    attribute ordering, whitespace, and comment placement. Include
+    documents with: 0 elements, deeply nested elements (100+ depth),
+    mixed content, CDATA sections, and processing instructions.
+  &lt;/tst:generator&gt;
+  &lt;tst:bounds sample-count="5000" timeout="PT30S"/&gt;
+&lt;/tst:property&gt;
+    </pr:codeblock>
+  </pr:section>
+
+  <org:concept ref="test-type-property">
+    <org:purpose>Understanding property test structure: invariants, generators,
+    execution bounds, and how they complement vector tests.</org:purpose>
+  </org:concept>
+
+  <!-- ================================================================== -->
+  <!-- Program Tests                                                       -->
+  <!-- ================================================================== -->
+
+  <pr:section id="test-type-program">
+    <pr:title>Program Tests</pr:title>
+    <pr:shortdesc>Executable test code referenced through content nodes.</pr:shortdesc>
+
+    <pr:p>Program tests are executable: the <pr:code>source</pr:code> attribute
+    references a <pr:code>cnt:content</pr:code> node containing the actual test
+    code. The content node may hold the code inline or reference an external
+    file. The optional <pr:code>lang</pr:code> attribute specifies the
+    programming language, enabling tooling to select the appropriate runtime
+    or syntax highlighting.</pr:p>
+
+    <pr:p>Program tests are the most flexible test type. They can implement
+    anything a test framework supports: unit tests, integration tests, snapshot
+    tests, benchmark assertions. By referencing content nodes rather than
+    embedding code inline, the test definition remains a clean declarative
+    node while the implementation lives in the content layer.</pr:p>
+
+    <pr:codeblock>
+&lt;!-- Test code embedded in a content node --&gt;
+&lt;cnt:content id="cnt-validate-test" media-type="text/x-rust"
+             hash="sha256:abc..."&gt;
+  &lt;cnt:body&gt;&lt;![CDATA[
+#[test]
+fn validate_rejects_duplicate_ids() {
+    let spec = r#"&lt;spec:clayers ...&gt;
+      &lt;pr:section id="dup"/&gt;
+      &lt;pr:section id="dup"/&gt;
+    &lt;/spec:clayers&gt;"#;
+    let result = validate_spec_str(spec);
+    assert!(result.has_errors());
+    assert!(result.errors[0].message.contains("duplicate"));
+}
+  ]]&gt;&lt;/cnt:body&gt;
+&lt;/cnt:content&gt;
+
+&lt;tst:program id="test-validate-dup-ids"
+             source="cnt-validate-test" lang="rust"&gt;
+  &lt;tst:title&gt;Validator rejects duplicate IDs&lt;/tst:title&gt;
+&lt;/tst:program&gt;
+
+&lt;!-- Test code in an external file --&gt;
+&lt;cnt:content id="cnt-drift-tests" media-type="text/x-rust"
+             url="file:crates/clayers-spec/src/drift.rs"
+             hash="sha256:def..."/&gt;
+
+&lt;tst:program id="test-drift-detection"
+             source="cnt-drift-tests" lang="rust"&gt;
+  &lt;tst:title&gt;Drift detection integration tests&lt;/tst:title&gt;
+&lt;/tst:program&gt;
+    </pr:codeblock>
+  </pr:section>
+
+  <org:concept ref="test-type-program">
+    <org:purpose>Understanding program test structure: content references for
+    source code, language attributes, and the separation between test
+    declaration and test implementation.</org:purpose>
+  </org:concept>
+
+  <!-- ================================================================== -->
+  <!-- Witness Tests                                                       -->
+  <!-- ================================================================== -->
+
+  <pr:section id="test-type-witness">
+    <pr:title>Witness Tests</pr:title>
+    <pr:shortdesc>Blackbox external verification via commands, scripts, or
+    API calls.</pr:shortdesc>
+
+    <pr:p>Witness tests verify outcomes through external interaction rather
+    than embedded logic. The <pr:code>type</pr:code> attribute classifies the
+    witness mechanism:</pr:p>
+
+    <pr:ul>
+      <pr:li><pr:b>command</pr:b>: a shell command whose exit code indicates
+      pass (0) or fail (non-zero). The <pr:code>command</pr:code> child
+      element holds the command string, and the optional
+      <pr:code>exit-code</pr:code> element overrides the default success
+      code.</pr:li>
+      <pr:li><pr:b>script</pr:b>: an executable script referenced via the
+      <pr:code>source</pr:code> attribute (pointing to a
+      <pr:code>cnt:content</pr:code> node). The <pr:code>lang</pr:code>
+      attribute specifies the script language for runtime selection.</pr:li>
+      <pr:li><pr:b>api</pr:b>: an HTTP API call with
+      <pr:code>endpoint</pr:code>, <pr:code>method</pr:code>, and expected
+      <pr:code>status</pr:code> code. Request and response bodies reference
+      <pr:code>cnt:content</pr:code> nodes via the <pr:code>request</pr:code>
+      and <pr:code>response</pr:code> attributes.</pr:li>
+    </pr:ul>
+
+    <pr:p>The witness type enumeration is extensible. Extension layers define
+    new witness types by creating a complexType annotated with
+    <pr:code>tst:witness-type-properties</pr:code> and activating it via a
+    <pr:code>rel:relation type="refines"</pr:code> edge to
+    <pr:code>type-witness-kind</pr:code>. This follows the same extensibility
+    pattern used for relation types and source types.</pr:p>
+
+    <pr:codeblock>
+&lt;!-- Command witness: simple shell check --&gt;
+&lt;tst:witness id="test-cargo-test" type="command"&gt;
+  &lt;tst:title&gt;Cargo test suite passes&lt;/tst:title&gt;
+  &lt;tst:command&gt;cargo test --workspace&lt;/tst:command&gt;
+&lt;/tst:witness&gt;
+
+&lt;!-- Script witness: complex verification via content node --&gt;
+&lt;cnt:content id="cnt-perf-script" media-type="text/x-python"
+             hash="sha256:abc..."&gt;
+  &lt;cnt:body&gt;&lt;![CDATA[
+import subprocess, json, sys
+result = subprocess.run(["cargo", "bench", "--", "--output-format=json"],
+                        capture_output=True, text=True)
+data = json.loads(result.stdout)
+if any(b["ns/iter"] > 1000 for b in data["benchmarks"]):
+    sys.exit(1)
+  ]]&gt;&lt;/cnt:body&gt;
+&lt;/cnt:content&gt;
+
+&lt;tst:witness id="test-perf-regression" type="script"
+             source="cnt-perf-script" lang="python"&gt;
+  &lt;tst:title&gt;No performance regressions&lt;/tst:title&gt;
+&lt;/tst:witness&gt;
+
+&lt;!-- API witness: health check with expected response --&gt;
+&lt;cnt:content id="cnt-health-response" media-type="application/json"
+             hash="sha256:def..."&gt;
+  &lt;cnt:body&gt;{"status":"healthy"}&lt;/cnt:body&gt;
+&lt;/cnt:content&gt;
+
+&lt;tst:witness id="test-api-health" type="api"
+             response="cnt-health-response"&gt;
+  &lt;tst:title&gt;API health endpoint&lt;/tst:title&gt;
+  &lt;tst:endpoint&gt;https://api.example.com/health&lt;/tst:endpoint&gt;
+  &lt;tst:method&gt;GET&lt;/tst:method&gt;
+  &lt;tst:status&gt;200&lt;/tst:status&gt;
+&lt;/tst:witness&gt;
+
+&lt;!-- Referencing tests from plan criteria --&gt;
+&lt;pln:criterion test="test-cargo-test"&gt;
+  All tests pass before release.
+&lt;/pln:criterion&gt;
+    </pr:codeblock>
+  </pr:section>
+
+  <org:concept ref="test-type-witness">
+    <org:purpose>Understanding witness test structure: the three built-in
+    witness kinds (command, script, api), content references for scripts and
+    API payloads, and the extensibility mechanism for new witness types.</org:purpose>
+  </org:concept>
+
+  <!-- ================================================================== -->
+  <!-- Terminology                                                         -->
+  <!-- ================================================================== -->
+
+  <trm:term id="type-witness-kind">
+    <trm:name>WitnessKind</trm:name>
+    <trm:definition>The XSD simpleType that enumerates witness type values
+    for test verification. Defines command, script, and api as built-in
+    witness kinds. Extensible via tst:witness-type-properties annotations
+    and refines relations.</trm:definition>
+  </trm:term>
+
+  <trm:term id="type-witness">
+    <trm:name>WitnessType</trm:name>
+    <trm:definition>The XSD complexType that defines the structure of witness
+    test elements. Each witness has a type (classified by WitnessKind), a
+    title, and type-specific children: command/exit-code for command witnesses,
+    source/lang for script witnesses, and endpoint/method/status/request/response
+    for API witnesses.</trm:definition>
+  </trm:term>
+
+  <!-- ================================================================== -->
+  <!-- Relations                                                           -->
+  <!-- ================================================================== -->
+
+  <!-- Testing layer refines the layered architecture -->
+  <rel:relation type="refines" from="testing-layer" to="layered-architecture">
+    <rel:note>The testing layer adds first-class test definitions as a semantic
+    dimension within the layered architecture.</rel:note>
+  </rel:relation>
+
+  <!-- Sub-sections refine the testing layer -->
+  <rel:relation type="refines" from="test-type-manual" to="testing-layer">
+    <rel:note>Manual tests are one of the test types in the testing
+    layer.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="test-type-vectors" to="testing-layer">
+    <rel:note>Test vectors are one of the test types in the testing
+    layer.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="test-type-property" to="testing-layer">
+    <rel:note>Property tests are one of the test types in the testing
+    layer.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="test-type-program" to="testing-layer">
+    <rel:note>Program tests are one of the test types in the testing
+    layer.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="test-type-witness" to="testing-layer">
+    <rel:note>Witness tests are one of the test types in the testing
+    layer.</rel:note>
+  </rel:relation>
+
+  <!-- Terminology nodes refine the testing layer -->
+  <rel:relation type="refines" from="type-witness-kind" to="testing-layer">
+    <rel:note>The WitnessKind simpleType is the schema definition for witness
+    type classification in the testing layer.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="type-witness" to="testing-layer">
+    <rel:note>The WitnessType complexType is the schema definition for witness
+    test elements in the testing layer.</rel:note>
+  </rel:relation>
+
+  <!-- Testing layer depends on content layer for data references -->
+  <rel:relation type="depends-on" from="testing-layer" to="content-layer">
+    <rel:note>The testing layer depends on the content layer for test data
+    references: vector inputs/outputs, program source code, and witness script
+    and API payloads are all stored as cnt:content nodes.</rel:note>
+  </rel:relation>
+
+  <!-- ================================================================== -->
+  <!-- LLM descriptions                                                    -->
+  <!-- ================================================================== -->
+
+  <llm:node ref="testing-layer">
+    Describes the testing layer: first-class test definitions as spec nodes
+    with five distinct types (manual, vectors, property, program, witness).
+    Tests reference data through cnt:content nodes. Suites group tests by
+    ID reference. The testing layer absorbs the plan layer's witness concept:
+    plans now reference tests via pln:criterion/@test instead of embedding
+    pln:witness elements. The WitnessKind enum is extensible via
+    tst:witness-type-properties annotations and refines relations to
+    type-witness-kind.
+  </llm:node>
+
+  <llm:node ref="test-type-manual">
+    Describes manual tests: human-executed procedures with structured steps,
+    expected results, and optional role assignment. Mixed content support via
+    xs:any for embedding prose and terminology references. Used for
+    verification that requires human judgment (visual inspections, UX
+    assessments, security reviews).
+  </llm:node>
+
+  <llm:node ref="test-type-vectors">
+    Describes test vectors: structured input/output data pairs with labeled
+    data references, expected outcomes (pass/fail/error/skip), tags for
+    categorization, and rich descriptions. Multiple inputs and outputs per
+    vector support multi-parameter test cases. Data lives in cnt:content
+    nodes. Individual vectors carry IDs for addressability.
+  </llm:node>
+
+  <llm:node ref="test-type-property">
+    Describes property tests: generative/invariant-based testing. Declares
+    invariants that must hold over generated inputs. Optional generator
+    describes input production. Optional bounds constrain execution
+    (sample-count, timeout). Complements vector tests: vectors verify
+    known cases, properties verify general laws.
+  </llm:node>
+
+  <llm:node ref="test-type-program">
+    Describes program tests: executable test code. The source attribute
+    references a cnt:content node containing test code (inline or external).
+    The lang attribute specifies the programming language for runtime
+    selection. Separates test declaration from test implementation.
+  </llm:node>
+
+  <llm:node ref="test-type-witness">
+    Describes witness tests: blackbox external verification. Three built-in
+    kinds: command (shell exit code), script (executable via cnt:content
+    reference with lang), api (HTTP call with endpoint, method, status,
+    request/response content references). The witness type enumeration is
+    extensible via tst:witness-type-properties and refines relations.
+  </llm:node>
+
+  <!-- Out-of-band schema descriptions for the testing layer -->
+  <llm:schema namespace="urn:clayers:testing">
+    The testing schema defines distinct test types as first-class spec
+    nodes. tst:manual for human-executed procedures, tst:vectors for
+    input/output data pairs via cnt:content references, tst:property for
+    generative invariant-based tests, tst:program for executable test code
+    via cnt:content references, and tst:witness for blackbox external
+    verification (command, script, api). Tests are grouped by tst:suite.
+    The WitnessKind enum is extensible via tst:witness-type-properties
+    annotations. Plans reference tests via pln:criterion/@test instead
+    of embedding witnesses.
+  </llm:schema>
+
+  <llm:schema namespace="urn:clayers:testing" element="manual">
+    A human-executed test with procedure steps and expected results. Embeds
+    prose layer elements via xs:any for rich content. Optional role element
+    specifies who performs the test. The id makes it a node addressable by
+    suites and plan criteria.
+  </llm:schema>
+
+  <llm:schema namespace="urn:clayers:testing" element="vectors">
+    Structured test data vectors. Contains vector children, each with
+    labeled input and output data references (content attr -> cnt:content,
+    optional label attr). Supports multiple inputs/outputs per vector for
+    multi-parameter cases. Expected outcome (pass/fail/error/skip), tags
+    for categorization, and rich descriptions. Individual vectors have
+    their own IDs for addressability.
+  </llm:schema>
+
+  <llm:schema namespace="urn:clayers:testing" element="property">
+    Generative/property-based test. Declares an invariant that must hold
+    over generated inputs. Optional generator describes input production.
+    Optional bounds element constrains execution via sample-count and
+    timeout attributes. Mixed content + xs:any throughout.
+  </llm:schema>
+
+  <llm:schema namespace="urn:clayers:testing" element="program">
+    Executable test code. The source attribute references a cnt:content node
+    containing the test code. The lang attribute specifies the programming
+    language. Test declaration is separate from implementation: the node
+    describes what to test, the content node holds the code.
+  </llm:schema>
+
+  <llm:schema namespace="urn:clayers:testing" element="witness">
+    Blackbox external verification. The type attribute classifies the witness
+    via WitnessKind: command (shell command + exit code), script (cnt:content
+    reference + lang), api (endpoint + method + status + request/response
+    content references). Extensible via tst:witness-type-properties.
+  </llm:schema>
+
+  <llm:schema namespace="urn:clayers:testing" element="suite">
+    Groups tests into logical collections. Each test child references a test
+    node by ID via the ref attribute. Suites enable selective execution and
+    reporting without duplicating test definitions.
+  </llm:schema>
+
+  <!-- ================================================================== -->
+  <!-- Coverage exemptions: documentation-only nodes                       -->
+  <!-- ================================================================== -->
+
+  <art:exempt node="testing-layer">Conceptual documentation describing the
+  testing layer's purpose, test types, and witness model. No code
+  implements this concept.</art:exempt>
+
+  <art:exempt node="test-type-manual">Conceptual documentation describing
+  manual test structure. No code implements this concept.</art:exempt>
+
+  <art:exempt node="test-type-vectors">Conceptual documentation describing
+  vector test structure. No code implements this concept.</art:exempt>
+
+  <art:exempt node="test-type-property">Conceptual documentation describing
+  property test structure. No code implements this concept.</art:exempt>
+
+  <art:exempt node="test-type-program">Conceptual documentation describing
+  program test structure. No code implements this concept.</art:exempt>
+
+  <art:exempt node="test-type-witness">Conceptual documentation describing
+  witness test structure. No code implements this concept.</art:exempt>
+
+  <!-- ================================================================== -->
+  <!-- Artifact mappings: terminology to schema                            -->
+  <!-- ================================================================== -->
+
+  <art:mapping id="map-type-witness-kind-testing-schema">
+    <art:spec-ref node="type-witness-kind"
+              revision="draft-1"
+              node-hash="sha256:911acf224baeab179e43f25a7112e8eae52013f1d27fa03701e792915525dcc8"/>
+    <art:artifact repo="repo-clayers"
+              repo-revision="e5fa37e"
+              path="schemas/testing.xsd">
+        <art:range hash="sha256:82fe52e84326f0b617d9e8c1e1d80af53cb86a93a0f70b44a715589227e0daa3" start-line="279" end-line="303"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>WitnessKind simpleType: command, script, api witness types.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-type-witness-testing-schema">
+    <art:spec-ref node="type-witness"
+              revision="draft-1"
+              node-hash="sha256:ffbf12bbe42a688561bd5b61dc2e48ae84fa567767d04d8b035f1d457134deba"/>
+    <art:artifact repo="repo-clayers"
+              repo-revision="e5fa37e"
+              path="schemas/testing.xsd">
+        <art:range hash="sha256:2529637ef88ce5607d4ff0b25c00ef2327246f3457bc4ad14007db284978bf3e" start-line="233" end-line="276"/>
+      </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>WitnessType complexType: type-classified witness with command, script,
+    and API children and attributes.</art:note>
+  </art:mapping>
+
+</spec:clayers>

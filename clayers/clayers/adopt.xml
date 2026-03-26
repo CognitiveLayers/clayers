@@ -229,7 +229,7 @@
   <art:mapping id="map-adopt-command">
     <art:spec-ref node="adopt-command"
               revision="draft-1"
-              node-hash="sha256:c7830e6535d3a8231f942a96ab3f1a223e3dfd76c0535a59cdb85fa1161f9e7c"/>
+              node-hash="sha256:c69aa7f5f3cece0b52a077ec61d51f2be78021e7e6a0f3f0576f985f428d72c1"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
@@ -244,11 +244,11 @@
   <art:mapping id="map-adopt-embedded">
     <art:spec-ref node="adopt-command"
               revision="draft-1"
-              node-hash="sha256:c7830e6535d3a8231f942a96ab3f1a223e3dfd76c0535a59cdb85fa1161f9e7c"/>
+              node-hash="sha256:c69aa7f5f3cece0b52a077ec61d51f2be78021e7e6a0f3f0576f985f428d72c1"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/embedded.rs">
-      <art:range hash="sha256:a9c9f30dbc6a18ac15dd8b5392b5625835c0212a3b13fb904640c60ff6a2389f"/>
+      <art:range hash="sha256:7e789e01fcf91a67845f0673ab2163884d0aefc3fefb80ce13e9c070c7e02be6"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>The embedded module provides build-time schema embedding
@@ -258,7 +258,7 @@
   <art:mapping id="map-term-adoption">
     <art:spec-ref node="term-adoption"
               revision="draft-1"
-              node-hash="sha256:f128c25eaf763a55eca1c07d5f6b3d51271f754335474a7fd391adce759e3dfe"/>
+              node-hash="sha256:1391ca75f5e678c8107d646367a666f045afce1a3c19c3fa2ff62b9ea8b471dd"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
@@ -272,7 +272,7 @@
   <art:mapping id="map-adopt-workflow">
     <art:spec-ref node="adopt-workflow"
               revision="draft-1"
-              node-hash="sha256:8ae428711435ee2c6ceea32882ae67b36d0b189c18020f600069fee584144f16"/>
+              node-hash="sha256:98b3e54de3be77f2b27a48ec36905f8363188bf64a98e7300edc0110de9e7a6c"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
@@ -287,7 +287,7 @@
   <art:mapping id="map-adopt-constants">
     <art:spec-ref node="adopt-command"
               revision="draft-1"
-              node-hash="sha256:c7830e6535d3a8231f942a96ab3f1a223e3dfd76c0535a59cdb85fa1161f9e7c"/>
+              node-hash="sha256:c69aa7f5f3cece0b52a077ec61d51f2be78021e7e6a0f3f0576f985f428d72c1"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
@@ -302,7 +302,7 @@
   <art:mapping id="map-adopt-is-adopted">
     <art:spec-ref node="adopt-command"
               revision="draft-1"
-              node-hash="sha256:c7830e6535d3a8231f942a96ab3f1a223e3dfd76c0535a59cdb85fa1161f9e7c"/>
+              node-hash="sha256:c69aa7f5f3cece0b52a077ec61d51f2be78021e7e6a0f3f0576f985f428d72c1"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
@@ -317,7 +317,7 @@
   <art:mapping id="map-adopt-check-freshness">
     <art:spec-ref node="adopt-command"
               revision="draft-1"
-              node-hash="sha256:c7830e6535d3a8231f942a96ab3f1a223e3dfd76c0535a59cdb85fa1161f9e7c"/>
+              node-hash="sha256:c69aa7f5f3cece0b52a077ec61d51f2be78021e7e6a0f3f0576f985f428d72c1"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
@@ -332,7 +332,7 @@
   <art:mapping id="map-adopt-helpers">
     <art:spec-ref node="adopt-command"
               revision="draft-1"
-              node-hash="sha256:c7830e6535d3a8231f942a96ab3f1a223e3dfd76c0535a59cdb85fa1161f9e7c"/>
+              node-hash="sha256:c69aa7f5f3cece0b52a077ec61d51f2be78021e7e6a0f3f0576f985f428d72c1"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
@@ -347,7 +347,7 @@
   <art:mapping id="map-adopt-skill-functions">
     <art:spec-ref node="adopt-skills"
               revision="draft-1"
-              node-hash="sha256:9d5de0acf137ffa7f3ee0f36a8017b3414a6cc6c029a2c490b13f5b4681b5331"/>
+              node-hash="sha256:797e2e938d99d156f1721a58712280f0728ab8dccf89a2f465fa76b0c2c8638f"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
@@ -363,7 +363,7 @@
   <art:mapping id="map-adopt-plant-schemas">
     <art:spec-ref node="adopt-command"
               revision="draft-1"
-              node-hash="sha256:c7830e6535d3a8231f942a96ab3f1a223e3dfd76c0535a59cdb85fa1161f9e7c"/>
+              node-hash="sha256:c69aa7f5f3cece0b52a077ec61d51f2be78021e7e6a0f3f0576f985f428d72c1"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
@@ -378,7 +378,7 @@
   <art:mapping id="map-adopt-starter-spec">
     <art:spec-ref node="adopt-command"
               revision="draft-1"
-              node-hash="sha256:c7830e6535d3a8231f942a96ab3f1a223e3dfd76c0535a59cdb85fa1161f9e7c"/>
+              node-hash="sha256:c69aa7f5f3cece0b52a077ec61d51f2be78021e7e6a0f3f0576f985f428d72c1"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
@@ -393,7 +393,7 @@
   <art:mapping id="map-adopt-agent-file">
     <art:spec-ref node="adopt-command"
               revision="draft-1"
-              node-hash="sha256:c7830e6535d3a8231f942a96ab3f1a223e3dfd76c0535a59cdb85fa1161f9e7c"/>
+              node-hash="sha256:c69aa7f5f3cece0b52a077ec61d51f2be78021e7e6a0f3f0576f985f428d72c1"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
@@ -409,7 +409,7 @@
   <art:mapping id="map-adopt-main">
     <art:spec-ref node="adopt-command"
               revision="draft-1"
-              node-hash="sha256:c7830e6535d3a8231f942a96ab3f1a223e3dfd76c0535a59cdb85fa1161f9e7c"/>
+              node-hash="sha256:c69aa7f5f3cece0b52a077ec61d51f2be78021e7e6a0f3f0576f985f428d72c1"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
@@ -424,7 +424,7 @@
   <art:mapping id="map-adopt-tests-basic">
     <art:spec-ref node="adopt-command"
               revision="draft-1"
-              node-hash="sha256:c7830e6535d3a8231f942a96ab3f1a223e3dfd76c0535a59cdb85fa1161f9e7c"/>
+              node-hash="sha256:c69aa7f5f3cece0b52a077ec61d51f2be78021e7e6a0f3f0576f985f428d72c1"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
@@ -439,7 +439,7 @@
   <art:mapping id="map-adopt-tests-update">
     <art:spec-ref node="adopt-command"
               revision="draft-1"
-              node-hash="sha256:c7830e6535d3a8231f942a96ab3f1a223e3dfd76c0535a59cdb85fa1161f9e7c"/>
+              node-hash="sha256:c69aa7f5f3cece0b52a077ec61d51f2be78021e7e6a0f3f0576f985f428d72c1"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
@@ -455,7 +455,7 @@
   <art:mapping id="map-adopt-cli">
     <art:spec-ref node="adopt-command"
               revision="draft-1"
-              node-hash="sha256:c7830e6535d3a8231f942a96ab3f1a223e3dfd76c0535a59cdb85fa1161f9e7c"/>
+              node-hash="sha256:c69aa7f5f3cece0b52a077ec61d51f2be78021e7e6a0f3f0576f985f428d72c1"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/cli.rs">
@@ -474,11 +474,11 @@
   <art:mapping id="map-adopt-skill-embedded">
     <art:spec-ref node="adopt-skills"
               revision="draft-1"
-              node-hash="sha256:9d5de0acf137ffa7f3ee0f36a8017b3414a6cc6c029a2c490b13f5b4681b5331"/>
+              node-hash="sha256:797e2e938d99d156f1721a58712280f0728ab8dccf89a2f465fa76b0c2c8638f"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/embedded.rs">
-      <art:range hash="sha256:a9c9f30dbc6a18ac15dd8b5392b5625835c0212a3b13fb904640c60ff6a2389f"/>
+      <art:range hash="sha256:7e789e01fcf91a67845f0673ab2163884d0aefc3fefb80ce13e9c070c7e02be6"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>AGENT_GUIDANCE_XML constant: embeds agent-guidance.xml
@@ -564,7 +564,7 @@
   <art:mapping id="map-term-review-artifacts-skill">
     <art:spec-ref node="term-review-artifacts-skill"
               revision="draft-1"
-              node-hash="sha256:ff4b5cad611288d5ad29ab50ba400a488c0b2e8d93f72e95de5aa1f47cebe870"/>
+              node-hash="sha256:df5e698a19fa5b4857b180f983a66df2a22fe85beabee648614ef7a0cecfad6a"/>
     <art:artifact repo="repo-clayers"
               repo-revision="9191483"
               path="crates/clayers/src/adopt.rs">
@@ -581,7 +581,7 @@
   <art:mapping id="map-term-onboarding-skill">
     <art:spec-ref node="term-onboarding-skill"
               revision="draft-1"
-              node-hash="sha256:297f421e3c3b4505980fdba84d9884aa2ec2f6cc228fc00854ba4870ace62b27"/>
+              node-hash="sha256:ccc2aea9d8ded2be660b45f64dc6a85b0dc8fedc2a7bd43aeb22e6545c6fdb0b"/>
     <art:artifact repo="repo-clayers"
               repo-revision="9191483"
               path="crates/clayers/src/adopt.rs">

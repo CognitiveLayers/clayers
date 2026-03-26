@@ -358,7 +358,7 @@
   <art:mapping id="map-schema-design-acyclic">
     <art:spec-ref node="schema-design"
               revision="draft-1"
-              node-hash="sha256:5691d2941817a71dcfdb65977047a2876649d875ee3cdd4402749b4b72559ef9"/>
+              node-hash="sha256:b2c01a4b12624d9c893f9aa31b4b2572c55bc8cbb3b800758d3351924b292785"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/schema.rs">
@@ -373,7 +373,7 @@
   <art:mapping id="map-schema-design-content-discover">
     <art:spec-ref node="schema-design"
               revision="draft-1"
-              node-hash="sha256:5691d2941817a71dcfdb65977047a2876649d875ee3cdd4402749b4b72559ef9"/>
+              node-hash="sha256:b2c01a4b12624d9c893f9aa31b4b2572c55bc8cbb3b800758d3351924b292785"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/schema.rs">
@@ -388,7 +388,7 @@
   <art:mapping id="map-schema-design-content-collect">
     <art:spec-ref node="schema-design"
               revision="draft-1"
-              node-hash="sha256:5691d2941817a71dcfdb65977047a2876649d875ee3cdd4402749b4b72559ef9"/>
+              node-hash="sha256:b2c01a4b12624d9c893f9aa31b4b2572c55bc8cbb3b800758d3351924b292785"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/schema.rs">
@@ -403,7 +403,7 @@
   <art:mapping id="map-open-world-layers">
     <art:spec-ref node="open-world-layers"
               revision="draft-1"
-              node-hash="sha256:30406fff4899e00474165c086db8b43ab42f81fc77a6d7eeac0a0589c86eaf3c"/>
+              node-hash="sha256:9e6d96031950d9073031ebb8406d5e39bf154a38ea48825e2bf484329347a262"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="schemas/spec.xsd">
@@ -418,7 +418,7 @@
   <art:mapping id="map-revision-layer">
     <art:spec-ref node="revision-layer"
               revision="draft-1"
-              node-hash="sha256:04d93b27dbd890f247ae0cbf2bae3bb3144983a9157ec441bc43f6b32ca0137a"/>
+              node-hash="sha256:fdc6fd654148baff595a2f7d3b558b96331fbab9b4ea2420988df931e6b216fb"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="schemas/revision.xsd">
@@ -432,7 +432,7 @@
   <art:mapping id="map-index-layer">
     <art:spec-ref node="index-layer"
               revision="draft-1"
-              node-hash="sha256:dd4d29ded6995577bf94be01e055123f7434f569d0cdfe5ff44fb979f4b2aeb9"/>
+              node-hash="sha256:7e1b7b4ddbaaef39b205b984df5d8cacf4f7748e9368955b0e8c09f8ec2605b6"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="schemas/index.xsd">
@@ -446,7 +446,7 @@
   <art:mapping id="map-extensible-relation-types-xsd">
     <art:spec-ref node="extensible-relation-types"
               revision="draft-1"
-              node-hash="sha256:3bab111a6b5fd4c0bad63097fbc4e24afeb08609df56c8c3e9eb22a65005aa69"/>
+              node-hash="sha256:0165901ddea9913358cd60fc3fb441d74518034465d0fe7748048d5a6dfce416"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="schemas/relation.xsd">
@@ -462,7 +462,7 @@
   <art:mapping id="map-extensible-relation-types-py">
     <art:spec-ref node="extensible-relation-types"
               revision="draft-1"
-              node-hash="sha256:3bab111a6b5fd4c0bad63097fbc4e24afeb08609df56c8c3e9eb22a65005aa69"/>
+              node-hash="sha256:0165901ddea9913358cd60fc3fb441d74518034465d0fe7748048d5a6dfce416"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/schema.rs">
@@ -547,7 +547,7 @@
   <art:mapping id="map-schema-discovery-lib">
     <art:spec-ref node="schema-discovery"
               revision="draft-1"
-              node-hash="sha256:91964cffd9a6024ce80b87d2b731249a41bb5e54c1efde8c36aa4a3d218a5213"/>
+              node-hash="sha256:97aa9d5a5309747987c7c50af45ac01e767d3ca3822bf0494d47e085234a9caf"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers-spec/src/discovery.rs">
@@ -562,7 +562,7 @@
   <art:mapping id="map-schema-discovery-connectivity">
     <art:spec-ref node="schema-discovery"
               revision="draft-1"
-              node-hash="sha256:91964cffd9a6024ce80b87d2b731249a41bb5e54c1efde8c36aa4a3d218a5213"/>
+              node-hash="sha256:97aa9d5a5309747987c7c50af45ac01e767d3ca3822bf0494d47e085234a9caf"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers-spec/src/connectivity.rs">
@@ -577,7 +577,7 @@
   <art:mapping id="map-schema-discovery-cli">
     <art:spec-ref node="schema-discovery"
               revision="draft-1"
-              node-hash="sha256:91964cffd9a6024ce80b87d2b731249a41bb5e54c1efde8c36aa4a3d218a5213"/>
+              node-hash="sha256:97aa9d5a5309747987c7c50af45ac01e767d3ca3822bf0494d47e085234a9caf"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/cli.rs">
@@ -605,7 +605,7 @@
   <art:mapping id="map-type-relation-schema">
     <art:spec-ref node="type-relation"
               revision="draft-1"
-              node-hash="sha256:5fc7fb9cdc052669f272473ac478b2686cf1eeedbbe3b8fa248c02d51424db65"/>
+              node-hash="sha256:4664345e3d5b27b7dfea367f18b8a9886ec90963ce31831581fe6a7158fc6a95"/>
     <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/relation.xsd">
@@ -619,7 +619,7 @@
   <art:mapping id="map-type-relation-kind-schema">
     <art:spec-ref node="type-relation-kind"
               revision="draft-1"
-              node-hash="sha256:792aeb79b0f6a304d722fae55366d02b91592894a54c27c3ae58e6570c1155db"/>
+              node-hash="sha256:a2c9c585077e416dfbf9626fbd9a7265d21200482f1e8430ceafcfe48ca70c0b"/>
     <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/relation.xsd">

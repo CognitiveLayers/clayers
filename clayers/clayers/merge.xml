@@ -364,7 +364,7 @@
   <art:mapping id="map-merge-types">
     <art:spec-ref node="merge-framework"
               revision="draft-1"
-              node-hash="sha256:9a559ae9925836001490feea65921def29f1d08b190116abd30dc8917c09000d"/>
+              node-hash="sha256:52b9e9dcb0074b6b7827b636d09eebc9dd0906bc4080c1d17895eb7877767e35"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers-repo/src/merge.rs">
@@ -379,7 +379,7 @@
   <art:mapping id="map-merge-strategy-trait">
     <art:spec-ref node="merge-strategies"
               revision="draft-1"
-              node-hash="sha256:374f94941b00bd226aeb2d96fd57f66bef22a0636fab04fa5b50bf91bf7e8442"/>
+              node-hash="sha256:0ca064fae6e897de896db4b3d1f03bd777fdd7476ca4b23b074851393fcdd2f7"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers-repo/src/merge.rs">
@@ -394,7 +394,7 @@
   <art:mapping id="map-merge-builtin-strategies">
     <art:spec-ref node="merge-strategies"
               revision="draft-1"
-              node-hash="sha256:374f94941b00bd226aeb2d96fd57f66bef22a0636fab04fa5b50bf91bf7e8442"/>
+              node-hash="sha256:0ca064fae6e897de896db4b3d1f03bd777fdd7476ca4b23b074851393fcdd2f7"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers-repo/src/merge.rs">
@@ -409,7 +409,7 @@
   <art:mapping id="map-merge-child-key">
     <art:spec-ref node="term-child-key"
               revision="draft-1"
-              node-hash="sha256:8485fa8468174e60fd5680e5967ebf340a12b35e47d8d7bb728ca55ca637751a"/>
+              node-hash="sha256:8f47872d27ce75f14b0bc27f8694c0aef8fd93066450fb6e3e6982311ded84db"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers-repo/src/merge.rs">
@@ -423,7 +423,7 @@
   <art:mapping id="map-merge-documents">
     <art:spec-ref node="merge-element-level"
               revision="draft-1"
-              node-hash="sha256:88c8888a14fd4bb2006b7a55bbde891cfa50399e797366ab75020f410dc4dfbd"/>
+              node-hash="sha256:9de0883d506ed29d30183b9cd4e478a090dcba4eb6647d2ba36e54d6eba3a72d"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers-repo/src/merge.rs">
@@ -438,7 +438,7 @@
   <art:mapping id="map-merge-trees">
     <art:spec-ref node="merge-file-level"
               revision="draft-1"
-              node-hash="sha256:d7a65ba8fb7576ba44687c62b00b3ad7101a43edabdce714b477f1e63f636f23"/>
+              node-hash="sha256:1f444c6edd49bc28c1967f0dc7697c2b8cb21592bce3ff283982a0041453283f"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers-repo/src/merge.rs">
@@ -453,7 +453,7 @@
   <art:mapping id="map-merge-repo-method">
     <art:spec-ref node="merge-framework"
               revision="draft-1"
-              node-hash="sha256:9a559ae9925836001490feea65921def29f1d08b190116abd30dc8917c09000d"/>
+              node-hash="sha256:52b9e9dcb0074b6b7827b636d09eebc9dd0906bc4080c1d17895eb7877767e35"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers-repo/src/repo.rs">
@@ -467,7 +467,7 @@
   <art:mapping id="map-merge-cli">
     <art:spec-ref node="merge-cli-command"
               revision="draft-1"
-              node-hash="sha256:11f68ed09f7aee8ecf91cc85ee9bdf33dfd0495c7b2d929f90226bb910173a74"/>
+              node-hash="sha256:6e86e5575ba458204a91adc47ff58f97e341e6eec3be25b524ce401796c2414a"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/repo/merge.rs">
@@ -481,7 +481,7 @@
   <art:mapping id="map-merge-cli-command-variant">
     <art:spec-ref node="merge-cli-command"
               revision="draft-1"
-              node-hash="sha256:11f68ed09f7aee8ecf91cc85ee9bdf33dfd0495c7b2d929f90226bb910173a74"/>
+              node-hash="sha256:6e86e5575ba458204a91adc47ff58f97e341e6eec3be25b524ce401796c2414a"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/cli.rs">
@@ -498,7 +498,7 @@
   <art:mapping id="map-merge-delete-vs-modify-tests">
     <art:spec-ref node="merge-strategies"
               revision="draft-1"
-              node-hash="sha256:374f94941b00bd226aeb2d96fd57f66bef22a0636fab04fa5b50bf91bf7e8442"/>
+              node-hash="sha256:0ca064fae6e897de896db4b3d1f03bd777fdd7476ca4b23b074851393fcdd2f7"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers-repo/src/merge.rs">

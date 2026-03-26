@@ -169,11 +169,11 @@
   <art:mapping id="map-overview-readme">
     <art:spec-ref node="overview"
               revision="draft-1"
-              node-hash="sha256:8e51b8406423fd50de626100156bac690491c9e338c17dcb479f39713f85c203"/>
+              node-hash="sha256:51eab13fafdf08734096f575d4cac66a6e86eaa77d55726393cdcf260ea587a5"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="README.md">
-        <art:range hash="sha256:f36d6461ab14e0bd9c3b9fe981fe89a1903a6263321303cb56463604dba60aa6"/>
+        <art:range hash="sha256:2c984cd96033cf2fc90d98bd2c9b137b4d98d4879e3656b6224519daf4026809"/>
       </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>README.md captures the full motivation, thesis, and overview
@@ -183,7 +183,7 @@
   <art:mapping id="map-layered-architecture">
     <art:spec-ref node="layered-architecture"
               revision="draft-1"
-              node-hash="sha256:99274870451db1f03760162b4402bc65db4f923249b7f748cbffe9c0a7d29198"/>
+              node-hash="sha256:cf5ce3a6449632c367a3221bae607f628472675cff8bc69ee28295ca76dcd1cb"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="schemas/index.xsd">
@@ -197,7 +197,7 @@
   <art:mapping id="map-term-node">
     <art:spec-ref node="term-node"
               revision="draft-1"
-              node-hash="sha256:c9d1b7092c3c6cc2bcd77bae8395d92f92e8e1d3d94a401766bc6d2fe8c572d0"/>
+              node-hash="sha256:237139c0803304e727be7108b708abb194646d1fdae0792d6842b7807f69f0de"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/validate.rs">
@@ -212,7 +212,7 @@
   <art:mapping id="map-term-index">
     <art:spec-ref node="term-index"
               revision="draft-1"
-              node-hash="sha256:fb7588001b01fa22f595ea01e3e2cf6319fca9d89311ed45abcf0665397d08d9"/>
+              node-hash="sha256:ab012c9221fd042faf4112772dd2a0320840409f1c28078262d131bf879707e5"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/discovery.rs">
@@ -227,11 +227,11 @@
   <art:mapping id="map-term-namespace">
     <art:spec-ref node="term-namespace"
               revision="draft-1"
-              node-hash="sha256:7ca50ddfce00a12346c8e6f9c2654416ec87b5fd7ef509f18ca54a387929d641"/>
+              node-hash="sha256:dce3312f1b3eb2f2211f746b361d155b9096edd1e8ff73e7fc36a44ea963dddb"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/namespace.rs">
-        <art:range hash="sha256:0db35541355590a197871d9766fbbf23593ac1afed904957afb52628c548c9b2"
+        <art:range hash="sha256:167214733224e098bc4dd230884f3fc73b7c4a00786477cfd958f402bc506a86"
                    start-line="1" end-line="63"/>
       </art:artifact>
     <art:coverage>full</art:coverage>
@@ -242,11 +242,11 @@
   <art:mapping id="map-term-layer">
     <art:spec-ref node="term-layer"
               revision="draft-1"
-              node-hash="sha256:90f6d1ff4a6fba358443f59d09846aa5348083f22e4896aeb678d84f9fd3b02f"/>
+              node-hash="sha256:61e5520337ec571812d3e1273d593666b0a30823946ac51167a2b8fcc58c4a2f"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/namespace.rs">
-        <art:range hash="sha256:f3c515bc3a68cba899c6b8a449f34f3e6dfa239bd062ceed56fdf9c896f47579"
+        <art:range hash="sha256:9e38f62d158b54b42832135719c0804d8a7ff5e77c35e77c3370dd3e09f685fe"
                    start-line="17" end-line="31"/>
       </art:artifact>
     <art:coverage>partial</art:coverage>

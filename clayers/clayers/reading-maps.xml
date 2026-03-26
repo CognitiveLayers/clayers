@@ -215,6 +215,21 @@
       </org:topicref>
     </org:part>
 
+    <org:part>
+      <org:title>Content and Testing</org:title>
+      <org:topicref ref="content-layer">
+        <org:title>Content-Addressed References</org:title>
+      </org:topicref>
+      <org:topicref ref="testing-layer">
+        <org:title>Test Definitions</org:title>
+        <org:topicref ref="test-type-manual" required="false"/>
+        <org:topicref ref="test-type-vectors" required="false"/>
+        <org:topicref ref="test-type-property" required="false"/>
+        <org:topicref ref="test-type-program" required="false"/>
+        <org:topicref ref="test-type-witness" required="false"/>
+      </org:topicref>
+    </org:part>
+
     <org:part audience="developer" role="implementor">
       <org:title>Traceability</org:title>
       <org:topicref ref="artifact-drift"/>

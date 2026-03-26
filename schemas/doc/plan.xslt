@@ -56,44 +56,13 @@
           <div>
             <xsl:text>&#10003; </xsl:text>
             <xsl:apply-templates select="text()"/>
+            <xsl:if test="@test">
+              <xsl:text> </xsl:text>
+              <a href="#{@test}" class="badge badge-blue" style="font-size:0.65rem; text-decoration:none;">
+                <xsl:value-of select="@test"/>
+              </a>
+            </xsl:if>
           </div>
-          <xsl:for-each select="pln:witness">
-            <div style="margin-top: 0.25rem; margin-left: 1.25rem;">
-              <xsl:choose>
-                <xsl:when test="@type = 'command'">
-                  <span class="badge badge-blue" style="font-size:0.65rem;">command</span>
-                  <xsl:text> </xsl:text>
-                  <code style="font-size: 0.85em;"><xsl:value-of select="normalize-space(.)"/></code>
-                </xsl:when>
-                <xsl:when test="@type = 'script'">
-                  <span class="badge badge-green" style="font-size:0.65rem;">
-                    <xsl:text>script</xsl:text>
-                    <xsl:if test="@lang">
-                      <xsl:text> (</xsl:text><xsl:value-of select="@lang"/><xsl:text>)</xsl:text>
-                    </xsl:if>
-                  </span>
-                  <pre style="margin: 0.25rem 0 0; font-size: 0.85em;"><code><xsl:value-of select="."/></code></pre>
-                </xsl:when>
-                <xsl:when test="@type = 'manual'">
-                  <span class="badge badge-yellow" style="font-size:0.65rem;">
-                    <xsl:text>manual</xsl:text>
-                    <xsl:if test="@role">
-                      <xsl:text> (</xsl:text><xsl:value-of select="@role"/><xsl:text>)</xsl:text>
-                    </xsl:if>
-                  </span>
-                  <xsl:text> </xsl:text>
-                  <xsl:value-of select="normalize-space(.)"/>
-                </xsl:when>
-                <xsl:otherwise>
-                  <span class="badge badge-gray" style="font-size:0.65rem;">
-                    <xsl:value-of select="@type"/>
-                  </span>
-                  <xsl:text> </xsl:text>
-                  <code style="font-size: 0.85em;"><xsl:value-of select="normalize-space(.)"/></code>
-                </xsl:otherwise>
-              </xsl:choose>
-            </div>
-          </xsl:for-each>
         </div>
       </xsl:for-each>
     </div>

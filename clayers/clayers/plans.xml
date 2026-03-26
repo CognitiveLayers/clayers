@@ -8,6 +8,7 @@
        xmlns:trm="urn:clayers:terminology"
        xmlns:src="urn:clayers:source"
        xmlns:pln="urn:clayers:plan"
+       xmlns:tst="urn:clayers:testing"
        xmlns:org="urn:clayers:organization"
        xmlns:rel="urn:clayers:relation"
        xmlns:art="urn:clayers:artifact"
@@ -78,8 +79,9 @@
   <!-- ================================================================== -->
 
   <pr:section id="plan-acceptance-criteria">
-    <pr:title>Acceptance Criteria and Witnesses</pr:title>
-    <pr:shortdesc>Testable criteria with structured evidence for verification.</pr:shortdesc>
+    <pr:title>Acceptance Criteria and Test References</pr:title>
+    <pr:shortdesc>Testable criteria that reference verification evidence from
+    the testing layer.</pr:shortdesc>
 
     <pr:p>Each plan item carries an <pr:code>acceptance</pr:code> block
     containing one or more criteria. A criterion is mixed content: inline text
@@ -87,28 +89,18 @@
     links the criterion to the spec node it verifies, creating a traceable
     connection between the plan and the specification.</pr:p>
 
-    <pr:p>Witnesses are the evidence that proves a criterion is met. Each
-    criterion can have zero or more <pr:code>witness</pr:code> children,
-    classified by type:</pr:p>
+    <pr:p>Verification evidence now lives in the testing layer. Each criterion
+    can reference a test via the <pr:code>test</pr:code> attribute, which
+    points to a <pr:code>tst:witness</pr:code> element that provides the
+    concrete verification mechanism. The testing layer supports command-based
+    verification (shell exit codes), script-based verification (executables
+    with a language attribute), and API-based verification.</pr:p>
 
-    <pr:ul>
-      <pr:li><pr:b>command</pr:b>: a shell command whose exit code indicates
-      pass (0) or fail (non-zero). The simplest form of automated
-      verification.</pr:li>
-      <pr:li><pr:b>script</pr:b>: an executable script with an optional
-      <pr:code>lang</pr:code> attribute specifying the language. For
-      verification logic that exceeds a single command.</pr:li>
-      <pr:li><pr:b>manual</pr:b>: a human verification step with an optional
-      <pr:code>role</pr:code> attribute specifying who performs it. For
-      criteria that cannot be automated (security reviews, UX assessments).</pr:li>
-    </pr:ul>
-
-    <pr:p>The witness type enumeration is extensible, following the same pattern
-    as <pr:xref ref="extensible-relation-types">extensible relation types</pr:xref>
-    and source types. Extension layers define new witness types annotated with
-    <pr:code>pln:witness-type-properties</pr:code>, activated via a
-    <pr:code>rel:relation type="refines"</pr:code> edge to
-    <pr:code>type-witness-kind</pr:code>.</pr:p>
+    <pr:p>The witness type enumeration is extensible via
+    <pr:code>tst:witness-type-properties</pr:code> in the testing layer,
+    following the same extension pattern as
+    <pr:xref ref="extensible-relation-types">extensible relation types</pr:xref>
+    and source types.</pr:p>
   </pr:section>
 
   <org:concept ref="plan-acceptance-criteria">
@@ -171,12 +163,12 @@
     a <pr:code>pr:p</pr:code> inside an item provides a rich description
     with terminology references and source citations.</pr:p>
 
-    <pr:p>Attach witnesses to criteria for verification. Use
-    <pr:code>command</pr:code> witnesses for simple shell checks,
-    <pr:code>script</pr:code> witnesses for complex verification logic, and
-    <pr:code>manual</pr:code> witnesses for human sign-off requirements.
-    A criterion with no witnesses is still valid but relies on human judgment
-    alone.</pr:p>
+    <pr:p>Reference tests from the testing layer to provide verification
+    evidence for criteria. Add a <pr:code>test</pr:code> attribute to a
+    criterion pointing to a <pr:code>tst:witness</pr:code> element. The
+    testing layer's witnesses support command, script, and API-based
+    verification. A criterion with no test reference is still valid but
+    relies on human judgment alone.</pr:p>
 
     <pr:p>When a plan needs revision, create a new plan and link it with
     <pr:code>pln:revises</pr:code>. Set the old plan's status to
@@ -211,12 +203,6 @@
     chains in the plan layer.</trm:definition>
   </trm:term>
 
-  <trm:term id="type-witness-kind">
-    <trm:name>WitnessKind</trm:name>
-    <trm:definition>The XSD simpleType that enumerates witness type values
-    for plan acceptance criteria.</trm:definition>
-  </trm:term>
-
   <!-- Activation edge: makes revises a recognized relation type -->
   <rel:relation type="refines" from="type-revises" to="type-relation-kind">
     <rel:note>Activates the revises extension relation type defined in
@@ -235,9 +221,11 @@
     definition for revision chains in the plan layer.</rel:note>
   </rel:relation>
 
-  <rel:relation type="refines" from="type-witness-kind" to="plan-layer">
-    <rel:note>The WitnessKind simpleType (id="type-witness-kind") is the
-    schema definition for witness type classification in the plan layer.</rel:note>
+  <!-- Plan layer depends on the testing layer for verification witnesses -->
+  <rel:relation type="depends-on" from="plan-layer" to="testing-layer">
+    <rel:note>Plans reference tests from the testing layer: criteria use the
+    test attribute to point to tst:witness elements that provide command,
+    script, and API-based verification evidence.</rel:note>
   </rel:relation>
 
   <!-- Plan layer depends on extensible relation types -->
@@ -278,11 +266,12 @@
   </llm:node>
 
   <llm:node ref="plan-acceptance-criteria">
-    Describes the acceptance model: criteria define what must be true, witnesses
-    provide evidence. Three witness types: command (shell exit code), script
-    (executable with lang attribute), manual (human with role attribute).
-    The witness type enumeration is extensible via the same pattern as
-    relation types and source types.
+    Describes the acceptance model: criteria define what must be true and
+    reference tests from the testing layer for verification evidence. Each
+    criterion can point to a tst:witness via the test attribute. The testing
+    layer provides command, script, and API-based verification mechanisms.
+    The witness type enumeration is extensible via tst:witness-type-properties
+    in the testing layer.
   </llm:node>
 
   <llm:node ref="plan-revision-chains">
@@ -310,13 +299,12 @@
     The plan schema captures implementation plans as structured metadata.
     Each &lt;pln:plan&gt; is self-contained with an embedded title, optional
     overview, status, and one or more items. Items have titles, optional
-    descriptions, acceptance criteria with witnesses, and status tracking.
-    Plans and items support xs:any for embedding prose layer elements
-    (pr:section, pr:p, trm:ref, src:cite). The witness model: command
-    (shell exit code), script (executable with lang), manual (human with
-    role). The &lt;pln:revises&gt; element is an extension relation type
-    for plan revision chains, activated by a refines edge to
-    type-relation-kind.
+    descriptions, acceptance criteria, and status tracking. Criteria can
+    reference tests from the testing layer via the test attribute for
+    verification evidence. Plans and items support xs:any for embedding
+    prose layer elements (pr:section, pr:p, trm:ref, src:cite). The
+    &lt;pln:revises&gt; element is an extension relation type for plan
+    revision chains, activated by a refines edge to type-relation-kind.
   </llm:schema>
 
   <llm:schema namespace="urn:clayers:plan" element="plan">
@@ -357,11 +345,11 @@
   <art:mapping id="map-type-plan-schema">
     <art:spec-ref node="type-plan"
               revision="draft-1"
-              node-hash="sha256:81a02188fe53909d2a15f8c771a41967f1142c04057db75052dabebdfc4d284a"/>
+              node-hash="sha256:71d5cce6103432bca4707da6f96bf427a59594d989d54c52ab1eee1b0589acd0"/>
     <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/plan.xsd">
-        <art:range hash="sha256:d6ba5e078f45afc3a01df3946e7967d0341e26f6f320ec9c596090c8e3ffa519" start-line="74" end-line="115"/>
+        <art:range hash="sha256:72c8030b453d86666ee9210eac7ed77b16543fa4c50d2d78aade7fb2d3403a48" start-line="74" end-line="115"/>
       </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>PlanType complexType: title, overview, status, item children.</art:note>
@@ -371,39 +359,25 @@
   <art:mapping id="map-type-revises-schema">
     <art:spec-ref node="type-revises"
               revision="draft-1"
-              node-hash="sha256:49294e15b97b7a52d046e173b6c2e35d01c6e7b0dcbd78f352ac49c11af8da60"/>
+              node-hash="sha256:fa51abef146cd7c4e22502ce43a921f825120192522e72ccf6b1040515c1c8ee"/>
     <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/plan.xsd">
-        <art:range hash="sha256:aa72cfba1aa683db8e775ae0cff518ae03524f2ab9f4645d18399b5ce5a4ba85" start-line="333" end-line="365"/>
+        <art:range hash="sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" start-line="333" end-line="365"/>
       </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>RevisesType complexType: ref attribute linking to revised plan.</art:note>
   </art:mapping>
 
 
-  <art:mapping id="map-type-witness-kind-schema">
-    <art:spec-ref node="type-witness-kind"
-              revision="draft-1"
-              node-hash="sha256:a2618ccd8dcba5fbe662aac9057d2c6894114ed75f934231ed0e19dfd1ebc776"/>
-    <art:artifact repo="repo-clayers"
-              repo-revision="753ad37"
-              path="schemas/plan.xsd">
-        <art:range hash="sha256:0df7217433b481b22454d7511b4cf95f131d4c39bf13ccd77e6b5c6ff68935d3" start-line="246" end-line="270"/>
-      </art:artifact>
-    <art:coverage>full</art:coverage>
-    <art:note>WitnessKind simpleType: command, script, manual witness types.</art:note>
-  </art:mapping>
-
-
   <art:mapping id="map-plan-layer-schema-core">
     <art:spec-ref node="plan-layer"
               revision="draft-1"
-              node-hash="sha256:4ab417a384189ba49b8d3ea63560e7942291721a72ef79fea10ee5e50e5293d2"/>
+              node-hash="sha256:8e17810d1cd168a3e46299c095059e03179e0f4fcb26808a4aaa652178eeb425"/>
     <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/plan.xsd">
-        <art:range hash="sha256:8918231ba60c3d4186e60c3983d309d1379e57f3f4ecc74dee4cc1d116c3b086" start-line="1" end-line="73"/>
+        <art:range hash="sha256:cfe2bc8681bbe68831f7205d580b46d519d3f685c64410169a42fdcb34741bc1" start-line="1" end-line="73"/>
       </art:artifact>
     <art:coverage>partial</art:coverage>
     <art:note>Schema header, plan and item element declarations.</art:note>
@@ -412,11 +386,11 @@
   <art:mapping id="map-plan-layer-schema-plan-type">
     <art:spec-ref node="plan-layer"
               revision="draft-1"
-              node-hash="sha256:4ab417a384189ba49b8d3ea63560e7942291721a72ef79fea10ee5e50e5293d2"/>
+              node-hash="sha256:8e17810d1cd168a3e46299c095059e03179e0f4fcb26808a4aaa652178eeb425"/>
     <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/plan.xsd">
-        <art:range hash="sha256:ff1b23b052ffc1df6fa7dcfc1d7678481fb27c48ccf452c137b57f64fcff73c6" start-line="74" end-line="167"/>
+        <art:range hash="sha256:b5644e138a874a6d772d2df57e13bfbbccd04b80f5ea224d148bb8191c8a6816" start-line="74" end-line="167"/>
       </art:artifact>
     <art:coverage>partial</art:coverage>
     <art:note>PlanType, ItemType complexTypes with status and content model.</art:note>
@@ -425,37 +399,24 @@
   <art:mapping id="map-plan-layer-schema-acceptance-types">
     <art:spec-ref node="plan-layer"
               revision="draft-1"
-              node-hash="sha256:4ab417a384189ba49b8d3ea63560e7942291721a72ef79fea10ee5e50e5293d2"/>
+              node-hash="sha256:8e17810d1cd168a3e46299c095059e03179e0f4fcb26808a4aaa652178eeb425"/>
     <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/plan.xsd">
-        <art:range hash="sha256:8662aee6c4547f43ebd08acf8da94b94207f2c6d374bd88efc73f4db22373801" start-line="168" end-line="218"/>
+        <art:range hash="sha256:e84d21888579b02385ac32d151118df6722c050828d888a3bdafddb26a45c1ae" start-line="168" end-line="218"/>
       </art:artifact>
     <art:coverage>partial</art:coverage>
     <art:note>AcceptanceType and CriterionType complex type definitions.</art:note>
   </art:mapping>
 
-  <art:mapping id="map-plan-layer-schema-witness">
-    <art:spec-ref node="plan-layer"
-              revision="draft-1"
-              node-hash="sha256:4ab417a384189ba49b8d3ea63560e7942291721a72ef79fea10ee5e50e5293d2"/>
-    <art:artifact repo="repo-clayers"
-              repo-revision="753ad37"
-              path="schemas/plan.xsd">
-        <art:range hash="sha256:fc50fdc4cb7a2bebd6cc97a94c897acff9ffac020a0d591754136b58ff60aa4d" start-line="220" end-line="270"/>
-      </art:artifact>
-    <art:coverage>partial</art:coverage>
-    <art:note>WitnessType, WitnessKind definitions for plan acceptance criteria witnesses.</art:note>
-  </art:mapping>
-
   <art:mapping id="map-plan-layer-schema-revises">
     <art:spec-ref node="plan-layer"
               revision="draft-1"
-              node-hash="sha256:4ab417a384189ba49b8d3ea63560e7942291721a72ef79fea10ee5e50e5293d2"/>
+              node-hash="sha256:8e17810d1cd168a3e46299c095059e03179e0f4fcb26808a4aaa652178eeb425"/>
     <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/plan.xsd">
-        <art:range hash="sha256:1de14cab38982a697ef364217ec0e4934a2c97551987435c33fe25ff57413e7c" start-line="271" end-line="365"/>
+        <art:range hash="sha256:1ac4a2c59c851fdd566f9913cd567247601751bef682810b0f8663d37732cedb" start-line="271" end-line="365"/>
       </art:artifact>
     <art:coverage>partial</art:coverage>
     <art:note>RevisesType extension relation type and remaining type definitions.</art:note>
@@ -465,14 +426,14 @@
   <art:mapping id="map-plan-acceptance-schema">
     <art:spec-ref node="plan-acceptance-criteria"
               revision="draft-1"
-              node-hash="sha256:b8b7a769f988faffdb00e651126b9161b425bc0faeeaae62344e2858088ebd89"/>
+              node-hash="sha256:c40fb4e9eaf4544896106769d19594e32239bbe2a0cc13674848ff0abaf98448"/>
     <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/plan.xsd">
-        <art:range hash="sha256:34e9c0884e6299272be3a6e2e03ec2b2ba5352c2c968a019e17199f0ea4964a5" start-line="168" end-line="244"/>
+        <art:range hash="sha256:e84d21888579b02385ac32d151118df6722c050828d888a3bdafddb26a45c1ae" start-line="168" end-line="218"/>
       </art:artifact>
     <art:coverage>full</art:coverage>
-    <art:note>AcceptanceType, CriterionType, WitnessType: structured acceptance criteria with typed witnesses (command, script, manual).</art:note>
+    <art:note>AcceptanceType, CriterionType: structured acceptance criteria with test attribute referencing tst:witness elements in the testing layer.</art:note>
   </art:mapping>
 
 

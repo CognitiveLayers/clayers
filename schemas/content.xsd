@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:cnt="urn:clayers:content"
+           xmlns:llm="urn:clayers:llm"
+           xmlns:spec="urn:clayers:spec"
+           targetNamespace="urn:clayers:content"
+           elementFormDefault="qualified"
+           version="1.0">
+
+  <xs:annotation>
+    <xs:documentation>
+      Content Layer Schema.
+      General-purpose content-addressed references with integrity
+      guarantees. Any layer can point to a cnt:content node to reference
+      external or embedded content by hash. Three modes: referenced
+      (url + hash), embedded (body + hash), or both. The cnt:ref element
+      enables inline content references in prose, parallel to trm:ref
+      for terminology and src:cite for sources.
+    </xs:documentation>
+    <xs:appinfo>
+      <llm:describe>
+        The content schema provides content-addressed references with
+        integrity guarantees. Each cnt:content node identifies content by
+        hash with three modes: referenced (url + hash for external canonical
+        locations), embedded (body + hash for inline content), or both.
+        The hash attribute ensures integrity regardless of mode. The cnt:ref
+        element enables inline references to content nodes from prose,
+        parallel to trm:ref and src:cite. BodyType supports text, CDATA,
+        base64 (via encoding attribute), and structured XML via xs:any.
+      </llm:describe>
+      <spec:keyref name="content-refs" selector=".//cnt:ref" field="@content"/>
+    </xs:appinfo>
+  </xs:annotation>
+
+  <!-- Global content element -->
+  <xs:element name="content" type="cnt:ContentType">
+    <xs:annotation><xs:appinfo><spec:content-element/></xs:appinfo></xs:annotation>
+  </xs:element>
+
+  <!-- Global ref element (inline, referenced from prose.xsd) -->
+  <xs:element name="ref" type="cnt:ContentRefType">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          An inline reference to a content node, used within prose
+          content. The content attribute is an IDREF pointing to a
+          cnt:content element's id. Element content is display text.
+          Parallel to trm:ref for terminology and src:cite for sources.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+  </xs:element>
+
+  <!-- ContentType: a content-addressed reference -->
+  <xs:complexType name="ContentType">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          A content-addressed reference node. The id makes it addressable
+          in the spec graph. The hash attribute provides integrity
+          verification. Three modes: referenced (url points to external
+          canonical location), embedded (body child contains inline
+          content), or both (url for canonical location, body for local
+          copy). At least one of url or body must be present, enforced
+          by XSD 1.1 assertion. The optional media-type classifies the
+          content format.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="body" type="cnt:BodyType" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID" use="required">
+      <xs:annotation>
+        <xs:documentation>Unique identifier for this content node.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="url" type="xs:anyURI" use="optional">
+      <xs:annotation>
+        <xs:documentation>Canonical URL of the external content. Optional when
+        content is embedded via body child.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="hash" type="cnt:HashType" use="required">
+      <xs:annotation>
+        <xs:documentation>Content hash in algo:hex format (e.g., sha256:abcdef...).
+        Computed over the canonical form of the content.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="media-type" type="xs:string" use="optional">
+      <xs:annotation>
+        <xs:documentation>MIME media type of the content (e.g., "text/plain",
+        "application/json", "image/png").</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+
+    <!-- XSD 1.1 assertion: at least one of url or body must be present -->
+    <xs:assert test="@url or cnt:body"/>
+  </xs:complexType>
+
+  <!-- BodyType: inline content container -->
+  <xs:complexType name="BodyType" mixed="true">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          Inline content container for embedded mode. Mixed content
+          supports plain text, CDATA sections, and structured XML from
+          other namespaces (via xs:any). The optional encoding attribute
+          indicates content encoding (e.g., "base64" for binary content).
+          When encoding is absent, content is treated as literal text or XML.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:any namespace="##other" processContents="strict"
+              minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="encoding" type="xs:string" use="optional">
+      <xs:annotation>
+        <xs:documentation>Content encoding (e.g., "base64"). When absent,
+        content is literal text or XML.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <!-- ContentRefType: inline content reference -->
+  <xs:complexType name="ContentRefType" mixed="true">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          An inline reference to a content node. The content attribute
+          is an IDREF to a cnt:content element. Mixed content provides
+          display text. Used within prose paragraphs to reference
+          content-addressed nodes.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:attribute name="content" type="xs:IDREF" use="required">
+      <xs:annotation>
+        <xs:documentation>
+          Content node ID reference. Uses xs:IDREF because validation
+          runs against the combined document where all IDs are present.
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <!-- HashType: content hash in algo:hex format -->
+  <xs:simpleType name="HashType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[a-z0-9]+:[a-f0-9]+"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+</xs:schema>
