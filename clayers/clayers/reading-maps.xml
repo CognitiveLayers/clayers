@@ -269,6 +269,84 @@
         <org:title>Exception Hierarchy</org:title>
       </org:topicref>
     </org:part>
+
+    <org:part required="false">
+      <org:title>Agent Workflow</org:title>
+      <org:topicref ref="adopt-workflow">
+        <org:title>Spec-First Development Workflow</org:title>
+      </org:topicref>
+      <org:topicref ref="agent-workflow-guide">
+        <org:title>Full Agent Workflow Guide</org:title>
+        <org:purpose>Separate reading map covering the brainstorm,
+        write-plan, and execute-plan skill pipeline in detail.</org:purpose>
+      </org:topicref>
+    </org:part>
+  </org:map>
+
+  <org:map id="agent-workflow-guide" audience="developer" role="implementor">
+    <org:title>Agent Workflow Guide</org:title>
+
+    <org:part>
+      <org:title>Foundation</org:title>
+      <org:topicref ref="adopt-workflow">
+        <org:title>Spec-First Development Workflow</org:title>
+        <org:purpose>The core principle: spec first, code second.
+        Understanding this is prerequisite to all workflow skills.</org:purpose>
+      </org:topicref>
+      <org:topicref ref="adopt-skills">
+        <org:title>Skill Generation</org:title>
+        <org:purpose>How skills are embedded, extracted, and deployed
+        to projects via clayers adopt --skills.</org:purpose>
+      </org:topicref>
+    </org:part>
+
+    <org:part>
+      <org:title>Design-to-Implementation Pipeline</org:title>
+      <org:topicref ref="skill-clayers-brainstorm">
+        <org:title>Step 1: Brainstorm (Design Spec)</org:title>
+        <org:purpose>Turns feature ideas into validated clayers XML
+        specs with prose, terminology, relations, and LLM descriptions.</org:purpose>
+      </org:topicref>
+      <org:topicref ref="skill-clayers-write-plan">
+        <org:title>Step 2: Write Plan (pln:plan XML)</org:title>
+        <org:purpose>Decomposes a spec into bite-sized implementation
+        tasks with acceptance criteria referencing spec nodes.</org:purpose>
+      </org:topicref>
+      <org:topicref ref="skill-clayers-execute-plan">
+        <org:title>Step 3: Execute Plan (Code + Artifacts)</org:title>
+        <org:purpose>Implements plan items with TDD, creates artifact
+        mappings, and tracks item status in the plan XML.</org:purpose>
+      </org:topicref>
+    </org:part>
+
+    <org:part>
+      <org:title>Supporting Skills</org:title>
+      <org:topicref ref="skill-clayers-onboard">
+        <org:title>Onboarding (Initial Spec Creation)</org:title>
+        <org:purpose>Comprehensive codebase analysis and spec creation
+        for projects that don't yet have a clayers spec.</org:purpose>
+      </org:topicref>
+      <org:topicref ref="skill-clayers-review-artifacts">
+        <org:title>Review Artifacts (Coverage Maintenance)</org:title>
+        <org:purpose>Maintains and improves artifact mappings as code
+        evolves. Run periodically to keep traceability clean.</org:purpose>
+      </org:topicref>
+    </org:part>
+
+    <org:part required="false">
+      <org:title>Reference</org:title>
+      <org:topicref ref="plan-layer">
+        <org:title>Plan Layer Schema</org:title>
+        <org:purpose>Schema reference for pln:plan, pln:item,
+        pln:acceptance, pln:criterion elements.</org:purpose>
+      </org:topicref>
+      <org:topicref ref="artifact-drift">
+        <org:title>Artifact Drift Detection</org:title>
+      </org:topicref>
+      <org:topicref ref="xpath-query-tooling">
+        <org:title>XPath Query Tooling</org:title>
+      </org:topicref>
+    </org:part>
   </org:map>
 
 
@@ -277,7 +355,13 @@
   <art:exempt node="term-topicref"/>
   <art:exempt node="term-profiling"/>
   <art:exempt node="newcomers-guide"/>
+  <rel:relation type="refines" from="agent-workflow-guide" to="adopt-workflow">
+    <rel:note>The agent workflow guide provides a structured reading
+    path through the skills that implement the spec-first workflow.</rel:note>
+  </rel:relation>
+
   <art:exempt node="reading-maps-concept"/>
   <art:exempt node="reading-maps-structure"/>
+  <art:exempt node="agent-workflow-guide"/>
 
 </spec:clayers>
