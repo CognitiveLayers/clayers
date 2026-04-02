@@ -96,6 +96,9 @@ enum Command {
         /// Inline all CDN resources for fully offline HTML.
         #[arg(long)]
         self_contained: bool,
+        /// Watch for changes and regenerate automatically.
+        #[arg(long)]
+        watch: bool,
     },
     /// Bootstrap clayers in a project (plant schemas, amend agent file).
     Adopt {
@@ -356,7 +359,8 @@ fn run(cli: &Cli) -> Result<()> {
             path,
             output,
             self_contained,
-        } => crate::doc::cmd_doc(path, output.as_deref(), *self_contained),
+            watch,
+        } => crate::doc::cmd_doc(path, output.as_deref(), *self_contained, *watch),
         Command::Adopt {
             path,
             update,

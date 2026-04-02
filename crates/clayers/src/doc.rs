@@ -11,7 +11,49 @@ use crate::embedded;
 /// # Errors
 ///
 /// Returns an error if discovery, assembly, or XSLT transformation fails.
-pub fn cmd_doc(path: &Path, output: Option<&Path>, self_contained: bool) -> Result<()> {
+pub fn cmd_doc(path: &Path, output: Option<&Path>, self_contained: bool, watch: bool) -> Result<()> {
+    let out_path = generate_doc(path, output, self_contained)?;
+    println!("{}", out_path.display());
+
+    if watch && path.is_dir() {
+        use notify::{RecursiveMode, Watcher};
+
+        let (tx, rx) = std::sync::mpsc::channel();
+        let mut watcher = notify::recommended_watcher(move |res: notify::Result<notify::Event>| {
+            if let Ok(event) = res {
+                use notify::EventKind;
+                match event.kind {
+                    EventKind::Create(_) | EventKind::Modify(_) | EventKind::Remove(_) => {
+                        let _ = tx.send(());
+                    }
+                    _ => {}
+                }
+            }
+        })
+        .context("failed to create file watcher")?;
+
+        watcher
+            .watch(path, RecursiveMode::Recursive)
+            .with_context(|| format!("failed to watch {}", path.display()))?;
+
+        eprintln!("watching {} for changes...", path.display());
+
+        while rx.recv().is_ok() {
+            // Debounce: drain any queued events and wait a short moment.
+            std::thread::sleep(std::time::Duration::from_millis(100));
+            while rx.try_recv().is_ok() {}
+
+            match generate_doc(path, output, self_contained) {
+                Ok(p) => println!("{}", p.display()),
+                Err(e) => eprintln!("error: {e:#}"),
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn generate_doc(path: &Path, output: Option<&Path>, self_contained: bool) -> Result<PathBuf> {
     // Discover spec files.
     let index_files =
         clayers_spec::discovery::find_index_files(path).context("discovery failed")?;
@@ -62,8 +104,7 @@ pub fn cmd_doc(path: &Path, output: Option<&Path>, self_contained: bool) -> Resu
     std::fs::write(&out_path, &html)
         .with_context(|| format!("failed to write {}", out_path.display()))?;
 
-    println!("{}", out_path.display());
-    Ok(())
+    Ok(out_path)
 }
 
 /// Build a `<doc:report>` XML fragment with drift status and code fragments.
