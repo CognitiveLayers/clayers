@@ -17,6 +17,7 @@
       <xsl:if test="pln:overview">
         <p class="shortdesc"><xsl:value-of select="pln:overview"/></p>
       </xsl:if>
+      <xsl:apply-templates select="*[not(self::pln:*)]"/>
       <xsl:if test="pln:item">
         <ol>
           <xsl:apply-templates select="pln:item"/>
@@ -29,22 +30,27 @@
   <xsl:template match="pln:item">
     <li>
       <xsl:if test="@id"><xsl:attribute name="id" select="@id"/></xsl:if>
-      <strong><xsl:value-of select="pln:title"/></strong>
-      <xsl:if test="pln:item-status">
-        <xsl:text> </xsl:text>
-        <xsl:call-template name="plan-status-badge">
-          <xsl:with-param name="status" select="pln:item-status"/>
-        </xsl:call-template>
-      </xsl:if>
-      <xsl:if test="pln:description">
-        <p><xsl:apply-templates select="pln:description/node()"/></p>
-      </xsl:if>
-      <xsl:if test="pln:acceptance">
-        <xsl:apply-templates select="pln:acceptance"/>
-      </xsl:if>
-      <xsl:if test="pln:item">
-        <ol><xsl:apply-templates select="pln:item"/></ol>
-      </xsl:if>
+      <details>
+        <summary>
+          <strong><xsl:value-of select="pln:title"/></strong>
+          <xsl:if test="pln:item-status">
+            <xsl:text> </xsl:text>
+            <xsl:call-template name="plan-status-badge">
+              <xsl:with-param name="status" select="pln:item-status"/>
+            </xsl:call-template>
+          </xsl:if>
+        </summary>
+        <xsl:if test="pln:description">
+          <p><xsl:apply-templates select="pln:description/node()"/></p>
+        </xsl:if>
+        <xsl:apply-templates select="*[not(self::pln:*)]"/>
+        <xsl:if test="pln:acceptance">
+          <xsl:apply-templates select="pln:acceptance"/>
+        </xsl:if>
+        <xsl:if test="pln:item">
+          <ol><xsl:apply-templates select="pln:item"/></ol>
+        </xsl:if>
+      </details>
     </li>
   </xsl:template>
 
