@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:lyr="urn:clayers:layer"
+           xmlns:spec="urn:clayers:spec"
+           xmlns:llm="urn:clayers:llm"
+           targetNamespace="urn:clayers:layer"
+           elementFormDefault="qualified"
+           version="1.0">
+
+  <xs:annotation>
+    <xs:documentation>
+      Layer Layer Schema.
+      A meta-layer that describes layers themselves: their identity,
+      the modes they support (onboard, catch-up, brainstorm, review,
+      or any custom workflow), prerequisites between layers, triggering
+      conditions, and acceptance criteria. Mode bodies use xs:any for
+      embedding rich guidance from any layer (prose, plan items, etc.).
+
+      The layer layer is self-referential: there is a lyr:layer instance
+      that describes the layer layer itself.
+    </xs:documentation>
+    <xs:appinfo>
+      <llm:describe>
+        The layer schema is a meta-layer describing layers themselves.
+        Each lyr:layer element identifies a layer by namespace URI and
+        declares lyr:mode elements for named interaction patterns. Modes
+        have structured metadata (lyr:requires for dependencies,
+        lyr:condition for triggers, lyr:acceptance for success criteria)
+        plus an xs:any body for rich guidance content from any layer.
+        The orchestrating skill reads these declarations to dynamically
+        build workflow execution graphs instead of hardcoding phases.
+        Mode names are not enumerated: layers declare whatever modes
+        they support (onboard, catch-up, brainstorm, review, etc.).
+      </llm:describe>
+      <spec:keyref name="requires-layer-refs"
+                   selector=".//lyr:requires"
+                   field="@layer"/>
+    </xs:appinfo>
+  </xs:annotation>
+
+  <!-- Global layer element -->
+  <xs:element name="layer" type="lyr:LayerType">
+    <xs:annotation><xs:appinfo><spec:content-element/></xs:appinfo></xs:annotation>
+  </xs:element>
+
+  <!-- Global mode element (also usable standalone for cross-layer modes) -->
+  <xs:element name="mode" type="lyr:ModeType">
+    <xs:annotation><xs:appinfo><spec:content-element/></xs:appinfo></xs:annotation>
+  </xs:element>
+
+  <!-- LayerType: describes a single layer -->
+  <xs:complexType name="LayerType" id="type-layer">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          Describes a single layer. The id attribute makes it an addressable
+          node. The schema attribute identifies which layer namespace this
+          description is about. Children are lyr:mode declarations followed
+          by xs:any for cross-layer content (LLM descriptions, relations,
+          prose, etc.).
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="mode" type="lyr:ModeType"
+                  minOccurs="0" maxOccurs="unbounded"/>
+      <xs:any namespace="##other" processContents="strict"
+              minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID" use="required"/>
+    <xs:attribute name="schema" type="xs:anyURI" use="required">
+      <xs:annotation>
+        <xs:documentation>Namespace URI of the described layer.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <!-- ModeType: a named interaction pattern -->
+  <xs:complexType name="ModeType" id="type-mode">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          A named interaction pattern for a layer. The name attribute
+          identifies the workflow (onboard, catch-up, brainstorm, review,
+          or any custom name). Structured metadata (requires, condition,
+          acceptance) enables machine sequencing. The xs:any body carries
+          rich guidance for LLM execution.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="requires" type="lyr:RequiresType"
+                  minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="condition" type="lyr:ConditionType"
+                  minOccurs="0" maxOccurs="1"/>
+      <xs:element name="acceptance" type="lyr:AcceptanceType"
+                  minOccurs="0" maxOccurs="unbounded"/>
+      <xs:any namespace="##other" processContents="strict"
+              minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID" use="required"/>
+    <xs:attribute name="name" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>Workflow name (e.g., onboard, catch-up, brainstorm, review).</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <!-- RequiresType: dependency on another layer -->
+  <xs:complexType name="RequiresType" id="type-requires">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          Declares a dependency on another layer. The layer attribute
+          references a lyr:layer/@id. The optional mode attribute names
+          a specific mode that must complete first. If mode is omitted,
+          the layer must have been processed in general.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:attribute name="layer" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>References a lyr:layer/@id.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="mode" type="xs:string" use="optional">
+      <xs:annotation>
+        <xs:documentation>Specific mode name that must complete first.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <!-- ConditionType: triggering condition -->
+  <xs:complexType name="ConditionType" id="type-condition" mixed="true">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          Triggering condition for a mode. Mixed content: prose text
+          describing when this mode applies. Evaluated by the
+          orchestrating LLM with judgment against the current project
+          state.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+  </xs:complexType>
+
+  <!-- AcceptanceType: success criterion -->
+  <xs:complexType name="AcceptanceType" id="type-acceptance" mixed="true">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          Success criterion for a mode. Mixed content: prose text
+          describing what must be true after the mode completes.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+  </xs:complexType>
+
+</xs:schema>

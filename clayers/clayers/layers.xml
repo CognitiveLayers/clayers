@@ -1,0 +1,447 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Layer Descriptions: Meta-layer instances describing all built-in layers.
+  Each lyr:layer declares the modes it supports for workflows like
+  onboarding, catch-up, brainstorming, and review.
+-->
+<spec:clayers xmlns:spec="urn:clayers:spec"
+       xmlns:lyr="urn:clayers:layer"
+       xmlns:pr="urn:clayers:prose"
+       xmlns:org="urn:clayers:organization"
+       xmlns:rel="urn:clayers:relation"
+       xmlns:llm="urn:clayers:llm"
+       spec:index="index.xml">
+
+  <!-- ============================================================
+       Layer: Layer (self-referential)
+       ============================================================ -->
+
+  <lyr:layer id="layer-layer" schema="urn:clayers:layer">
+    <lyr:mode id="mode-lyr-onboard" name="onboard">
+      <lyr:condition>Layers exist that have no lyr:layer descriptions</lyr:condition>
+      <lyr:acceptance>Every layer used in the spec has a lyr:layer element with at
+      least an onboard mode</lyr:acceptance>
+      <pr:p>For each layer namespace found in the spec's schemas, create a
+      lyr:layer element describing it. Declare at minimum an onboard mode
+      with prerequisites, conditions, and guidance. Register the layer
+      description file in the index.</pr:p>
+    </lyr:mode>
+  </lyr:layer>
+
+  <!-- ============================================================
+       Layer: Index
+       ============================================================ -->
+
+  <lyr:layer id="layer-index" schema="urn:clayers:index">
+    <lyr:mode id="mode-idx-onboard" name="onboard">
+      <lyr:condition>A new specification is being created</lyr:condition>
+      <lyr:acceptance>An index.xml exists listing all spec files with correct
+      spec identity and version</lyr:acceptance>
+      <pr:p>Create the index.xml manifest file. Declare the spec identity
+      (spec:spec attribute) and version (spec:version). Add file elements
+      for each spec file as they are created. The index defines the
+      specification boundary and ID uniqueness domain.</pr:p>
+    </lyr:mode>
+  </lyr:layer>
+
+  <!-- ============================================================
+       Layer: Revision
+       ============================================================ -->
+
+  <lyr:layer id="layer-revision" schema="urn:clayers:revision">
+    <lyr:mode id="mode-rev-onboard" name="onboard">
+      <lyr:requires layer="layer-index"/>
+      <lyr:condition>A new specification is being created</lyr:condition>
+      <lyr:acceptance>A revision.xml exists with at least one named revision
+      snapshot</lyr:acceptance>
+      <pr:p>Create revision.xml with an initial named revision (e.g., draft-1).
+      This snapshot anchors artifact mappings to a specific point in the
+      spec's evolution. Set the timestamp and reference the index.</pr:p>
+    </lyr:mode>
+  </lyr:layer>
+
+  <!-- ============================================================
+       Layer: VCS
+       ============================================================ -->
+
+  <lyr:layer id="layer-vcs" schema="urn:clayers:vcs">
+    <lyr:mode id="mode-vcs-onboard" name="onboard">
+      <lyr:condition>The project has version-controlled source code</lyr:condition>
+      <lyr:acceptance>All repositories referenced by artifact mappings have
+      vcs:git declarations with correct remote URLs</lyr:acceptance>
+      <pr:p>Declare each git repository that will be referenced by artifact
+      mappings. Use vcs:git with the remote URL and default branch. The
+      element ID will be referenced by art:artifact/@repo attributes.</pr:p>
+    </lyr:mode>
+  </lyr:layer>
+
+  <!-- ============================================================
+       Layer: Prose
+       ============================================================ -->
+
+  <lyr:layer id="layer-prose" schema="urn:clayers:prose">
+    <lyr:mode id="mode-pr-onboard" name="onboard">
+      <lyr:requires layer="layer-index"/>
+      <lyr:condition>Source code or documentation exists to describe</lyr:condition>
+      <lyr:acceptance>Every major module and component has a pr:section with
+      title, shortdesc, and descriptive paragraphs</lyr:acceptance>
+      <pr:p>Create spec files organized by topic (one file per major module
+      or component). Each file gets pr:section elements with meaningful
+      titles and descriptions. Start with high-level architecture, then
+      drill into subsystems. Use pr:shortdesc for scannable summaries.</pr:p>
+      <pr:p>Write prose that explains intent and design rationale, not
+      just what the code does. Focus on "why" over "what".</pr:p>
+    </lyr:mode>
+    <lyr:mode id="mode-pr-brainstorm" name="brainstorm">
+      <lyr:condition>A new feature or component is being designed</lyr:condition>
+      <lyr:acceptance>New sections describe the feature's purpose, behavior,
+      and design rationale</lyr:acceptance>
+      <pr:p>Write prose sections describing the new feature before code
+      exists. Capture intent, constraints, and expected behavior. These
+      sections become the foundation for implementation.</pr:p>
+    </lyr:mode>
+    <lyr:mode id="mode-pr-catch-up" name="catch-up">
+      <lyr:condition>Code modules exist without corresponding prose sections</lyr:condition>
+      <lyr:acceptance>All code modules have prose descriptions</lyr:acceptance>
+      <pr:p>Identify code modules that lack prose coverage. Create sections
+      for each, capturing what the module does and why it exists.</pr:p>
+    </lyr:mode>
+  </lyr:layer>
+
+  <!-- ============================================================
+       Layer: Terminology
+       ============================================================ -->
+
+  <lyr:layer id="layer-terminology" schema="urn:clayers:terminology">
+    <lyr:mode id="mode-trm-onboard" name="onboard">
+      <lyr:requires layer="layer-prose"/>
+      <lyr:condition>Domain concepts exist in the codebase</lyr:condition>
+      <lyr:acceptance>All domain concepts have trm:term definitions with
+      precise, unambiguous definitions</lyr:acceptance>
+      <pr:p>Scan code identifiers, comments, documentation, and prose
+      sections for domain concepts. Extract each into a trm:term element
+      with a canonical name and precise definition.</pr:p>
+      <pr:ol>
+        <pr:li>Inventory naming patterns in source files</pr:li>
+        <pr:li>Group related terms into semantic clusters</pr:li>
+        <pr:li>Write trm:term elements with definitions that distinguish
+        each term from similar concepts</pr:li>
+        <pr:li>Add trm:ref elements in prose wherever terms are used</pr:li>
+      </pr:ol>
+    </lyr:mode>
+    <lyr:mode id="mode-trm-brainstorm" name="brainstorm">
+      <lyr:condition>New domain concepts are being introduced</lyr:condition>
+      <lyr:acceptance>New terms are defined before implementation begins</lyr:acceptance>
+      <pr:p>When designing a new feature, identify new domain concepts
+      that need controlled definitions. Define terms before writing code
+      so that implementation uses consistent vocabulary.</pr:p>
+    </lyr:mode>
+    <lyr:mode id="mode-trm-catch-up" name="catch-up">
+      <lyr:condition>Code uses domain terms not yet defined in the spec</lyr:condition>
+      <lyr:acceptance>No undefined domain terms remain in the codebase</lyr:acceptance>
+      <pr:p>Search for domain-specific identifiers and concepts in the code
+      that lack trm:term definitions. Add missing definitions.</pr:p>
+    </lyr:mode>
+  </lyr:layer>
+
+  <!-- ============================================================
+       Layer: Organization
+       ============================================================ -->
+
+  <lyr:layer id="layer-organization" schema="urn:clayers:organization">
+    <lyr:mode id="mode-org-onboard" name="onboard">
+      <lyr:requires layer="layer-prose"/>
+      <lyr:condition>Prose sections exist that need topic classification</lyr:condition>
+      <lyr:acceptance>Every prose section has an org:concept, org:task, or
+      org:reference classification with a purpose statement</lyr:acceptance>
+      <pr:p>Classify each prose section by topic type. Concepts explain
+      ideas. Tasks describe system behavior. References provide lookup
+      information. Add org:concept, org:task, or org:reference elements
+      with purpose statements explaining the classification.</pr:p>
+    </lyr:mode>
+    <lyr:mode id="mode-org-catch-up" name="catch-up">
+      <lyr:condition>Prose sections exist without topic classification</lyr:condition>
+      <lyr:acceptance>All sections are classified</lyr:acceptance>
+      <pr:p>Find prose sections missing topic typing. Add the appropriate
+      org:concept, org:task, or org:reference with purpose.</pr:p>
+    </lyr:mode>
+  </lyr:layer>
+
+  <!-- ============================================================
+       Layer: Relation
+       ============================================================ -->
+
+  <lyr:layer id="layer-relation" schema="urn:clayers:relation">
+    <lyr:mode id="mode-rel-onboard" name="onboard">
+      <lyr:requires layer="layer-prose"/>
+      <lyr:requires layer="layer-terminology"/>
+      <lyr:requires layer="layer-organization"/>
+      <lyr:condition>Multiple spec nodes exist that should be semantically linked</lyr:condition>
+      <lyr:acceptance>No isolated nodes remain in the connectivity graph
+      (every node has at least one relation)</lyr:acceptance>
+      <pr:p>Add typed relations between spec nodes. Use depends-on for
+      prerequisites, refines for parent-child, precedes for ordering,
+      implements for spec-to-code concepts, and references for
+      cross-references. Check connectivity with the connectivity command
+      and iterate until no isolated nodes remain.</pr:p>
+    </lyr:mode>
+    <lyr:mode id="mode-rel-catch-up" name="catch-up">
+      <lyr:condition>Isolated nodes exist in the connectivity graph</lyr:condition>
+      <lyr:acceptance>Zero isolated nodes in connectivity analysis</lyr:acceptance>
+      <pr:p>Run connectivity analysis. For each isolated node, identify
+      its semantic relationships to other nodes and add appropriate
+      rel:relation elements.</pr:p>
+    </lyr:mode>
+    <lyr:mode id="mode-rel-review" name="review">
+      <lyr:condition>Spec has been modified since last review</lyr:condition>
+      <lyr:acceptance>Connectivity analysis shows no isolated nodes and
+      relation types accurately reflect semantic meaning</lyr:acceptance>
+      <pr:p>Review the connectivity graph for accuracy. Verify relation
+      types match the actual semantic relationships. Add missing relations.
+      Remove incorrect ones.</pr:p>
+    </lyr:mode>
+  </lyr:layer>
+
+  <!-- ============================================================
+       Layer: Decision
+       ============================================================ -->
+
+  <lyr:layer id="layer-decision" schema="urn:clayers:decision">
+    <lyr:mode id="mode-dec-onboard" name="onboard">
+      <lyr:requires layer="layer-prose"/>
+      <lyr:condition>Architectural decisions have been made that should be
+      recorded</lyr:condition>
+      <lyr:acceptance>All significant architectural decisions have dec:decision
+      records with status, alternatives, and rationale</lyr:acceptance>
+      <pr:p>Identify architectural decisions in the codebase (framework
+      choices, data model decisions, API design choices). Create
+      dec:decision records with status, rejected alternatives, and
+      rationale for each.</pr:p>
+    </lyr:mode>
+    <lyr:mode id="mode-dec-brainstorm" name="brainstorm">
+      <lyr:condition>A design decision needs to be made</lyr:condition>
+      <lyr:acceptance>The decision is recorded with alternatives and rationale</lyr:acceptance>
+      <pr:p>When facing a design choice, create a dec:decision record
+      in proposed status. Document alternatives with rationale. Update
+      status to accepted once decided.</pr:p>
+    </lyr:mode>
+  </lyr:layer>
+
+  <!-- ============================================================
+       Layer: Source
+       ============================================================ -->
+
+  <lyr:layer id="layer-source" schema="urn:clayers:source">
+    <lyr:mode id="mode-src-onboard" name="onboard">
+      <lyr:requires layer="layer-prose"/>
+      <lyr:condition>External references (RFCs, papers, standards, documentation)
+      are relevant to the project</lyr:condition>
+      <lyr:acceptance>All referenced external materials have src:source
+      declarations with proper classification</lyr:acceptance>
+      <pr:p>Identify external references mentioned in code comments, docs,
+      or design discussions. Create src:source declarations with URLs,
+      type classification, and optional cached content hashes.</pr:p>
+    </lyr:mode>
+  </lyr:layer>
+
+  <!-- ============================================================
+       Layer: Plan
+       ============================================================ -->
+
+  <lyr:layer id="layer-plan" schema="urn:clayers:plan">
+    <lyr:mode id="mode-pln-brainstorm" name="brainstorm">
+      <lyr:requires layer="layer-prose"/>
+      <lyr:condition>A feature design needs an implementation plan</lyr:condition>
+      <lyr:acceptance>Implementation plan exists with items, acceptance
+      criteria, and test references</lyr:acceptance>
+      <pr:p>Create a pln:plan element with title, overview, and itemized
+      steps. Each item should have acceptance criteria. Link items to
+      spec nodes they implement. Set status to proposed until work begins.</pr:p>
+    </lyr:mode>
+  </lyr:layer>
+
+  <!-- ============================================================
+       Layer: Artifact
+       ============================================================ -->
+
+  <lyr:layer id="layer-artifact" schema="urn:clayers:artifact">
+    <lyr:mode id="mode-art-onboard" name="onboard">
+      <lyr:requires layer="layer-prose"/>
+      <lyr:requires layer="layer-terminology"/>
+      <lyr:requires layer="layer-organization"/>
+      <lyr:requires layer="layer-vcs"/>
+      <lyr:requires layer="layer-revision"/>
+      <lyr:condition>Code files and spec nodes both exist</lyr:condition>
+      <lyr:acceptance>Every spec node has an art:mapping with valid hashes and
+      precise line ranges. Coverage analysis shows zero unmapped nodes.</lyr:acceptance>
+      <pr:p>Link each spec node to its implementing code. Create art:mapping
+      elements with spec-ref (node ID, revision, node-hash) and artifact
+      (repo, path, line ranges, content hash).</pr:p>
+      <pr:ol>
+        <pr:li>Scan source files for functions and modules corresponding to
+        spec nodes</pr:li>
+        <pr:li>Create art:mapping elements with precise line ranges (prefer
+        under 30 lines per range)</pr:li>
+        <pr:li>Run --fix-node-hash and --fix-artifact-hash to compute
+        SHA-256 hashes</pr:li>
+        <pr:li>Run --drift to verify clean state</pr:li>
+        <pr:li>Run --coverage to verify zero unmapped nodes</pr:li>
+      </pr:ol>
+    </lyr:mode>
+    <lyr:mode id="mode-art-catch-up" name="catch-up">
+      <lyr:condition>Unmapped spec nodes or drifted mappings exist</lyr:condition>
+      <lyr:acceptance>Zero unmapped nodes and zero drifted mappings</lyr:acceptance>
+      <pr:p>Run drift and coverage analysis. For drifted mappings, update
+      line ranges and re-fix hashes. For unmapped nodes, create new
+      art:mapping elements.</pr:p>
+    </lyr:mode>
+    <lyr:mode id="mode-art-review" name="review">
+      <lyr:condition>Artifact mappings exist that may need quality improvement</lyr:condition>
+      <lyr:acceptance>All mappings have precise line ranges, correct coverage
+      levels, and descriptive notes</lyr:acceptance>
+      <pr:p>Review artifact mappings for quality. Check that line ranges
+      are precise (not overly broad), coverage levels are accurate, and
+      notes describe what the code implements. Fix drift and improve
+      granularity where needed.</pr:p>
+    </lyr:mode>
+  </lyr:layer>
+
+  <!-- ============================================================
+       Layer: LLM
+       ============================================================ -->
+
+  <lyr:layer id="layer-llm" schema="urn:clayers:llm">
+    <lyr:mode id="mode-llm-onboard" name="onboard">
+      <lyr:requires layer="layer-prose"/>
+      <lyr:requires layer="layer-terminology"/>
+      <lyr:condition>Spec nodes exist that need machine-readable descriptions</lyr:condition>
+      <lyr:acceptance>Every spec node has an llm:node description. Every schema
+      has an llm:schema description.</lyr:acceptance>
+      <pr:p>Add llm:node descriptions for each spec node, explaining what
+      it means, how it relates to other nodes, and guidance for
+      interpreting or modifying it. Add llm:schema descriptions for
+      each layer namespace.</pr:p>
+    </lyr:mode>
+    <lyr:mode id="mode-llm-catch-up" name="catch-up">
+      <lyr:condition>Spec nodes exist without llm:node descriptions</lyr:condition>
+      <lyr:acceptance>All nodes have descriptions</lyr:acceptance>
+      <pr:p>Find spec nodes missing llm:node descriptions and add them.
+      Focus on nodes that are most important for LLM comprehension.</pr:p>
+    </lyr:mode>
+  </lyr:layer>
+
+  <!-- ============================================================
+       Layer: Content
+       ============================================================ -->
+
+  <lyr:layer id="layer-content" schema="urn:clayers:content">
+    <lyr:mode id="mode-cnt-onboard" name="onboard">
+      <lyr:condition>External content needs to be referenced with integrity
+      guarantees</lyr:condition>
+      <lyr:acceptance>All external content references have cnt:content elements
+      with valid hashes</lyr:acceptance>
+      <pr:p>For external content that other layers reference (test fixtures,
+      data files, cached external documents), create cnt:content elements
+      with URLs and content hashes for integrity verification.</pr:p>
+    </lyr:mode>
+  </lyr:layer>
+
+  <!-- ============================================================
+       Layer: Testing
+       ============================================================ -->
+
+  <lyr:layer id="layer-testing" schema="urn:clayers:testing">
+    <lyr:mode id="mode-tst-onboard" name="onboard">
+      <lyr:requires layer="layer-prose"/>
+      <lyr:condition>Tests exist or need to be defined for spec verification</lyr:condition>
+      <lyr:acceptance>Key spec requirements have corresponding test definitions
+      with appropriate types (manual, vectors, property, program, witness)</lyr:acceptance>
+      <pr:p>Define test specifications for key requirements. Choose the
+      appropriate test type: program for executable tests, vectors for
+      input/output pairs, property for invariants, manual for procedures
+      requiring human judgment, witness for external verification.</pr:p>
+    </lyr:mode>
+  </lyr:layer>
+
+  <!-- ============================================================
+       Layer: Python
+       ============================================================ -->
+
+  <lyr:layer id="layer-python" schema="urn:clayers:python">
+    <lyr:mode id="mode-py-onboard" name="onboard">
+      <lyr:requires layer="layer-prose"/>
+      <lyr:condition>Python source code exists in the project</lyr:condition>
+      <lyr:acceptance>All public Python APIs have py:module, py:class, and
+      py:function descriptions with parameter types and return types</lyr:acceptance>
+      <pr:p>Describe the Python API surface. Create py:module elements for
+      packages, py:class for classes, and py:function/py:method for
+      callables. Include parameter lists, return types, and raised
+      exceptions.</pr:p>
+    </lyr:mode>
+  </lyr:layer>
+
+  <!-- ============================================================
+       Layer: Spec (structural, no workflow modes)
+       ============================================================ -->
+
+  <lyr:layer id="layer-spec" schema="urn:clayers:spec">
+    <!-- The spec layer is structural infrastructure (root element,
+         annotation markers). It participates implicitly in all
+         workflows by providing the root element. No explicit modes. -->
+  </lyr:layer>
+
+  <!-- ============================================================
+       Relations between layers
+       ============================================================ -->
+
+  <rel:relation type="depends-on" from="layer-terminology" to="layer-prose">
+    <rel:note>Terminology extraction requires prose to exist first, as terms
+    are derived from and referenced within prose content.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="layer-organization" to="layer-prose">
+    <rel:note>Topic typing classifies prose sections, so prose must exist
+    before organization can be applied.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="layer-artifact" to="layer-prose">
+    <rel:note>Artifact mappings link spec nodes (primarily prose sections)
+    to code, so spec nodes must exist first.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="layer-llm" to="layer-prose">
+    <rel:note>LLM descriptions reference spec nodes, which are primarily
+    defined in the prose layer.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="layer-artifact" to="layer-vcs">
+    <rel:note>Artifact mappings reference VCS repositories, so repo
+    declarations must exist first.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="layer-artifact" to="layer-revision">
+    <rel:note>Artifact mappings pin to revisions, so at least one revision
+    must exist.</rel:note>
+  </rel:relation>
+
+  <!-- Machine descriptions -->
+
+  <llm:node ref="layer-layer">
+    The self-referential meta-layer: describes the layer layer itself.
+    Its onboard mode tells orchestrators how to create lyr:layer instances
+    for layers that lack descriptions.
+  </llm:node>
+
+  <llm:node ref="layer-prose">
+    The prose layer is the foundation that most other layers build on.
+    Onboarding it first ensures spec nodes exist for terminology extraction,
+    topic typing, relation building, and artifact mapping.
+  </llm:node>
+
+  <llm:node ref="layer-artifact">
+    The artifact layer depends on the most other layers (prose, terminology,
+    organization, VCS, revision) because it creates the bridge between
+    spec and code. It is typically the last onboarding phase.
+  </llm:node>
+
+</spec:clayers>

@@ -29,5 +29,6 @@
   <file href="merge.xml"/>
   <file href="remote-store.xml"/>
   <file href="architecture-model.xml"/>
+  <file href="layers.xml"/>
   <file href="revision.xml" layer="urn:clayers:revision"/>
 </spec:clayers>
