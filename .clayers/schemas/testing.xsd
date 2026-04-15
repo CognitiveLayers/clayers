@@ -1,0 +1,427 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:tst="urn:clayers:testing"
+           xmlns:rel="urn:clayers:relation"
+           xmlns:llm="urn:clayers:llm"
+           xmlns:spec="urn:clayers:spec"
+           targetNamespace="urn:clayers:testing"
+           elementFormDefault="qualified"
+           version="1.0">
+
+  <xs:import namespace="urn:clayers:relation"
+             schemaLocation="relation.xsd"/>
+
+  <xs:annotation>
+    <xs:documentation>
+      Testing Layer Schema.
+      First-class test definitions as spec nodes. Distinct test types
+      model different testing paradigms: manual (prose procedures), vectors
+      (input/output data pairs), property (generative/invariant-based),
+      program (executable source code), and witness (blackbox external
+      verification). Tests are grouped into suites. The witness type
+      enumeration is extensible. Plans reference tests via criterion
+      test attributes instead of embedding witnesses.
+    </xs:documentation>
+    <xs:appinfo>
+      <llm:describe>
+        The testing schema defines distinct test types as spec nodes:
+        tst:manual (human-executed procedures with expected results),
+        tst:vectors (test vectors: structured input/output data pairs via
+        cnt:content), tst:property (invariants over generated inputs),
+        tst:program (executable test code via cnt:content reference),
+        and tst:witness (blackbox verification: command, script, or API).
+        Tests are grouped by tst:suite. The WitnessKind enum is extensible
+        via tst:witness-type-properties annotations. Plans reference tests
+        via pln:criterion/@test instead of embedding witnesses.
+      </llm:describe>
+      <spec:keyref name="suite-test-refs" selector=".//tst:test" field="@ref"/>
+      <spec:keyref name="data-ref-content-refs" selector=".//tst:input|.//tst:output" field="@content"/>
+    </xs:appinfo>
+  </xs:annotation>
+
+  <!-- ================================================================== -->
+  <!-- Global elements                                                     -->
+  <!-- ================================================================== -->
+
+  <xs:element name="manual" type="tst:ManualType">
+    <xs:annotation><xs:appinfo><spec:content-element/></xs:appinfo></xs:annotation>
+  </xs:element>
+
+  <xs:element name="vectors" type="tst:VectorsType">
+    <xs:annotation><xs:appinfo><spec:content-element/></xs:appinfo></xs:annotation>
+  </xs:element>
+
+  <xs:element name="property" type="tst:PropertyType">
+    <xs:annotation><xs:appinfo><spec:content-element/></xs:appinfo></xs:annotation>
+  </xs:element>
+
+  <xs:element name="program" type="tst:ProgramType">
+    <xs:annotation><xs:appinfo><spec:content-element/></xs:appinfo></xs:annotation>
+  </xs:element>
+
+  <xs:element name="witness" type="tst:WitnessType">
+    <xs:annotation><xs:appinfo><spec:content-element/></xs:appinfo></xs:annotation>
+  </xs:element>
+
+  <xs:element name="suite" type="tst:SuiteType">
+    <xs:annotation><xs:appinfo><spec:content-element/></xs:appinfo></xs:annotation>
+  </xs:element>
+
+  <!-- Extension annotation element -->
+  <xs:element name="witness-type-properties">
+    <xs:annotation>
+      <xs:documentation>
+        Placed in xs:appinfo of an extension complexType to declare it as a
+        witness type. Activated via rel:relation type="refines" edge from
+        the extension type's id to type-witness-kind.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:complexType>
+      <xs:attribute name="type-name" type="xs:string" use="required">
+        <xs:annotation>
+          <xs:documentation>Canonical name for this witness type in reports and queries.</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- ================================================================== -->
+  <!-- Manual: human-executed test procedure                               -->
+  <!-- ================================================================== -->
+
+  <xs:complexType name="ManualType">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          A human-executed test with procedure steps and expected results.
+          Embeds prose layer elements via xs:any for rich content.
+          Optional role attribute specifies who performs the test.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="title" type="xs:string"/>
+      <xs:element name="procedure" type="tst:MixedContentType"/>
+      <xs:element name="expected" type="tst:MixedContentType"/>
+      <xs:any namespace="##other" processContents="strict"
+              minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="role" type="xs:string" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID" use="required"/>
+  </xs:complexType>
+
+  <!-- ================================================================== -->
+  <!-- Vectors: structured input/output test data pairs                    -->
+  <!-- ================================================================== -->
+
+  <xs:complexType name="VectorsType">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          Test vectors: structured test data. Each vector defines a complete test
+          case with labeled inputs, expected outputs, and optional expected
+          outcome. Vectors reference cnt:content nodes for their data.
+          Individual vectors are addressable nodes with IDs. The vectors
+          container can declare shared tags and a description for the set.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="title" type="xs:string"/>
+      <xs:element name="description" type="tst:MixedContentType" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Optional rich description of the vector set. Supports
+          embedded prose layer elements.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:any namespace="##other" processContents="strict"
+              minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="vector" type="tst:VectorType" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="VectorType">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          A single test case within a vector set. Contains one or more
+          labeled inputs and expected outputs (referencing cnt:content
+          nodes), an optional expected outcome classification, tags for
+          categorization, and a rich description. Multiple inputs/outputs
+          support multi-parameter test cases.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="input" type="tst:DataRefType" maxOccurs="unbounded">
+        <xs:annotation>
+          <xs:documentation>Test input data. Multiple inputs for multi-parameter cases.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="output" type="tst:DataRefType" maxOccurs="unbounded">
+        <xs:annotation>
+          <xs:documentation>Expected output data. Multiple outputs for multi-value results.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="outcome" type="tst:VectorOutcomeKind" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Expected test outcome. Defaults to pass if omitted.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="description" type="tst:MixedContentType" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Rich description of this test case. Supports embedded
+          prose layer elements for detailed explanations.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID" use="required"/>
+    <xs:attribute name="tags" type="xs:string" use="optional">
+      <xs:annotation>
+        <xs:documentation>Space-separated tags for categorization (e.g.,
+        "edge-case regression boundary").</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <xs:complexType name="DataRefType" mixed="true">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          A labeled data reference for test vector inputs and outputs. The
+          content attribute references a cnt:content node holding the actual
+          data. The label identifies what this data represents (e.g., "query",
+          "request-body", "stdout", "error-code"). Mixed content allows
+          inline description of what the data means in context.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:any namespace="##other" processContents="strict"
+              minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="content" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>References a cnt:content node ID.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="label" type="xs:string" use="optional">
+      <xs:annotation>
+        <xs:documentation>What this data represents (e.g., "query", "stdin",
+        "response-body", "exit-code"). Disambiguates when a vector has
+        multiple inputs or outputs.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <!-- Expected outcome for a test vector -->
+  <xs:simpleType name="VectorOutcomeKind">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="pass">
+        <xs:annotation>
+          <xs:documentation>Output should match expected data exactly.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="fail">
+        <xs:annotation>
+          <xs:documentation>System should reject the input or produce an error.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="error">
+        <xs:annotation>
+          <xs:documentation>System should signal an error condition (distinct from
+          a logical failure).</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="skip">
+        <xs:annotation>
+          <xs:documentation>Vector is currently disabled (known issue, not yet
+          implemented, etc.).</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- ================================================================== -->
+  <!-- Property: generative/invariant-based test                           -->
+  <!-- ================================================================== -->
+
+  <xs:complexType name="PropertyType">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          Generative/property-based test. Declares invariants that must
+          hold over generated inputs. Mixed content + xs:any throughout
+          for augmentation with any layer (prose, terminology, sources).
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="title" type="xs:string"/>
+      <xs:element name="invariant" type="tst:MixedContentType"/>
+      <xs:element name="generator" type="tst:MixedContentType" minOccurs="0"/>
+      <xs:element name="bounds" type="tst:BoundsType" minOccurs="0"/>
+      <xs:any namespace="##other" processContents="strict"
+              minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="BoundsType">
+    <xs:attribute name="sample-count" type="xs:positiveInteger" use="optional"/>
+    <xs:attribute name="timeout" type="xs:duration" use="optional"/>
+  </xs:complexType>
+
+  <!-- ================================================================== -->
+  <!-- Program: executable test code                                       -->
+  <!-- ================================================================== -->
+
+  <xs:complexType name="ProgramType">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          Executable test code. The source attribute references a
+          cnt:content node containing the test code (which may be
+          embedded inline or referenced externally). The lang attribute
+          specifies the programming language.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="title" type="xs:string"/>
+      <xs:any namespace="##other" processContents="strict"
+              minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID" use="required"/>
+    <xs:attribute name="source" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>References a cnt:content node containing the test code.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="lang" type="xs:string" use="optional">
+      <xs:annotation>
+        <xs:documentation>Programming language (convenience attribute).</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <!-- ================================================================== -->
+  <!-- Witness: blackbox external verification                             -->
+  <!-- ================================================================== -->
+
+  <xs:complexType name="WitnessType" id="type-witness">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          Blackbox external verification. The type attribute classifies
+          the witness: command (shell command), script (executable via
+          cnt:content), api (HTTP endpoint). Type-specific children
+          provide the verification details.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="title" type="xs:string"/>
+      <!-- command type children -->
+      <xs:element name="command" type="xs:string" minOccurs="0"/>
+      <xs:element name="exit-code" type="xs:integer" minOccurs="0"/>
+      <!-- api type children -->
+      <xs:element name="endpoint" type="xs:anyURI" minOccurs="0"/>
+      <xs:element name="method" type="xs:string" minOccurs="0"/>
+      <xs:element name="status" type="xs:positiveInteger" minOccurs="0"/>
+      <xs:any namespace="##other" processContents="strict"
+              minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID" use="required"/>
+    <xs:attribute name="type" type="tst:WitnessKind" use="required"/>
+    <!-- script type attributes -->
+    <xs:attribute name="source" type="xs:string" use="optional">
+      <xs:annotation>
+        <xs:documentation>References a cnt:content node for script witnesses.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="lang" type="xs:string" use="optional"/>
+    <!-- api type attributes for request/response content -->
+    <xs:attribute name="request" type="xs:string" use="optional">
+      <xs:annotation>
+        <xs:documentation>References a cnt:content node for API request body.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="response" type="xs:string" use="optional">
+      <xs:annotation>
+        <xs:documentation>References a cnt:content node for expected API response.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <!-- WitnessKind: extensible witness type classification -->
+  <xs:simpleType name="WitnessKind" id="type-witness-kind">
+    <xs:annotation>
+      <xs:documentation>
+        Enumeration of witness type classifications. Extensible via
+        tst:witness-type-properties annotation + refines relation.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="command">
+        <xs:annotation>
+          <xs:documentation>Shell command whose exit code indicates pass (0) or fail.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="script">
+        <xs:annotation>
+          <xs:documentation>Executable script via cnt:content reference. Use lang and source attributes.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="api">
+        <xs:annotation>
+          <xs:documentation>HTTP API call. Use endpoint, method, status, request, response.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- ================================================================== -->
+  <!-- Suite: test grouping                                                -->
+  <!-- ================================================================== -->
+
+  <xs:complexType name="SuiteType">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          Groups tests into logical suites. Each test child references
+          a test node by ID.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="title" type="xs:string"/>
+      <xs:element name="test" type="tst:TestRefType" maxOccurs="unbounded"/>
+      <xs:any namespace="##other" processContents="strict"
+              minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="TestRefType">
+    <xs:attribute name="ref" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>References any test node ID.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <!-- ================================================================== -->
+  <!-- Shared types                                                        -->
+  <!-- ================================================================== -->
+
+  <!-- Mixed content with xs:any for embedding prose/terminology/source -->
+  <xs:complexType name="MixedContentType" mixed="true">
+    <xs:sequence>
+      <xs:any namespace="##other" processContents="strict"
+              minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+</xs:schema>

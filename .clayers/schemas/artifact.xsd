@@ -32,6 +32,7 @@
       </llm:describe>
       <spec:keyref name="artifact-node-refs" selector=".//art:spec-ref" field="@node"/>
       <spec:keyref name="artifact-exempt-refs" selector=".//art:exempt" field="@node"/>
+      <spec:keyref name="artifact-repo-refs" selector=".//art:artifact" field="@repo"/>
     </xs:appinfo>
   </xs:annotation>
 
