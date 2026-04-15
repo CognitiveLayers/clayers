@@ -2,7 +2,7 @@
 <!-- clayers:adopt -->
 ## Clayers Development Workflow
 
-This project uses [clayers](https://github.com/inferaldata/clayers) for
+This project uses [clayers](https://github.com/CognitiveLayers/clayers) for
 structured, layered specifications with machine-verifiable traceability.
 
 **Spec first, code second.** Before implementing, update the spec to
@@ -28,7 +28,7 @@ that was specified.
 
 Install: `cargo install clayers`
 
-See [clayers documentation](https://github.com/inferaldata/clayers) for
+See [clayers documentation](https://github.com/CognitiveLayers/clayers) for
 the full layer reference (prose, terminology, organization, relation,
 decision, source, plan, artifact, llm, revision).
 <!-- /clayers:adopt -->

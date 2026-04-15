@@ -135,7 +135,7 @@
   <art:mapping id="map-type-content-schema">
     <art:spec-ref node="type-content"
               revision="draft-1"
-              node-hash="sha256:5e63873120f9951c0a7b7371110d06ed741c8d3049b40f50aa2dfa9d95b6b977"/>
+              node-hash="sha256:9a7586f080fb0b0af9f02e69499876f7c22c5a49e07ef61a26de118d48c8c88d"/>
     <art:artifact repo="repo-clayers"
               repo-revision="e5fa37e"
               path="schemas/content.xsd">

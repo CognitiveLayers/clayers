@@ -345,7 +345,7 @@
   <art:mapping id="map-type-plan-schema">
     <art:spec-ref node="type-plan"
               revision="draft-1"
-              node-hash="sha256:71d5cce6103432bca4707da6f96bf427a59594d989d54c52ab1eee1b0589acd0"/>
+              node-hash="sha256:8b82f7919de5285c082211550a718e4ebffc5bf3226fb0f945f5257ba7bbcbf9"/>
     <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/plan.xsd">
@@ -359,7 +359,7 @@
   <art:mapping id="map-type-revises-schema">
     <art:spec-ref node="type-revises"
               revision="draft-1"
-              node-hash="sha256:fa51abef146cd7c4e22502ce43a921f825120192522e72ccf6b1040515c1c8ee"/>
+              node-hash="sha256:daf28f04a6206666ca9ce3070a518fb9ee5775c67863641e7d30fc17bbff4601"/>
     <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/plan.xsd">
@@ -373,7 +373,7 @@
   <art:mapping id="map-plan-layer-schema-core">
     <art:spec-ref node="plan-layer"
               revision="draft-1"
-              node-hash="sha256:8e17810d1cd168a3e46299c095059e03179e0f4fcb26808a4aaa652178eeb425"/>
+              node-hash="sha256:9e11ad9d7694a025692b12bf2d8088f7bbbbe772d4bd2e99f67fa6e26a2acca0"/>
     <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/plan.xsd">
@@ -386,7 +386,7 @@
   <art:mapping id="map-plan-layer-schema-plan-type">
     <art:spec-ref node="plan-layer"
               revision="draft-1"
-              node-hash="sha256:8e17810d1cd168a3e46299c095059e03179e0f4fcb26808a4aaa652178eeb425"/>
+              node-hash="sha256:9e11ad9d7694a025692b12bf2d8088f7bbbbe772d4bd2e99f67fa6e26a2acca0"/>
     <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/plan.xsd">
@@ -399,7 +399,7 @@
   <art:mapping id="map-plan-layer-schema-acceptance-types">
     <art:spec-ref node="plan-layer"
               revision="draft-1"
-              node-hash="sha256:8e17810d1cd168a3e46299c095059e03179e0f4fcb26808a4aaa652178eeb425"/>
+              node-hash="sha256:9e11ad9d7694a025692b12bf2d8088f7bbbbe772d4bd2e99f67fa6e26a2acca0"/>
     <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/plan.xsd">
@@ -412,7 +412,7 @@
   <art:mapping id="map-plan-layer-schema-revises">
     <art:spec-ref node="plan-layer"
               revision="draft-1"
-              node-hash="sha256:8e17810d1cd168a3e46299c095059e03179e0f4fcb26808a4aaa652178eeb425"/>
+              node-hash="sha256:9e11ad9d7694a025692b12bf2d8088f7bbbbe772d4bd2e99f67fa6e26a2acca0"/>
     <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/plan.xsd">
@@ -426,7 +426,7 @@
   <art:mapping id="map-plan-acceptance-schema">
     <art:spec-ref node="plan-acceptance-criteria"
               revision="draft-1"
-              node-hash="sha256:c40fb4e9eaf4544896106769d19594e32239bbe2a0cc13674848ff0abaf98448"/>
+              node-hash="sha256:101c49087795db3ab0d86f692ae3d74c0624320b8060572bafd9bd6bce278db9"/>
     <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/plan.xsd">

@@ -622,7 +622,7 @@ if any(b["ns/iter"] > 1000 for b in data["benchmarks"]):
   <art:mapping id="map-type-witness-kind-testing-schema">
     <art:spec-ref node="type-witness-kind"
               revision="draft-1"
-              node-hash="sha256:911acf224baeab179e43f25a7112e8eae52013f1d27fa03701e792915525dcc8"/>
+              node-hash="sha256:3be09f34485dbe395ddbf66dbcd16ba0975f52ca873b3c3f82b186b6f54ba96a"/>
     <art:artifact repo="repo-clayers"
               repo-revision="e5fa37e"
               path="schemas/testing.xsd">
@@ -635,7 +635,7 @@ if any(b["ns/iter"] > 1000 for b in data["benchmarks"]):
   <art:mapping id="map-type-witness-testing-schema">
     <art:spec-ref node="type-witness"
               revision="draft-1"
-              node-hash="sha256:ffbf12bbe42a688561bd5b61dc2e48ae84fa567767d04d8b035f1d457134deba"/>
+              node-hash="sha256:130acf3aad11956ea4fcc32bf94d2f3a7d61f65de6ea3846f4c6189f4379bbff"/>
     <art:artifact repo="repo-clayers"
               repo-revision="e5fa37e"
               path="schemas/testing.xsd">

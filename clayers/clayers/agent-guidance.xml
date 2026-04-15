@@ -149,7 +149,7 @@
   <llm:node ref="agent-workflow-instructions" format="markdown"><![CDATA[
 ## Clayers Development Workflow
 
-This project uses [clayers](https://github.com/inferaldata/clayers) for
+This project uses [clayers](https://github.com/CognitiveLayers/clayers) for
 structured, layered specifications with machine-verifiable traceability.
 
 **Spec first, code second.** Before implementing, update the spec to
@@ -175,7 +175,7 @@ that was specified.
 
 Install: `cargo install clayers`
 
-See [clayers documentation](https://github.com/inferaldata/clayers) for
+See [clayers documentation](https://github.com/CognitiveLayers/clayers) for
 the full layer reference (prose, terminology, organization, relation,
 decision, source, plan, artifact, llm, revision).
 ]]></llm:node>
@@ -603,7 +603,7 @@ Update the plan's status from `active` to `completed`.
   <art:mapping id="map-skill-clayers-review-artifacts">
     <art:spec-ref node="skill-clayers-review-artifacts"
               revision="draft-1"
-              node-hash="sha256:d0db28cd5302dae4248a635a8597daecd1506a34c19e3ff1813c7229bfc4ae4b"/>
+              node-hash="sha256:f5d4311e728308600b2dbc8c3f1aa9e5a1e62677894988f4a4ce8b2dbc8aa74f"/>
     <art:artifact repo="repo-clayers"
               repo-revision="9191483"
               path="crates/clayers/src/adopt.rs">
@@ -618,7 +618,7 @@ Update the plan's status from `active` to `completed`.
   <art:mapping id="map-skill-clayers-onboard">
     <art:spec-ref node="skill-clayers-onboard"
               revision="draft-1"
-              node-hash="sha256:b18c1ea1444ace2ffcd5ea8d1c4dbdee568f8cd28cbd54eb40045943e7872fc3"/>
+              node-hash="sha256:a786c9501b0235b3d12f554ffc2de81bf0048757b5ba5494893a94b15f68d120"/>
     <art:artifact repo="repo-clayers"
               repo-revision="9191483"
               path="crates/clayers/src/adopt.rs">
@@ -633,7 +633,7 @@ Update the plan's status from `active` to `completed`.
   <art:mapping id="map-agent-workflow-instructions">
     <art:spec-ref node="agent-workflow-instructions"
               revision="draft-1"
-              node-hash="sha256:917c9c30b04a4a53c39068e9fa21b5840a28ac9b312094dce519a6cae624f2db"/>
+              node-hash="sha256:6fd5faf4e547af9f31cdfbe68de73bb046fa1739d32fc27fdc3591a1151383a7"/>
     <art:artifact repo="repo-clayers"
               repo-revision="9191483"
               path="crates/clayers/src/adopt.rs">

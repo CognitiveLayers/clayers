@@ -14,7 +14,7 @@
 
   <!-- VCS repository declarations -->
   <vcs:git id="repo-clayers"
-           remote="https://github.com/inferaldata/clayers.git"
+           remote="https://github.com/CognitiveLayers/clayers.git"
            default-branch="main"/>
 
   <!-- Vocabulary -->
@@ -169,7 +169,7 @@
   <art:mapping id="map-overview-readme">
     <art:spec-ref node="overview"
               revision="draft-1"
-              node-hash="sha256:51eab13fafdf08734096f575d4cac66a6e86eaa77d55726393cdcf260ea587a5"/>
+              node-hash="sha256:4c01128974ea0632ee9141a09d25f3b72193e94324f81f66bffdda94f6a152be"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="README.md">
@@ -183,7 +183,7 @@
   <art:mapping id="map-layered-architecture">
     <art:spec-ref node="layered-architecture"
               revision="draft-1"
-              node-hash="sha256:cf5ce3a6449632c367a3221bae607f628472675cff8bc69ee28295ca76dcd1cb"/>
+              node-hash="sha256:7605f2d03622601155210f0193b8dc3bd289a4f161ddf0b184e2c960d78d1077"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="schemas/index.xsd">
@@ -197,7 +197,7 @@
   <art:mapping id="map-term-node">
     <art:spec-ref node="term-node"
               revision="draft-1"
-              node-hash="sha256:237139c0803304e727be7108b708abb194646d1fdae0792d6842b7807f69f0de"/>
+              node-hash="sha256:bc4d07abb5c09d8302aa459ca59a2cb9f843fefa7120c58394fd2e81669bdadd"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/validate.rs">
@@ -212,7 +212,7 @@
   <art:mapping id="map-term-index">
     <art:spec-ref node="term-index"
               revision="draft-1"
-              node-hash="sha256:ab012c9221fd042faf4112772dd2a0320840409f1c28078262d131bf879707e5"/>
+              node-hash="sha256:4ed8ad9a66a530a5b073a18b5367976f75fcaf1c44d31f852ea3d644c765f6a6"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/discovery.rs">
@@ -227,7 +227,7 @@
   <art:mapping id="map-term-namespace">
     <art:spec-ref node="term-namespace"
               revision="draft-1"
-              node-hash="sha256:dce3312f1b3eb2f2211f746b361d155b9096edd1e8ff73e7fc36a44ea963dddb"/>
+              node-hash="sha256:74b6c9a26be8cd31679dd35049deeb376ba1ba7b2d116a83cf5a4ed20f6cb732"/>
     <art:artifact repo="repo-clayers"
               repo-revision="2916ded"
               path="crates/clayers-spec/src/namespace.rs">
@@ -242,7 +242,7 @@
   <art:mapping id="map-term-layer">
     <art:spec-ref node="term-layer"
               revision="draft-1"
-              node-hash="sha256:61e5520337ec571812d3e1273d593666b0a30823946ac51167a2b8fcc58c4a2f"/>
+              node-hash="sha256:bf1c12a3d4388bf455a435f574b8e8ad9fb7a8b293978e7e9c5b49141f13f134"/>
     <art:artifact repo="repo-clayers"
               repo-revision="2916ded"
               path="crates/clayers-spec/src/namespace.rs">

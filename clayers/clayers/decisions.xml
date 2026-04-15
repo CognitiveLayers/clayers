@@ -581,7 +581,7 @@
   <art:mapping id="map-type-decision-schema">
     <art:spec-ref node="type-decision"
               revision="draft-1"
-              node-hash="sha256:bb1485e34bce960fca319fbb6b842b46f66828f4a17f393f437cc4393a216ab9"/>
+              node-hash="sha256:a5ad926a29a0b0955bbd937ccc0306fc079a37ffc0f8bf341739ce8d5c1cb0f1"/>
     <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/decision.xsd">
@@ -595,7 +595,7 @@
   <art:mapping id="map-type-supersedes-schema">
     <art:spec-ref node="type-supersedes"
               revision="draft-1"
-              node-hash="sha256:ae9d364d5dfc8affbe8093bfda77d2ed8355a9c2cd7d03088735ef84ee7f7926"/>
+              node-hash="sha256:aef16456ce9c8745a7f8288c186a7f794e44d5026a951382c90867965232284d"/>
     <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/decision.xsd">
@@ -609,7 +609,7 @@
   <art:mapping id="map-decision-layer-schema-header">
     <art:spec-ref node="decision-layer"
               revision="draft-1"
-              node-hash="sha256:012803f064f457a838bc96a684fc402724f75137b4646a295168014829e5716f"/>
+              node-hash="sha256:3ce02386369a837059b7fc7b1dd7cde85f082a6b58c7113c23bcec7eb695b240"/>
     <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/decision.xsd">
@@ -622,7 +622,7 @@
   <art:mapping id="map-decision-layer-schema-types">
     <art:spec-ref node="decision-layer"
               revision="draft-1"
-              node-hash="sha256:012803f064f457a838bc96a684fc402724f75137b4646a295168014829e5716f"/>
+              node-hash="sha256:3ce02386369a837059b7fc7b1dd7cde85f082a6b58c7113c23bcec7eb695b240"/>
     <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/decision.xsd">
