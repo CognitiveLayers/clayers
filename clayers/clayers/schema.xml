@@ -579,10 +579,10 @@
               revision="draft-1"
               node-hash="sha256:97aa9d5a5309747987c7c50af45ac01e767d3ca3822bf0494d47e085234a9caf"/>
     <art:artifact repo="repo-clayers"
-              repo-revision="HEAD"
+              repo-revision="2916ded"
               path="crates/clayers/src/cli.rs">
-      <art:range hash="sha256:d050daddd583395f1e49df324c9520a31d4bf6c00aef8fe6c7f8ddc1ad24bab1"
-                 start-line="628" end-line="648"/>
+      <art:range hash="sha256:2732a67f5bdab6b471453de53c74b1295b12af1efac6d1b4d95a0dea858d9f97"
+                 start-line="748" end-line="768"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>resolve_schema_dir() and cmd_schema() make the schema

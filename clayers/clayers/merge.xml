@@ -483,12 +483,12 @@
               revision="draft-1"
               node-hash="sha256:6e86e5575ba458204a91adc47ff58f97e341e6eec3be25b524ce401796c2414a"/>
     <art:artifact repo="repo-clayers"
-              repo-revision="HEAD"
+              repo-revision="2916ded"
               path="crates/clayers/src/cli.rs">
-      <art:range hash="sha256:07202942e2bf097edfc365050cae636e95ab31ee3c650950102104e8930f6e89"
-                 start-line="197" end-line="222"/>
+      <art:range hash="sha256:d259590f91d4f094896eca27c3719ca6dfc4fcc083f08dc9da640c156da61857"
+                 start-line="205" end-line="221"/>
       <art:range hash="sha256:e07b07231e15bbc8f0281d4d9ef85abb560e37dfb531a1951569a5a2426eb915"
-                 start-line="435" end-line="447"/>
+                 start-line="439" end-line="451"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>Merge variant in the Command enum and dispatch in

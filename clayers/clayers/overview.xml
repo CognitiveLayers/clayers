@@ -229,14 +229,14 @@
               revision="draft-1"
               node-hash="sha256:dce3312f1b3eb2f2211f746b361d155b9096edd1e8ff73e7fc36a44ea963dddb"/>
     <art:artifact repo="repo-clayers"
-              repo-revision="ae7434a"
+              repo-revision="2916ded"
               path="crates/clayers-spec/src/namespace.rs">
-        <art:range hash="sha256:167214733224e098bc4dd230884f3fc73b7c4a00786477cfd958f402bc506a86"
-                   start-line="1" end-line="63"/>
+        <art:range hash="sha256:3a6a8868f288f640345257a56eda124dbed4da105a231e4d8cd6c2d41d290cd3"
+                   start-line="1" end-line="73"/>
       </art:artifact>
     <art:coverage>full</art:coverage>
-    <art:note>SPEC_NS, XS_NS constants and discover_namespaces() implement
-    namespace discovery from layer schemas.</art:note>
+    <art:note>Layer URN constants, ALL_LAYERS array, and PREFIX_MAP implement
+    the full set of namespace URIs and their canonical prefix bindings.</art:note>
   </art:mapping>
 
   <art:mapping id="map-term-layer">
@@ -244,14 +244,14 @@
               revision="draft-1"
               node-hash="sha256:61e5520337ec571812d3e1273d593666b0a30823946ac51167a2b8fcc58c4a2f"/>
     <art:artifact repo="repo-clayers"
-              repo-revision="ae7434a"
+              repo-revision="2916ded"
               path="crates/clayers-spec/src/namespace.rs">
-        <art:range hash="sha256:9e38f62d158b54b42832135719c0804d8a7ff5e77c35e77c3370dd3e09f685fe"
-                   start-line="17" end-line="31"/>
+        <art:range hash="sha256:1a5bf09a92120a0258189aadf37ac2fac832075c56a8f2553f7728f0b1d69c55"
+                   start-line="3" end-line="20"/>
       </art:artifact>
     <art:coverage>partial</art:coverage>
-    <art:note>discover_namespaces() scans layer schemas to find namespaces,
-    implementing the layer discovery aspect of the layer concept.</art:note>
+    <art:note>The 17 layer URN constants (SPEC through LAYER) plus COMBINED
+    define the layer concept as a semantic namespace identifier.</art:note>
   </art:mapping>
 
   <!-- Machine descriptions -->

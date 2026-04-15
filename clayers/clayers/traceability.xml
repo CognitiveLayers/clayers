@@ -613,10 +613,10 @@
               revision="draft-1"
               node-hash="sha256:ab19ea490c6866a787b7890ec2d251e6aceb3cc9e431f6087cf6604dae5e6b0b"/>
     <art:artifact repo="repo-clayers"
-              repo-revision="ae7434a"
+              repo-revision="2916ded"
               path="crates/clayers/src/cli.rs">
-        <art:range hash="sha256:14440f7d415c7a5d3cbe6cd8fbb89b22f8c4fad8a2e02a39bf6bf91d83f23523"
-                   start-line="370" end-line="396"/>
+        <art:range hash="sha256:ecb995a9d4692be4045377ac8232f75b17aa606d0ebc51f8c03e81bed1e56028"
+                   start-line="490" end-line="516"/>
       </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>cmd_fix_hashes() dispatches --fix-node-hash and --fix-artifact-hash
@@ -705,10 +705,10 @@
               revision="draft-1"
               node-hash="sha256:90a5693be4dd20999bb4519d9bd86c46e30ef7fe5b6dcfbd8710e618d015adb6"/>
     <art:artifact repo="repo-clayers"
-              repo-revision="ae7434a"
+              repo-revision="2916ded"
               path="crates/clayers/src/cli.rs">
-        <art:range hash="sha256:9be5a2413f28cbb57c461c24ebd4589c6622cf662220a8748ede269164e78649"
-                   start-line="230" end-line="273"/>
+        <art:range hash="sha256:f9f8c17f74b92f0bc7810f436650bd6390bc7850c689169463afbf13cc63a218"
+                   start-line="628" end-line="671"/>
       </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>cmd_drift() formats and prints per-mapping drift status
@@ -1177,9 +1177,9 @@
               revision="draft-1"
               node-hash="sha256:21340d4c3cb1a7beaf76e2deb61ff0f79b83d70dc8370a8f501b21326f2a1124"/>
     <art:artifact repo="repo-clayers"
-              repo-revision="753ad37"
+              repo-revision="2916ded"
               path="crates/clayers/src/cli.rs">
-        <art:range hash="sha256:13b7aa03bdd7f4f1116525495c647aba9189856dc82cf91b244ea1661ce80dd1" start-line="553" end-line="626"/>
+        <art:range hash="sha256:726fd8ab4678b505c2e9a008722bd3711afd6d4f36fe64a7821f04d6e725d734" start-line="673" end-line="746"/>
       </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>cmd_connectivity() CLI command: runs connectivity analysis and prints graph metrics, components, hubs, bridges, cycles.</art:note>
@@ -1191,12 +1191,12 @@
               revision="draft-1"
               node-hash="sha256:7eb28c0b398eb487ae9ae93603ea00983f31b62f5a9a80cfa5f93c782e68b3df"/>
     <art:artifact repo="repo-clayers"
-              repo-revision="753ad37"
+              repo-revision="2916ded"
               path="crates/clayers/src/cli.rs">
-        <art:range hash="sha256:f2194af8344d5da4a070bdf5a3003028e9da56df95773da832dd61dd83c96efb" start-line="654" end-line="735"/>
+        <art:range hash="sha256:3327fabceaaf8fbf9c4367f869d8909086c4ed873b7ba8ea4bfbbabf2eed7a7e" start-line="774" end-line="855"/>
       </art:artifact>
     <art:coverage>full</art:coverage>
-    <art:note>cmd_query() CLI command: executes XPath queries against the combined spec document with count, text, and XML output modes.</art:note>
+    <art:note>cmd_query() CLI command: executes XPath queries against the combined spec document or a repository with count, text, and XML output modes.</art:note>
   </art:mapping>
 
 
@@ -1205,9 +1205,9 @@
               revision="draft-1"
               node-hash="sha256:f72867b2678206040505e017b95adda452b93ff100e27b9e1a92cd755290ee2f"/>
     <art:artifact repo="repo-clayers"
-              repo-revision="753ad37"
+              repo-revision="2916ded"
               path="crates/clayers/src/cli.rs">
-        <art:range hash="sha256:329934aa800176bc9480393369f6b2f22b4867898314546b876bd6291cdef32d" start-line="415" end-line="506"/>
+        <art:range hash="sha256:1f87d87ea6125fdfc71bb0ddf0db6755b3300fe103ce6af1c5235f8c2e1ee0d0" start-line="518" end-line="626"/>
       </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>cmd_artifact() coverage display and default artifact listing mode. Shows per-mapping strength, unmapped nodes, and per-file code coverage.</art:note>
@@ -1219,12 +1219,12 @@
               revision="draft-1"
               node-hash="sha256:ab19ea490c6866a787b7890ec2d251e6aceb3cc9e431f6087cf6604dae5e6b0b"/>
     <art:artifact repo="repo-clayers"
-              repo-revision="753ad37"
+              repo-revision="2916ded"
               path="crates/clayers/src/cli.rs">
-        <art:range hash="sha256:0af597dc984ef0fcb1e1ae0ef9473bf65f5e1be10efb7a0e2ee76a8b0c67ee24" start-line="1" end-line="345"/>
+        <art:range hash="sha256:420016a3cd5f453dc7fcc8ba2e23127ced975f2a3d9b658ff7ef844b58ce4253" start-line="1" end-line="465"/>
       </art:artifact>
     <art:coverage>partial</art:coverage>
-    <art:note>CLI structure: Cli struct, Command enum with all subcommands (validate, artifact, connectivity, query), cli_main() entry point, run() dispatcher.</art:note>
+    <art:note>CLI structure: Cli struct, Command enum with all subcommands (validate, artifact, connectivity, schema, query, doc, adopt, repo commands, merge, serve), ServeAction and RemoteAction enums, cli_main() entry point, run() dispatcher.</art:note>
   </art:mapping>
 
 
@@ -1233,9 +1233,9 @@
               revision="draft-1"
               node-hash="sha256:e64dc7f11155ae19e7c05234575ffce6ff80f741c7b55cf76617377bf81a95cc"/>
     <art:artifact repo="repo-clayers"
-              repo-revision="753ad37"
+              repo-revision="2916ded"
               path="crates/clayers/src/cli.rs">
-        <art:range hash="sha256:75321a5355201fb6aa8b060061ef93b34d95aa6d315f1c77ba53f36a34719e51" start-line="508" end-line="551"/>
+        <art:range hash="sha256:f9f8c17f74b92f0bc7810f436650bd6390bc7850c689169463afbf13cc63a218" start-line="628" end-line="671"/>
       </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>cmd_drift() CLI command: runs drift detection and prints per-mapping status with stored vs current hashes and causal commits.</art:note>
@@ -1582,11 +1582,11 @@
 
   <art:mapping id="map-namespace-tests">
     <art:spec-ref node="term-namespace" revision="draft-1" node-hash="sha256:dce3312f1b3eb2f2211f746b361d155b9096edd1e8ff73e7fc36a44ea963dddb"/>
-    <art:artifact repo="repo-clayers" repo-revision="753ad37" path="crates/clayers-spec/src/namespace.rs">
-        <art:range hash="sha256:f265af48e8c13f89c66851bb1c041534d8e3bd50a966df4789fb9c29cbf6254b" start-line="65" end-line="103"/>
+    <art:artifact repo="repo-clayers" repo-revision="2916ded" path="crates/clayers-spec/src/namespace.rs">
+        <art:range hash="sha256:e0a0bc3f69f5b2b4d2b3b714cee44d8dc1480f67285d7c6b1c129a5c32b1028e" start-line="90" end-line="128"/>
       </art:artifact>
     <art:coverage>full</art:coverage>
-    <art:note>Test module for namespace.rs: all 12 URN constants are distinct, prefix map covers all layers.</art:note>
+    <art:note>Test module for namespace.rs: all 17 URN constants are distinct, prefix map covers all layers plus combined (22 entries total).</art:note>
   </art:mapping>
 
   <art:mapping id="map-c14n-tests">
@@ -1710,8 +1710,8 @@
 
   <art:mapping id="map-artifact-cli-dispatch">
     <art:spec-ref node="artifact-hash-tooling" revision="draft-1" node-hash="sha256:ab19ea490c6866a787b7890ec2d251e6aceb3cc9e431f6087cf6604dae5e6b0b"/>
-    <art:artifact repo="repo-clayers" repo-revision="753ad37" path="crates/clayers/src/cli.rs">
-        <art:range hash="sha256:387a44ee1d41399ab81c32c02139b00b7830f9404fae9cb2e8a0eaa667de8844" start-line="398" end-line="414"/>
+    <art:artifact repo="repo-clayers" repo-revision="2916ded" path="crates/clayers/src/cli.rs">
+        <art:range hash="sha256:83841c5aede603d9495938f68e742e270c5b9f7ce36d3b11627853904e1dc182" start-line="518" end-line="533"/>
       </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>cmd_artifact() function signature and dispatch to fix_hashes/drift.</art:note>

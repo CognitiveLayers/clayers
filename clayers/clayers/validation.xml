@@ -333,13 +333,13 @@
               revision="draft-1"
               node-hash="sha256:20a3d73c72dc7ecdaa1a404165802428fa1ea1d2618e1c7ed67375427710b313"/>
     <art:artifact repo="repo-clayers"
-              repo-revision="ae7434a"
+              repo-revision="2916ded"
               path="crates/clayers/src/cli.rs">
-        <art:range hash="sha256:f5e673cf7e7f3378b7b8d2a5344d5b6fbba5562f434960ce9c970efaa4d3f014"
-                   start-line="351" end-line="368"/>
+        <art:range hash="sha256:1c15160170053cefa8ab94262e89a73e018b6e85108af9ea111ac52296f57128"
+                   start-line="471" end-line="488"/>
       </art:artifact>
     <art:coverage>full</art:coverage>
-    <art:note>validate command: per-spec pass/fail reporting.</art:note>
+    <art:note>cmd_validate: per-spec pass/fail reporting.</art:note>
   </art:mapping>
 
   <!-- Refines relations: validation-flow steps -->

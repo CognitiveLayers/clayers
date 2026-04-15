@@ -523,14 +523,14 @@
               revision="draft-1"
               node-hash="sha256:c69aa7f5f3cece0b52a077ec61d51f2be78021e7e6a0f3f0576f985f428d72c1"/>
     <art:artifact repo="repo-clayers"
-              repo-revision="HEAD"
+              repo-revision="2916ded"
               path="crates/clayers/src/cli.rs">
-      <art:range hash="sha256:5357d1d21527db2dab86c47989cd838e58691cc2c05be583b7d94ee1d2b3ab32"
-                 start-line="100" end-line="111"/>
-      <art:range hash="sha256:814c503efe5be3d3bc9f95b8fc4647a74d83e39845ef48386a68cb13df18ad7e"
-                 start-line="291" end-line="295"/>
-      <art:range hash="sha256:130935253b277bff00b2bc419ce50b3c43396b7cbd428bf9c592caa766a984c6"
-                 start-line="657" end-line="659"/>
+      <art:range hash="sha256:657d9ed0e443edf991f7ce20bf59a0d6c132b261c27238ac9ddafc656a1fed1b"
+                 start-line="104" end-line="114"/>
+      <art:range hash="sha256:a37e41625d1a1db4bbce4fb8a86d6c22d2da9cb32a1b1edb8272b6528336eff8"
+                 start-line="364" end-line="368"/>
+      <art:range hash="sha256:6da135958327a17b6dfcbf66e334babb86bc709b064b71786130e46bab0060f9"
+                 start-line="770" end-line="772"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>Adopt command variant in Command enum (with --skills flag),
