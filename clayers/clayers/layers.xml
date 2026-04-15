@@ -2,7 +2,8 @@
 <!--
   Layer Descriptions: Meta-layer instances describing all built-in layers.
   Each lyr:layer declares the modes it supports for workflows like
-  onboarding, catch-up, brainstorming, and review.
+  onboarding, catch-up, brainstorming, and review. Mode bodies carry
+  the rich, layer-specific guidance used by orchestrating skills.
 -->
 <spec:clayers xmlns:spec="urn:clayers:spec"
        xmlns:lyr="urn:clayers:layer"
@@ -21,10 +22,31 @@
       <lyr:condition>Layers exist that have no lyr:layer descriptions</lyr:condition>
       <lyr:acceptance>Every layer used in the spec has a lyr:layer element with at
       least an onboard mode</lyr:acceptance>
-      <pr:p>For each layer namespace found in the spec's schemas, create a
-      lyr:layer element describing it. Declare at minimum an onboard mode
-      with prerequisites, conditions, and guidance. Register the layer
-      description file in the index.</pr:p>
+      <pr:section id="lyr-onboard-guidance">
+        <pr:title>Layer Self-Description Onboarding</pr:title>
+        <pr:p>For each layer namespace found in the spec's schemas, create a
+        <pr:code>lyr:layer</pr:code> element describing it. Declare at minimum
+        an onboard mode with prerequisites, conditions, and guidance. Register
+        the layer description file in the index.</pr:p>
+        <pr:ol>
+          <pr:li>Run <pr:code>clayers schema schemas/</pr:code> to enumerate
+          every layer namespace declared in the project</pr:li>
+          <pr:li>For each namespace, add a <pr:code>lyr:layer</pr:code> element
+          with the matching <pr:code>schema</pr:code> attribute</pr:li>
+          <pr:li>Declare at least an onboard mode with
+          <pr:code>lyr:condition</pr:code> and
+          <pr:code>lyr:acceptance</pr:code></pr:li>
+          <pr:li>Add other modes (catch-up, brainstorm, review) where they
+          make sense for the layer</pr:li>
+          <pr:li>Register the layer descriptions file in
+          <pr:code>index.xml</pr:code></pr:li>
+        </pr:ol>
+        <pr:note type="warning">Mode bodies use <pr:code>xs:any</pr:code> with
+        <pr:code>processContents="strict"</pr:code>: every embedded element
+        must validate against its own schema. Stick to known elements
+        (<pr:code>pr:section</pr:code>, <pr:code>pr:p</pr:code>, etc.) and
+        do not invent new ones.</pr:note>
+      </pr:section>
     </lyr:mode>
   </lyr:layer>
 
@@ -37,10 +59,32 @@
       <lyr:condition>A new specification is being created</lyr:condition>
       <lyr:acceptance>An index.xml exists listing all spec files with correct
       spec identity and version</lyr:acceptance>
-      <pr:p>Create the index.xml manifest file. Declare the spec identity
-      (spec:spec attribute) and version (spec:version). Add file elements
-      for each spec file as they are created. The index defines the
-      specification boundary and ID uniqueness domain.</pr:p>
+      <pr:section id="idx-onboard-guidance">
+        <pr:title>Index Onboarding</pr:title>
+        <pr:p>Create the <pr:code>index.xml</pr:code> manifest file at the
+        spec root. Declare the spec identity (<pr:code>spec:spec</pr:code>
+        attribute) and version (<pr:code>spec:version</pr:code>). Add file
+        elements for each spec file as they are created. The index defines
+        the specification boundary and the ID-uniqueness domain.</pr:p>
+        <pr:ol>
+          <pr:li>Create <pr:code>clayers/PROJECT/index.xml</pr:code> with
+          a <pr:code>spec:clayers</pr:code> root and an
+          <pr:code>idx:manifest</pr:code> element</pr:li>
+          <pr:li>Set <pr:code>spec:spec</pr:code> to the project identifier
+          and <pr:code>spec:version</pr:code> to the schema version</pr:li>
+          <pr:li>Add an <pr:code>idx:file</pr:code> element for each XML file
+          in the spec, including the index itself, with the primary
+          <pr:code>layer</pr:code> attribute</pr:li>
+          <pr:li>Re-run validation after each file is added to confirm
+          the manifest stays in sync</pr:li>
+        </pr:ol>
+        <pr:p>Validate immediately:</pr:p>
+        <pr:codeblock>clayers validate clayers/PROJECT/</pr:codeblock>
+        <pr:note type="warning">Files not registered in the index are
+        invisible to validation, drift, and coverage. Always add the
+        <pr:code>idx:file</pr:code> entry the same moment you create
+        the file.</pr:note>
+      </pr:section>
     </lyr:mode>
   </lyr:layer>
 
@@ -54,9 +98,27 @@
       <lyr:condition>A new specification is being created</lyr:condition>
       <lyr:acceptance>A revision.xml exists with at least one named revision
       snapshot</lyr:acceptance>
-      <pr:p>Create revision.xml with an initial named revision (e.g., draft-1).
-      This snapshot anchors artifact mappings to a specific point in the
-      spec's evolution. Set the timestamp and reference the index.</pr:p>
+      <pr:section id="rev-onboard-guidance">
+        <pr:title>Revision Onboarding</pr:title>
+        <pr:p>Create <pr:code>revision.xml</pr:code> with an initial named
+        revision (typically <pr:code>draft-1</pr:code>). This snapshot anchors
+        artifact mappings to a specific point in the spec's evolution, so
+        node hashes are temporally meaningful.</pr:p>
+        <pr:ol>
+          <pr:li>Create <pr:code>revision.xml</pr:code> in the spec
+          directory</pr:li>
+          <pr:li>Add a <pr:code>rev:revision</pr:code> element with an
+          <pr:code>id</pr:code> like <pr:code>rev-draft-1</pr:code> and
+          <pr:code>name="draft-1"</pr:code></pr:li>
+          <pr:li>Set the <pr:code>timestamp</pr:code> to the creation
+          time</pr:li>
+          <pr:li>Register the file in <pr:code>index.xml</pr:code></pr:li>
+        </pr:ol>
+        <pr:note type="warning">Once mappings reference a revision name,
+        do not rename it. Adding a new revision is fine; renaming an old
+        one orphans every <pr:code>art:spec-ref</pr:code> that pointed to
+        it.</pr:note>
+      </pr:section>
     </lyr:mode>
   </lyr:layer>
 
@@ -69,9 +131,23 @@
       <lyr:condition>The project has version-controlled source code</lyr:condition>
       <lyr:acceptance>All repositories referenced by artifact mappings have
       vcs:git declarations with correct remote URLs</lyr:acceptance>
-      <pr:p>Declare each git repository that will be referenced by artifact
-      mappings. Use vcs:git with the remote URL and default branch. The
-      element ID will be referenced by art:artifact/@repo attributes.</pr:p>
+      <pr:section id="vcs-onboard-guidance">
+        <pr:title>VCS Onboarding</pr:title>
+        <pr:p>Declare each git repository that will be referenced by
+        <pr:code>art:artifact/@repo</pr:code>. Each repository becomes an
+        addressable node, identified by its short ID
+        (e.g., <pr:code>main</pr:code> for the primary repo).</pr:p>
+        <pr:ol>
+          <pr:li>List the repositories that hold the implementing code
+          for this spec</pr:li>
+          <pr:li>For each repo, add a <pr:code>vcs:git</pr:code> element
+          with <pr:code>id</pr:code>, <pr:code>remote</pr:code>, and
+          <pr:code>default-branch</pr:code></pr:li>
+          <pr:li>Use the <pr:code>id</pr:code> attribute as the value of
+          <pr:code>art:artifact/@repo</pr:code> in mappings</pr:li>
+        </pr:ol>
+        <pr:p>Use the template: <pr:xref ref="tpl-vcs-git"/></pr:p>
+      </pr:section>
     </lyr:mode>
   </lyr:layer>
 
@@ -85,26 +161,99 @@
       <lyr:condition>Source code or documentation exists to describe</lyr:condition>
       <lyr:acceptance>Every major module and component has a pr:section with
       title, shortdesc, and descriptive paragraphs</lyr:acceptance>
-      <pr:p>Create spec files organized by topic (one file per major module
-      or component). Each file gets pr:section elements with meaningful
-      titles and descriptions. Start with high-level architecture, then
-      drill into subsystems. Use pr:shortdesc for scannable summaries.</pr:p>
-      <pr:p>Write prose that explains intent and design rationale, not
-      just what the code does. Focus on "why" over "what".</pr:p>
+      <pr:section id="pr-onboard-guidance">
+        <pr:title>Prose Onboarding</pr:title>
+        <pr:p>Create spec files organized by topic, NOT by layer type. One
+        file per major module or component. Each file mixes prose,
+        terminology, organization, relations, artifact mappings, and LLM
+        descriptions for the same topic.</pr:p>
+        <pr:p>Every file contains <pr:code>pr:section</pr:code> elements
+        with meaningful titles, short descriptions, and body paragraphs.
+        Start with high-level architecture, then drill into subsystems.
+        Write intent and design rationale, not code narration: the spec
+        explains "why", source code already shows "what".</pr:p>
+        <pr:ol>
+          <pr:li>Walk the source tree and identify major modules and
+          components</pr:li>
+          <pr:li>For each module, create one spec file named after the
+          topic (kebab-case)</pr:li>
+          <pr:li>Inside the file, declare the namespaces you actually use
+          (see <pr:xref ref="tpl-namespace-declarations"/>)</pr:li>
+          <pr:li>Add a top-level <pr:code>pr:section</pr:code> with title
+          and <pr:code>pr:shortdesc</pr:code></pr:li>
+          <pr:li>Use nested <pr:code>pr:section</pr:code> elements for
+          subtopics (algorithms, data flow, error handling)</pr:li>
+          <pr:li>Register the file in <pr:code>index.xml</pr:code> with
+          <pr:code>layer="urn:clayers:prose"</pr:code></pr:li>
+          <pr:li>Write paragraphs that explain design rationale, not what
+          the code does line by line</pr:li>
+        </pr:ol>
+        <pr:p>Use the template: <pr:xref ref="tpl-section"/> and
+        <pr:xref ref="tpl-namespace-declarations"/>.</pr:p>
+        <pr:p>Validate after each file:</pr:p>
+        <pr:codeblock>clayers validate clayers/PROJECT/</pr:codeblock>
+        <pr:note type="warning">Anti-pattern: organizing files by layer
+        type (one file for all prose, one file for all artifact mappings).
+        This makes maintenance painful because related elements are
+        scattered. Always organize by topic.</pr:note>
+        <pr:note type="warning">Anti-pattern: shallow descriptions
+        (a 2-sentence section for a 500-line module). The prose should
+        match the conceptual depth of the code it describes.</pr:note>
+        <pr:note type="warning">Anti-pattern: code narration ("the function
+        loops over the list and increments a counter"). Explain WHY the
+        function exists, what problem it solves, what its callers expect.</pr:note>
+      </pr:section>
     </lyr:mode>
     <lyr:mode id="mode-pr-brainstorm" name="brainstorm">
       <lyr:condition>A new feature or component is being designed</lyr:condition>
       <lyr:acceptance>New sections describe the feature's purpose, behavior,
       and design rationale</lyr:acceptance>
-      <pr:p>Write prose sections describing the new feature before code
-      exists. Capture intent, constraints, and expected behavior. These
-      sections become the foundation for implementation.</pr:p>
+      <pr:section id="pr-brainstorm-guidance">
+        <pr:title>Prose Brainstorming</pr:title>
+        <pr:p>Write prose sections describing the new feature BEFORE code
+        exists. Capture intent, constraints, expected behavior, and
+        non-goals. These sections become the foundation for implementation
+        and the contract that artifact mappings will later verify.</pr:p>
+        <pr:ol>
+          <pr:li>Create a new topic file or open the existing file for
+          the affected area</pr:li>
+          <pr:li>Add a <pr:code>pr:section</pr:code> describing the
+          feature's purpose</pr:li>
+          <pr:li>Add nested sections for each subcomponent or behavior</pr:li>
+          <pr:li>State explicit non-goals: what the feature deliberately
+          does NOT do</pr:li>
+          <pr:li>Cross-reference related concepts with
+          <pr:code>pr:xref</pr:code> and <pr:code>trm:ref</pr:code></pr:li>
+        </pr:ol>
+        <pr:p>Use the template: <pr:xref ref="tpl-section"/></pr:p>
+        <pr:note type="tip">Brainstormed prose is the input to the
+        <pr:code>plan</pr:code> layer. Vague prose produces vague plans;
+        precise prose produces actionable plans.</pr:note>
+      </pr:section>
     </lyr:mode>
     <lyr:mode id="mode-pr-catch-up" name="catch-up">
       <lyr:condition>Code modules exist without corresponding prose sections</lyr:condition>
       <lyr:acceptance>All code modules have prose descriptions</lyr:acceptance>
-      <pr:p>Identify code modules that lack prose coverage. Create sections
-      for each, capturing what the module does and why it exists.</pr:p>
+      <pr:section id="pr-catch-up-guidance">
+        <pr:title>Prose Catch-Up</pr:title>
+        <pr:p>Identify code modules that lack prose coverage. Create
+        sections for each, capturing what the module does and why it
+        exists. Catch-up focuses on missing nodes; mapping quality is
+        the artifact layer's review mode.</pr:p>
+        <pr:ol>
+          <pr:li>Inventory existing prose sections:
+          <pr:code>clayers query clayers/PROJECT/ '//pr:section/pr:title' --text</pr:code></pr:li>
+          <pr:li>Compare against the directory structure under
+          <pr:code>src/</pr:code> (or your code root)</pr:li>
+          <pr:li>For each module without a section, read the code and
+          write a section that captures its intent</pr:li>
+          <pr:li>Look for "shallow" sections (2-sentence prose for a
+          500-line module) and deepen them</pr:li>
+          <pr:li>After each batch, run validation and connectivity to
+          catch isolated nodes</pr:li>
+        </pr:ol>
+        <pr:p>Use the template: <pr:xref ref="tpl-section"/></pr:p>
+      </pr:section>
     </lyr:mode>
   </lyr:layer>
 
@@ -118,29 +267,83 @@
       <lyr:condition>Domain concepts exist in the codebase</lyr:condition>
       <lyr:acceptance>All domain concepts have trm:term definitions with
       precise, unambiguous definitions</lyr:acceptance>
-      <pr:p>Scan code identifiers, comments, documentation, and prose
-      sections for domain concepts. Extract each into a trm:term element
-      with a canonical name and precise definition.</pr:p>
-      <pr:ol>
-        <pr:li>Inventory naming patterns in source files</pr:li>
-        <pr:li>Group related terms into semantic clusters</pr:li>
-        <pr:li>Write trm:term elements with definitions that distinguish
-        each term from similar concepts</pr:li>
-        <pr:li>Add trm:ref elements in prose wherever terms are used</pr:li>
-      </pr:ol>
+      <pr:section id="trm-onboard-guidance">
+        <pr:title>Terminology Onboarding</pr:title>
+        <pr:p>Scan code identifiers, comments, and documentation for
+        domain concepts. Each becomes a <pr:code>trm:term</pr:code>
+        element with a canonical name and a precise definition that
+        distinguishes it from similar concepts.</pr:p>
+        <pr:ol>
+          <pr:li>Scan type, struct, class, and enum names for domain
+          concepts</pr:li>
+          <pr:li>Scan function names, especially the public API surface</pr:li>
+          <pr:li>Scan constants and configuration keys</pr:li>
+          <pr:li>Extract concepts from comments and documentation</pr:li>
+          <pr:li>Group related terms into semantic clusters and place them
+          in the topic file most relevant to each cluster</pr:li>
+          <pr:li>Write <pr:code>trm:term</pr:code> elements with definitions
+          that distinguish each from similar concepts</pr:li>
+          <pr:li>Cross-reference related terms with
+          <pr:code>trm:ref</pr:code> inside definitions</pr:li>
+          <pr:li>Add <pr:code>trm:ref</pr:code> elements in prose wherever
+          the terms are used</pr:li>
+        </pr:ol>
+        <pr:p>Use the template: <pr:xref ref="tpl-term"/></pr:p>
+        <pr:p>List existing terms before adding new ones to avoid
+        duplicates:</pr:p>
+        <pr:codeblock>clayers query clayers/PROJECT/ '//trm:term/trm:name' --text</pr:codeblock>
+        <pr:note type="warning">Do not define trivial English words as
+        terms. A term should be a domain-specific concept that has precise
+        meaning in this project. "Database" is not a term; "Tenant
+        Workspace" is.</pr:note>
+        <pr:note type="warning">IDs must be unique across the entire spec.
+        Use the <pr:code>term-</pr:code> prefix and kebab-case.</pr:note>
+        <pr:note type="warning">Definitions must be self-contained. A
+        reader who has never seen the codebase should understand the
+        concept from the definition alone.</pr:note>
+      </pr:section>
     </lyr:mode>
     <lyr:mode id="mode-trm-brainstorm" name="brainstorm">
       <lyr:condition>New domain concepts are being introduced</lyr:condition>
       <lyr:acceptance>New terms are defined before implementation begins</lyr:acceptance>
-      <pr:p>When designing a new feature, identify new domain concepts
-      that need controlled definitions. Define terms before writing code
-      so that implementation uses consistent vocabulary.</pr:p>
+      <pr:section id="trm-brainstorm-guidance">
+        <pr:title>Terminology Brainstorming</pr:title>
+        <pr:p>When designing a new feature, identify new domain concepts
+        that need controlled definitions. Define terms BEFORE writing
+        code so that implementation uses consistent vocabulary from
+        day one.</pr:p>
+        <pr:ol>
+          <pr:li>List the new concepts the feature introduces</pr:li>
+          <pr:li>For each concept, draft a <pr:code>trm:term</pr:code>
+          with a precise definition</pr:li>
+          <pr:li>Discuss the definition with stakeholders before locking
+          it in (terms become part of the project's vocabulary)</pr:li>
+          <pr:li>Use the term names verbatim when naming types,
+          functions, and variables in the eventual implementation</pr:li>
+        </pr:ol>
+        <pr:p>Use the template: <pr:xref ref="tpl-term"/></pr:p>
+      </pr:section>
     </lyr:mode>
     <lyr:mode id="mode-trm-catch-up" name="catch-up">
       <lyr:condition>Code uses domain terms not yet defined in the spec</lyr:condition>
       <lyr:acceptance>No undefined domain terms remain in the codebase</lyr:acceptance>
-      <pr:p>Search for domain-specific identifiers and concepts in the code
-      that lack trm:term definitions. Add missing definitions.</pr:p>
+      <pr:section id="trm-catch-up-guidance">
+        <pr:title>Terminology Catch-Up</pr:title>
+        <pr:p>Search for domain-specific identifiers and concepts in the
+        code that lack <pr:code>trm:term</pr:code> definitions, then add
+        the missing definitions.</pr:p>
+        <pr:ol>
+          <pr:li>List existing terms:
+          <pr:code>clayers query clayers/PROJECT/ '//trm:term/trm:name' --text</pr:code></pr:li>
+          <pr:li>Compare against the codebase vocabulary (type names,
+          function names, frequently-mentioned concepts in comments)</pr:li>
+          <pr:li>For every concept that recurs in the code without a
+          term, add one</pr:li>
+          <pr:li>Add <pr:code>trm:ref</pr:code> in prose wherever the
+          newly-defined terms appear</pr:li>
+        </pr:ol>
+        <pr:p>Use the template: <pr:xref ref="tpl-term"/></pr:p>
+      </pr:section>
     </lyr:mode>
   </lyr:layer>
 
@@ -154,16 +357,56 @@
       <lyr:condition>Prose sections exist that need topic classification</lyr:condition>
       <lyr:acceptance>Every prose section has an org:concept, org:task, or
       org:reference classification with a purpose statement</lyr:acceptance>
-      <pr:p>Classify each prose section by topic type. Concepts explain
-      ideas. Tasks describe system behavior. References provide lookup
-      information. Add org:concept, org:task, or org:reference elements
-      with purpose statements explaining the classification.</pr:p>
+      <pr:section id="org-onboard-guidance">
+        <pr:title>Organization Onboarding</pr:title>
+        <pr:p>Classify each prose section by topic type. There are three
+        types, and every classified element needs a
+        <pr:code>org:purpose</pr:code> statement.</pr:p>
+        <pr:ul>
+          <pr:li><pr:code>org:concept</pr:code>: explanatory content;
+          what something IS, how it works, why it was designed this way</pr:li>
+          <pr:li><pr:code>org:task</pr:code>: system behavior or
+          procedural content; what the system does when X happens</pr:li>
+          <pr:li><pr:code>org:reference</pr:code>: lookup information;
+          API endpoints, configuration keys, error codes</pr:li>
+        </pr:ul>
+        <pr:ol>
+          <pr:li>For each <pr:code>pr:section</pr:code>, decide which type
+          fits its content</pr:li>
+          <pr:li>Add the matching <pr:code>org:concept</pr:code>,
+          <pr:code>org:task</pr:code>, or <pr:code>org:reference</pr:code>
+          element with <pr:code>ref="section-id"</pr:code></pr:li>
+          <pr:li>Always include a <pr:code>org:purpose</pr:code>
+          statement explaining the classification</pr:li>
+          <pr:li>For tasks, add an <pr:code>org:actor</pr:code> when the
+          subject is unclear</pr:li>
+        </pr:ol>
+        <pr:p>Use the template: <pr:xref ref="tpl-topic-typing"/></pr:p>
+        <pr:note type="warning">Anti-pattern: classifying everything as
+        <pr:code>org:concept</pr:code>. If you find yourself reaching
+        for concept by default, re-read the section and ask whether it
+        describes a behavior (task) or a lookup table (reference).</pr:note>
+      </pr:section>
     </lyr:mode>
     <lyr:mode id="mode-org-catch-up" name="catch-up">
       <lyr:condition>Prose sections exist without topic classification</lyr:condition>
       <lyr:acceptance>All sections are classified</lyr:acceptance>
-      <pr:p>Find prose sections missing topic typing. Add the appropriate
-      org:concept, org:task, or org:reference with purpose.</pr:p>
+      <pr:section id="org-catch-up-guidance">
+        <pr:title>Organization Catch-Up</pr:title>
+        <pr:p>Find prose sections missing topic typing and add the
+        appropriate <pr:code>org:concept</pr:code>,
+        <pr:code>org:task</pr:code>, or <pr:code>org:reference</pr:code>
+        with a purpose statement.</pr:p>
+        <pr:ol>
+          <pr:li>List all sections:
+          <pr:code>clayers query clayers/PROJECT/ '//pr:section/@id' --text</pr:code></pr:li>
+          <pr:li>List existing classifications:
+          <pr:code>clayers query clayers/PROJECT/ '//org:concept/@ref | //org:task/@ref | //org:reference/@ref' --text</pr:code></pr:li>
+          <pr:li>For each unclassified section, read it and add the
+          appropriate typing element</pr:li>
+        </pr:ol>
+        <pr:p>Use the template: <pr:xref ref="tpl-topic-typing"/></pr:p>
+      </pr:section>
     </lyr:mode>
   </lyr:layer>
 
@@ -179,26 +422,94 @@
       <lyr:condition>Multiple spec nodes exist that should be semantically linked</lyr:condition>
       <lyr:acceptance>No isolated nodes remain in the connectivity graph
       (every node has at least one relation)</lyr:acceptance>
-      <pr:p>Add typed relations between spec nodes. Use depends-on for
-      prerequisites, refines for parent-child, precedes for ordering,
-      implements for spec-to-code concepts, and references for
-      cross-references. Check connectivity with the connectivity command
-      and iterate until no isolated nodes remain.</pr:p>
+      <pr:section id="rel-onboard-guidance">
+        <pr:title>Relation Onboarding</pr:title>
+        <pr:p>Add typed relations between spec nodes to capture the
+        semantic structure of the project. The target is zero isolated
+        nodes: every node should have at least one relation in or out.</pr:p>
+        <pr:p>Relation types:</pr:p>
+        <pr:ul>
+          <pr:li><pr:code>depends-on</pr:code>: SOURCE requires TARGET
+          to function (auth depends-on database)</pr:li>
+          <pr:li><pr:code>refines</pr:code>: SOURCE is a more specific
+          version of TARGET (jwt-auth refines auth)</pr:li>
+          <pr:li><pr:code>references</pr:code>: SOURCE mentions or uses
+          TARGET (api-handler references auth)</pr:li>
+          <pr:li><pr:code>precedes</pr:code>: SOURCE must happen before
+          TARGET (init precedes serve)</pr:li>
+          <pr:li><pr:code>implements</pr:code>: SOURCE realizes the
+          concept in TARGET (jwt-validator implements auth-policy)</pr:li>
+        </pr:ul>
+        <pr:ol>
+          <pr:li>Run connectivity analysis to find isolated nodes:
+          <pr:code>clayers connectivity clayers/PROJECT/</pr:code></pr:li>
+          <pr:li>For each isolated node, identify the most natural
+          relation to an existing node</pr:li>
+          <pr:li>Add a <pr:code>rel:relation</pr:code> with the right
+          <pr:code>type</pr:code>, <pr:code>from</pr:code>, and
+          <pr:code>to</pr:code> attributes</pr:li>
+          <pr:li>Always add a <pr:code>rel:note</pr:code> explaining why
+          the relation exists</pr:li>
+          <pr:li>Re-run connectivity until no isolated nodes remain</pr:li>
+        </pr:ol>
+        <pr:p>Use the template: <pr:xref ref="tpl-relation"/></pr:p>
+        <pr:note type="warning">Anti-pattern: circular
+        <pr:code>depends-on</pr:code> chains. <pr:code>depends-on</pr:code>
+        is acyclic by design; cycles indicate a structural mistake. Break
+        the cycle by redirecting one of the relations or by introducing
+        a third node that both depend on.</pr:note>
+        <pr:note type="warning">Anti-pattern: missing obvious
+        dependencies. If the auth module uses the database module but no
+        <pr:code>rel:relation</pr:code> records that, the connectivity
+        graph is lying.</pr:note>
+      </pr:section>
     </lyr:mode>
     <lyr:mode id="mode-rel-catch-up" name="catch-up">
       <lyr:condition>Isolated nodes exist in the connectivity graph</lyr:condition>
       <lyr:acceptance>Zero isolated nodes in connectivity analysis</lyr:acceptance>
-      <pr:p>Run connectivity analysis. For each isolated node, identify
-      its semantic relationships to other nodes and add appropriate
-      rel:relation elements.</pr:p>
+      <pr:section id="rel-catch-up-guidance">
+        <pr:title>Relation Catch-Up</pr:title>
+        <pr:p>Run connectivity analysis. For each isolated node, identify
+        its semantic relationships to other nodes and add the appropriate
+        <pr:code>rel:relation</pr:code> elements.</pr:p>
+        <pr:ol>
+          <pr:li>Run <pr:code>clayers connectivity clayers/PROJECT/</pr:code>
+          and read the "isolated nodes" section</pr:li>
+          <pr:li>For each isolated node, read the node content to
+          understand what it represents</pr:li>
+          <pr:li>Find the closest related node and add a
+          <pr:code>rel:relation</pr:code></pr:li>
+          <pr:li>Re-run connectivity to confirm the node is no longer
+          isolated</pr:li>
+        </pr:ol>
+        <pr:p>Use the template: <pr:xref ref="tpl-relation"/></pr:p>
+      </pr:section>
     </lyr:mode>
     <lyr:mode id="mode-rel-review" name="review">
       <lyr:condition>Spec has been modified since last review</lyr:condition>
       <lyr:acceptance>Connectivity analysis shows no isolated nodes and
       relation types accurately reflect semantic meaning</lyr:acceptance>
-      <pr:p>Review the connectivity graph for accuracy. Verify relation
-      types match the actual semantic relationships. Add missing relations.
-      Remove incorrect ones.</pr:p>
+      <pr:section id="rel-review-guidance">
+        <pr:title>Relation Review</pr:title>
+        <pr:p>Review the connectivity graph for accuracy. Verify relation
+        types match the actual semantic relationships. Add missing
+        relations. Remove or correct incorrect ones.</pr:p>
+        <pr:ol>
+          <pr:li>Run <pr:code>clayers connectivity clayers/PROJECT/</pr:code></pr:li>
+          <pr:li>Look for: isolated nodes, multiple connected components
+          (suggests missing relations between clusters), acyclic violations
+          (cycles in <pr:code>depends-on</pr:code>)</pr:li>
+          <pr:li>For each issue, decide whether to add a missing relation
+          or fix an incorrect one</pr:li>
+          <pr:li>For new mappings or recently changed nodes, verify they
+          are connected to the main component</pr:li>
+        </pr:ol>
+        <pr:note type="warning">Anti-pattern: blindly adding
+        <pr:code>references</pr:code> relations to fix isolated nodes.
+        <pr:code>references</pr:code> is the weakest relation; if
+        <pr:code>depends-on</pr:code> or <pr:code>refines</pr:code>
+        actually fits, use that instead.</pr:note>
+      </pr:section>
     </lyr:mode>
   </lyr:layer>
 
@@ -213,17 +524,70 @@
       recorded</lyr:condition>
       <lyr:acceptance>All significant architectural decisions have dec:decision
       records with status, alternatives, and rationale</lyr:acceptance>
-      <pr:p>Identify architectural decisions in the codebase (framework
-      choices, data model decisions, API design choices). Create
-      dec:decision records with status, rejected alternatives, and
-      rationale for each.</pr:p>
+      <pr:section id="dec-onboard-guidance">
+        <pr:title>Decision Onboarding</pr:title>
+        <pr:p>Identify architectural decisions in the codebase (framework
+        choices, data model decisions, API design choices) and record
+        them as <pr:code>dec:decision</pr:code> entries with status,
+        rejected alternatives, and rationale.</pr:p>
+        <pr:ol>
+          <pr:li>Scan the code, README, and design documents for
+          decisions that shaped the project (e.g., "we use Postgres
+          because...", "we chose REST over GraphQL because...")</pr:li>
+          <pr:li>For each decision, create a
+          <pr:code>dec:decision</pr:code> referencing a
+          <pr:code>pr:section</pr:code> that describes the decision in
+          full</pr:li>
+          <pr:li>Set <pr:code>dec:status</pr:code> to
+          <pr:code>accepted</pr:code> for decisions already in effect</pr:li>
+          <pr:li>For each rejected alternative, add a
+          <pr:code>dec:alternative</pr:code> with rationale explaining
+          why it was rejected</pr:li>
+        </pr:ol>
+        <pr:p>Use the template: <pr:xref ref="tpl-decision"/></pr:p>
+      </pr:section>
     </lyr:mode>
     <lyr:mode id="mode-dec-brainstorm" name="brainstorm">
       <lyr:condition>A design decision needs to be made</lyr:condition>
       <lyr:acceptance>The decision is recorded with alternatives and rationale</lyr:acceptance>
-      <pr:p>When facing a design choice, create a dec:decision record
-      in proposed status. Document alternatives with rationale. Update
-      status to accepted once decided.</pr:p>
+      <pr:section id="dec-brainstorm-guidance">
+        <pr:title>Decision Brainstorming</pr:title>
+        <pr:p>When facing a design choice, create a
+        <pr:code>dec:decision</pr:code> record in
+        <pr:code>proposed</pr:code> status. Document alternatives with
+        rationale before committing to a direction. Update status to
+        <pr:code>accepted</pr:code> once decided, then to
+        <pr:code>deprecated</pr:code> or <pr:code>superseded</pr:code>
+        as the decision evolves.</pr:p>
+        <pr:p>Create ADRs for:</pr:p>
+        <pr:ul>
+          <pr:li>Framework or library choices that affect the whole
+          project</pr:li>
+          <pr:li>API design decisions (REST vs GraphQL, sync vs async)</pr:li>
+          <pr:li>Data model decisions (normalization, schema choices)</pr:li>
+          <pr:li>Cross-cutting infrastructure (auth strategy, observability
+          stack)</pr:li>
+        </pr:ul>
+        <pr:p>Status lifecycle:
+        <pr:code>proposed</pr:code> -&gt;
+        <pr:code>accepted</pr:code> -&gt;
+        <pr:code>deprecated</pr:code> -&gt;
+        <pr:code>superseded</pr:code></pr:p>
+        <pr:ol>
+          <pr:li>Write a <pr:code>pr:section</pr:code> describing the
+          problem and constraints</pr:li>
+          <pr:li>Create a <pr:code>dec:decision</pr:code> referencing
+          that section with <pr:code>status="proposed"</pr:code></pr:li>
+          <pr:li>Enumerate alternatives as <pr:code>dec:alternative</pr:code>
+          children, each with rationale</pr:li>
+          <pr:li>Once decided, update the status and document the
+          accepted choice</pr:li>
+        </pr:ol>
+        <pr:p>Use the template: <pr:xref ref="tpl-decision"/></pr:p>
+        <pr:note type="warning">Document alternatives with the rationale
+        for rejecting them, not just the chosen option. Future readers
+        need to know what was considered and why it was set aside.</pr:note>
+      </pr:section>
     </lyr:mode>
   </lyr:layer>
 
@@ -238,9 +602,33 @@
       are relevant to the project</lyr:condition>
       <lyr:acceptance>All referenced external materials have src:source
       declarations with proper classification</lyr:acceptance>
-      <pr:p>Identify external references mentioned in code comments, docs,
-      or design discussions. Create src:source declarations with URLs,
-      type classification, and optional cached content hashes.</pr:p>
+      <pr:section id="src-onboard-guidance">
+        <pr:title>Source Onboarding</pr:title>
+        <pr:p>Identify external references mentioned in code comments,
+        docs, or design discussions. Create
+        <pr:code>src:source</pr:code> declarations with URLs, type
+        classification, and optional cached content hashes.</pr:p>
+        <pr:p>Classify each external reference by type:</pr:p>
+        <pr:ul>
+          <pr:li><pr:code>paper</pr:code>: academic papers, research
+          publications</pr:li>
+          <pr:li><pr:code>rfc</pr:code>: IETF RFCs and similar
+          standards-track documents</pr:li>
+          <pr:li><pr:code>standard</pr:code>: ISO, W3C, or other
+          formal standards</pr:li>
+          <pr:li><pr:code>documentation</pr:code>: vendor docs, library
+          guides</pr:li>
+        </pr:ul>
+        <pr:ol>
+          <pr:li>Search code comments and docs for URLs, RFC numbers,
+          paper citations</pr:li>
+          <pr:li>For each, add a <pr:code>src:source</pr:code> with id,
+          type, title, and URL</pr:li>
+          <pr:li>For sources that may change, store a content hash so
+          drift in the cited material is detectable</pr:li>
+          <pr:li>Link from prose using <pr:code>src:cite</pr:code></pr:li>
+        </pr:ol>
+      </pr:section>
     </lyr:mode>
   </lyr:layer>
 
@@ -254,9 +642,48 @@
       <lyr:condition>A feature design needs an implementation plan</lyr:condition>
       <lyr:acceptance>Implementation plan exists with items, acceptance
       criteria, and test references</lyr:acceptance>
-      <pr:p>Create a pln:plan element with title, overview, and itemized
-      steps. Each item should have acceptance criteria. Link items to
-      spec nodes they implement. Set status to proposed until work begins.</pr:p>
+      <pr:section id="pln-brainstorm-guidance">
+        <pr:title>Plan Brainstorming</pr:title>
+        <pr:p>Create a <pr:code>pln:plan</pr:code> with title, overview,
+        status, and itemized steps. Each item has a description and
+        acceptance criteria. Plans are versioned and queryable; they
+        belong in the spec, not in side documents.</pr:p>
+        <pr:p>Plan structure:</pr:p>
+        <pr:ul>
+          <pr:li><pr:code>pln:title</pr:code> — short, action-oriented
+          name</pr:li>
+          <pr:li><pr:code>pln:overview</pr:code> — what this plan
+          achieves and why</pr:li>
+          <pr:li><pr:code>pln:status</pr:code> — proposed | active |
+          completed</pr:li>
+          <pr:li><pr:code>pln:item</pr:code> — one per step, each with
+          its own acceptance criteria</pr:li>
+        </pr:ul>
+        <pr:ol>
+          <pr:li>Write the plan against an existing prose section
+          describing the feature</pr:li>
+          <pr:li>For each item, add at least one
+          <pr:code>pln:criterion</pr:code> describing how to verify
+          completion</pr:li>
+          <pr:li>Add witnesses to criteria when verification is
+          executable: <pr:code>command</pr:code> for shell,
+          <pr:code>script</pr:code> with <pr:code>lang</pr:code>
+          attribute for executable scripts, <pr:code>manual</pr:code>
+          with <pr:code>role</pr:code> for human verification</pr:li>
+          <pr:li>Use <pr:code>rel:relation type="depends-on"</pr:code>
+          or <pr:code>type="precedes"</pr:code> to order items</pr:li>
+          <pr:li>Link items to spec nodes they implement (via prose
+          embedding or relations)</pr:li>
+          <pr:li>Set status to <pr:code>proposed</pr:code> until work
+          begins, <pr:code>active</pr:code> while in progress, then
+          <pr:code>completed</pr:code></pr:li>
+        </pr:ol>
+        <pr:p>Use the template: <pr:xref ref="tpl-plan"/></pr:p>
+        <pr:note type="tip">Embed prose elements (<pr:code>pr:p</pr:code>,
+        <pr:code>pr:section</pr:code>, <pr:code>trm:ref</pr:code>,
+        <pr:code>src:cite</pr:code>) directly inside plan items for rich
+        descriptions. Plans are not limited to flat text.</pr:note>
+      </pr:section>
     </lyr:mode>
   </lyr:layer>
 
@@ -274,35 +701,208 @@
       <lyr:condition>Code files and spec nodes both exist</lyr:condition>
       <lyr:acceptance>Every spec node has an art:mapping with valid hashes and
       precise line ranges. Coverage analysis shows zero unmapped nodes.</lyr:acceptance>
-      <pr:p>Link each spec node to its implementing code. Create art:mapping
-      elements with spec-ref (node ID, revision, node-hash) and artifact
-      (repo, path, line ranges, content hash).</pr:p>
-      <pr:ol>
-        <pr:li>Scan source files for functions and modules corresponding to
-        spec nodes</pr:li>
-        <pr:li>Create art:mapping elements with precise line ranges (prefer
-        under 30 lines per range)</pr:li>
-        <pr:li>Run --fix-node-hash and --fix-artifact-hash to compute
-        SHA-256 hashes</pr:li>
-        <pr:li>Run --drift to verify clean state</pr:li>
-        <pr:li>Run --coverage to verify zero unmapped nodes</pr:li>
-      </pr:ol>
+      <pr:section id="art-onboard-guidance">
+        <pr:title>Artifact Onboarding</pr:title>
+        <pr:p>Link each spec node to its implementing code. Create
+        <pr:code>art:mapping</pr:code> elements with a
+        <pr:code>spec-ref</pr:code> (node ID, revision, node-hash) and
+        an <pr:code>artifact</pr:code> (repo, repo-revision, path, line
+        ranges, content hash).</pr:p>
+        <pr:ol>
+          <pr:li>Determine the current revision name from
+          <pr:code>revision.xml</pr:code> (typically
+          <pr:code>draft-1</pr:code>)</pr:li>
+          <pr:li>Determine the current repo commit:
+          <pr:code>git rev-parse --short HEAD</pr:code></pr:li>
+          <pr:li>For each spec node that describes code, create an
+          <pr:code>art:mapping</pr:code> linking it to the implementing
+          code</pr:li>
+          <pr:li>Use precise line ranges; multiple
+          <pr:code>art:range</pr:code> elements per artifact are
+          allowed for non-contiguous code</pr:li>
+          <pr:li>Write hashes as <pr:code>sha256:placeholder</pr:code>;
+          the tooling will compute real values</pr:li>
+          <pr:li>For nodes with no implementing code (design rationale,
+          methodology, abstract concepts), use
+          <pr:code>art:exempt</pr:code> with a reason</pr:li>
+          <pr:li>Run hash fixers, then drift, then coverage</pr:li>
+        </pr:ol>
+        <pr:p>Use the templates: <pr:xref ref="tpl-artifact-mapping"/>
+        and <pr:xref ref="tpl-artifact-exempt"/></pr:p>
+        <pr:p>Line range precision targets:</pr:p>
+        <pr:ul>
+          <pr:li><pr:b>Precise (1-30 lines)</pr:b>: PREFERRED. One
+          function or one focused block.</pr:li>
+          <pr:li><pr:b>Moderate (31-100 lines)</pr:b>: acceptable for
+          coherent multi-function modules.</pr:li>
+          <pr:li><pr:b>Broad (101+ lines)</pr:b>: AVOID. Split into
+          multiple precise mappings.</pr:li>
+        </pr:ul>
+        <pr:p>Hash workflow:</pr:p>
+        <pr:codeblock>clayers artifact --fix-node-hash clayers/PROJECT/
+clayers artifact --fix-artifact-hash clayers/PROJECT/
+clayers artifact --drift clayers/PROJECT/
+clayers artifact --coverage clayers/PROJECT/</pr:codeblock>
+        <pr:note type="warning">Anti-pattern: whole-file mapping.
+        Mapping an entire 500-line file to one spec node loses
+        precision and creates artifact drift on every unrelated change.
+        Use function-level ranges.</pr:note>
+        <pr:note type="warning">Anti-pattern: self-referential mapping.
+        Never map a spec XML file to itself as an artifact: editing the
+        spec changes the artifact hash, creating infinite drift loops.
+        Either exempt the node or map to non-spec code only.</pr:note>
+        <pr:note type="warning">Anti-pattern: duplicate IDs. Mapping IDs
+        share the global ID namespace; collisions break the spec. Use
+        the <pr:code>map-</pr:code> prefix and a descriptive name.</pr:note>
+      </pr:section>
     </lyr:mode>
     <lyr:mode id="mode-art-catch-up" name="catch-up">
       <lyr:condition>Unmapped spec nodes or drifted mappings exist</lyr:condition>
       <lyr:acceptance>Zero unmapped nodes and zero drifted mappings</lyr:acceptance>
-      <pr:p>Run drift and coverage analysis. For drifted mappings, update
-      line ranges and re-fix hashes. For unmapped nodes, create new
-      art:mapping elements.</pr:p>
+      <pr:section id="art-catch-up-guidance">
+        <pr:title>Artifact Catch-Up (Drift Resolution)</pr:title>
+        <pr:p>Run drift and coverage analysis. For drifted mappings,
+        analyze WHY before fixing: blindly fixing hashes hides real
+        changes. For unmapped nodes, create new
+        <pr:code>art:mapping</pr:code> elements.</pr:p>
+        <pr:codeblock>clayers artifact --drift clayers/PROJECT/</pr:codeblock>
+        <pr:p>Drift output classifies each mapping:</pr:p>
+        <pr:ul>
+          <pr:li><pr:b>OK</pr:b>: hashes match on both sides; no action.</pr:li>
+          <pr:li><pr:b>ARTIFACT DRIFTED</pr:b>: the code at the mapped
+          range changed.</pr:li>
+          <pr:li><pr:b>SPEC DRIFTED</pr:b>: the spec node prose
+          changed.</pr:li>
+          <pr:li><pr:b>UNAVAILABLE</pr:b>: the file or node was removed
+          or renamed.</pr:li>
+        </pr:ul>
+        <pr:p>For ARTIFACT DRIFTED:</pr:p>
+        <pr:ol>
+          <pr:li>Read the diff at the mapped range</pr:li>
+          <pr:li>Decide whether the change is formatting-only or
+          semantic</pr:li>
+          <pr:li>Formatting only: update line ranges (if shifted) and
+          re-fix the artifact hash</pr:li>
+          <pr:li>Semantic change: evaluate whether the spec node
+          description still matches; update the prose if it no longer
+          does</pr:li>
+          <pr:li>Run <pr:code>clayers artifact --fix-artifact-hash clayers/PROJECT/</pr:code></pr:li>
+        </pr:ol>
+        <pr:p>For SPEC DRIFTED:</pr:p>
+        <pr:ol>
+          <pr:li>Confirm the prose change is intentional</pr:li>
+          <pr:li>Run <pr:code>clayers artifact --fix-node-hash clayers/PROJECT/</pr:code></pr:li>
+          <pr:li>Verify the mapped code still implements what the prose
+          now describes</pr:li>
+        </pr:ol>
+        <pr:p>For UNAVAILABLE:</pr:p>
+        <pr:ol>
+          <pr:li>Find the new path or ID, or remove the mapping</pr:li>
+          <pr:li>If the code was deleted, also reconsider whether the
+          spec node should be removed</pr:li>
+        </pr:ol>
+        <pr:note type="warning">Anti-pattern: blindly running
+        <pr:code>--fix-artifact-hash</pr:code> on every drift without
+        analyzing what changed. This masks real semantic divergence and
+        defeats the purpose of drift detection.</pr:note>
+      </pr:section>
     </lyr:mode>
     <lyr:mode id="mode-art-review" name="review">
       <lyr:condition>Artifact mappings exist that may need quality improvement</lyr:condition>
       <lyr:acceptance>All mappings have precise line ranges, correct coverage
       levels, and descriptive notes</lyr:acceptance>
-      <pr:p>Review artifact mappings for quality. Check that line ranges
-      are precise (not overly broad), coverage levels are accurate, and
-      notes describe what the code implements. Fix drift and improve
-      granularity where needed.</pr:p>
+      <pr:section id="art-review-guidance">
+        <pr:title>Artifact Review</pr:title>
+        <pr:p>Review artifact mappings for end-to-end quality. The goal is
+        every spec node maps to code, every meaningful code region maps to
+        a spec node, mappings are precise (small ranges, focused nodes),
+        drift is zero, and exemptions are justified.</pr:p>
+        <pr:section id="art-review-spec-to-code">
+          <pr:title>Spec-to-code coverage</pr:title>
+          <pr:p>For each unmapped spec node, decide whether to map or
+          exempt:</pr:p>
+          <pr:ol>
+            <pr:li>Run
+            <pr:code>clayers artifact --coverage clayers/PROJECT/</pr:code></pr:li>
+            <pr:li>For each unmapped node, read the node content with
+            <pr:code>clayers query clayers/PROJECT/ '//*[@id="NODE_ID"]' --text</pr:code></pr:li>
+            <pr:li>If it describes code, find the implementing code and
+            create a precise mapping</pr:li>
+            <pr:li>If it is abstract (design rationale, methodology), add
+            an <pr:code>art:exempt</pr:code> with reasoning</pr:li>
+          </pr:ol>
+        </pr:section>
+        <pr:section id="art-review-code-to-spec">
+          <pr:title>Code-to-spec coverage</pr:title>
+          <pr:p>For each uncovered code range, either extend an existing
+          mapping or create a new spec node:</pr:p>
+          <pr:ol>
+            <pr:li>Run
+            <pr:code>clayers artifact --coverage clayers/PROJECT/ --code-path src/</pr:code></pr:li>
+            <pr:li>For each <pr:code>NOT COVERED</pr:code> range, read
+            the code and decide whether it is a distinct concept or part
+            of an already-mapped one</pr:li>
+            <pr:li>If part of an existing concept, add another
+            <pr:code>art:range</pr:code> to the existing mapping</pr:li>
+            <pr:li>If it is a new concept, create the spec node first
+            (spec-first), then map it</pr:li>
+          </pr:ol>
+        </pr:section>
+        <pr:section id="art-review-exemption-audit">
+          <pr:title>Exemption audit</pr:title>
+          <pr:p>For each <pr:code>art:exempt</pr:code>, verify the
+          reasoning is still valid:</pr:p>
+          <pr:ol>
+            <pr:li>List exemptions:
+            <pr:code>clayers query clayers/PROJECT/ '//art:exempt/@node' --text</pr:code></pr:li>
+            <pr:li>For each, ask: did someone add implementing code since
+            the exemption?</pr:li>
+            <pr:li>Could part of the node now be mapped even if the whole
+            cannot?</pr:li>
+            <pr:li>If the exemption is no longer valid, remove it and add
+            a mapping</pr:li>
+          </pr:ol>
+        </pr:section>
+        <pr:section id="art-review-mapping-quality">
+          <pr:title>Mapping quality</pr:title>
+          <pr:ol>
+            <pr:li>Split <pr:b>Broad</pr:b> mappings (101+ lines) into
+            multiple precise mappings</pr:li>
+            <pr:li>Verify <pr:code>art:coverage</pr:code> values
+            (<pr:code>full</pr:code> vs <pr:code>partial</pr:code>) are
+            accurate</pr:li>
+            <pr:li>Confirm every mapping has a descriptive
+            <pr:code>art:note</pr:code> explaining what the code
+            implements</pr:li>
+            <pr:li>If one node has 10+ mappings, it is too broad: split
+            the node into focused sub-sections</pr:li>
+          </pr:ol>
+        </pr:section>
+        <pr:section id="art-review-decision-framework">
+          <pr:title>Decision framework: map vs exempt</pr:title>
+          <pr:p><pr:b>ALWAYS MAP</pr:b>: public API, core business
+          logic, data types, algorithms, CLI commands, API endpoints,
+          configuration schemas, constants, type definitions.</pr:p>
+          <pr:p><pr:b>USUALLY EXEMPT</pr:b>: design decisions
+          (<pr:code>dec:decision</pr:code>) that explain WHY, historical
+          context that doesn't correspond to current code, methodology
+          descriptions, future work items not yet implemented, generated
+          code, trivial getters/setters, test fixtures.</pr:p>
+          <pr:p><pr:b>ASK THE USER</pr:b>: internal utilities, error
+          types, configuration, code in a different repository, emergent
+          behavior with no single code location.</pr:p>
+          <pr:p>Default: map. Only exempt when you are confident there
+          is truly no implementing code.</pr:p>
+        </pr:section>
+        <pr:p>Useful commands:</pr:p>
+        <pr:codeblock>clayers artifact --coverage clayers/PROJECT/
+clayers artifact --coverage clayers/PROJECT/ --code-path src/
+clayers artifact --drift clayers/PROJECT/
+clayers connectivity clayers/PROJECT/</pr:codeblock>
+        <pr:note type="warning">Anti-pattern: copy-paste line numbers
+        without reading the code. Always read the code at the proposed
+        range to confirm it implements what the spec node describes.</pr:note>
+      </pr:section>
     </lyr:mode>
   </lyr:layer>
 
@@ -317,16 +917,55 @@
       <lyr:condition>Spec nodes exist that need machine-readable descriptions</lyr:condition>
       <lyr:acceptance>Every spec node has an llm:node description. Every schema
       has an llm:schema description.</lyr:acceptance>
-      <pr:p>Add llm:node descriptions for each spec node, explaining what
-      it means, how it relates to other nodes, and guidance for
-      interpreting or modifying it. Add llm:schema descriptions for
-      each layer namespace.</pr:p>
+      <pr:section id="llm-onboard-guidance">
+        <pr:title>LLM Onboarding</pr:title>
+        <pr:p>Add <pr:code>llm:node</pr:code> descriptions for each spec
+        node, explaining what it means, how it relates to other nodes,
+        and guidance for interpreting or modifying it. Add
+        <pr:code>llm:schema</pr:code> descriptions for each layer
+        namespace.</pr:p>
+        <pr:ol>
+          <pr:li>List existing nodes:
+          <pr:code>clayers query clayers/PROJECT/ '//*[@id]/@id' --text</pr:code></pr:li>
+          <pr:li>List existing LLM descriptions:
+          <pr:code>clayers query clayers/PROJECT/ '//llm:node/@ref' --text</pr:code></pr:li>
+          <pr:li>For each node without an LLM description, write one
+          that starts with the most important information</pr:li>
+          <pr:li>Place the <pr:code>llm:node</pr:code> in the same file
+          as the node it describes</pr:li>
+          <pr:li>For each layer namespace, add an
+          <pr:code>llm:schema</pr:code> explaining the layer's purpose,
+          main elements, and when to use it</pr:li>
+        </pr:ol>
+        <pr:p>Use the template: <pr:xref ref="tpl-llm-descriptions"/></pr:p>
+        <pr:note type="warning">Anti-pattern: generic descriptions that
+        just restate the element name ("term-foo: this is the foo
+        term"). Descriptions must add information that is not obvious
+        from the ID or title.</pr:note>
+        <pr:note type="tip">Front-load important information.
+        LLM descriptions are read top-to-bottom; the first sentence
+        should answer "what is this and why does it matter?"</pr:note>
+      </pr:section>
     </lyr:mode>
     <lyr:mode id="mode-llm-catch-up" name="catch-up">
       <lyr:condition>Spec nodes exist without llm:node descriptions</lyr:condition>
       <lyr:acceptance>All nodes have descriptions</lyr:acceptance>
-      <pr:p>Find spec nodes missing llm:node descriptions and add them.
-      Focus on nodes that are most important for LLM comprehension.</pr:p>
+      <pr:section id="llm-catch-up-guidance">
+        <pr:title>LLM Catch-Up</pr:title>
+        <pr:p>Find spec nodes missing <pr:code>llm:node</pr:code>
+        descriptions and add them. Focus first on nodes that are most
+        important for LLM comprehension: top-level sections, terms with
+        non-obvious meaning, and nodes referenced by many relations.</pr:p>
+        <pr:ol>
+          <pr:li>Compute the gap: list all node IDs and all
+          <pr:code>llm:node/@ref</pr:code> values; the difference is
+          uncovered</pr:li>
+          <pr:li>Prioritize sections, then terms, then everything else</pr:li>
+          <pr:li>For each, write a description that adds information
+          beyond the title</pr:li>
+        </pr:ol>
+        <pr:p>Use the template: <pr:xref ref="tpl-llm-descriptions"/></pr:p>
+      </pr:section>
     </lyr:mode>
   </lyr:layer>
 
@@ -340,9 +979,31 @@
       guarantees</lyr:condition>
       <lyr:acceptance>All external content references have cnt:content elements
       with valid hashes</lyr:acceptance>
-      <pr:p>For external content that other layers reference (test fixtures,
-      data files, cached external documents), create cnt:content elements
-      with URLs and content hashes for integrity verification.</pr:p>
+      <pr:section id="cnt-onboard-guidance">
+        <pr:title>Content Onboarding</pr:title>
+        <pr:p>For external content that other layers reference, create
+        <pr:code>cnt:content</pr:code> elements with content hashes for
+        integrity verification. Content addressing makes the spec
+        self-checking: the hash detects tampering or accidental
+        modification.</pr:p>
+        <pr:p>Use <pr:code>cnt:content</pr:code> for:</pr:p>
+        <pr:ul>
+          <pr:li>Test fixtures referenced by the testing layer</pr:li>
+          <pr:li>Cached external documents (papers, RFCs) where the
+          source URL may change</pr:li>
+          <pr:li>XML templates that other parts of the spec link to</pr:li>
+          <pr:li>Data files referenced by examples</pr:li>
+        </pr:ul>
+        <pr:ol>
+          <pr:li>For each piece of referenced content, decide whether
+          to embed it (small, stable) or link to it (large, external)</pr:li>
+          <pr:li>For embedded content, place the body in a
+          <pr:code>cnt:body</pr:code> element with a hash</pr:li>
+          <pr:li>For external content, declare the URL alongside the
+          hash so the reference is verifiable</pr:li>
+          <pr:li>Reference the content from other layers via its ID</pr:li>
+        </pr:ol>
+      </pr:section>
     </lyr:mode>
   </lyr:layer>
 
@@ -356,10 +1017,38 @@
       <lyr:condition>Tests exist or need to be defined for spec verification</lyr:condition>
       <lyr:acceptance>Key spec requirements have corresponding test definitions
       with appropriate types (manual, vectors, property, program, witness)</lyr:acceptance>
-      <pr:p>Define test specifications for key requirements. Choose the
-      appropriate test type: program for executable tests, vectors for
-      input/output pairs, property for invariants, manual for procedures
-      requiring human judgment, witness for external verification.</pr:p>
+      <pr:section id="tst-onboard-guidance">
+        <pr:title>Testing Onboarding</pr:title>
+        <pr:p>Define test specifications for key requirements. Choose
+        the test type based on what the test actually does: do not
+        default to <pr:code>program</pr:code> when the verification is
+        actually a manual checklist.</pr:p>
+        <pr:p>Test types:</pr:p>
+        <pr:ul>
+          <pr:li><pr:code>manual</pr:code>: human procedure that
+          requires judgment</pr:li>
+          <pr:li><pr:code>vectors</pr:code>: input/output pairs for
+          deterministic functions</pr:li>
+          <pr:li><pr:code>property</pr:code>: invariants that must hold
+          for all inputs in some domain</pr:li>
+          <pr:li><pr:code>program</pr:code>: executable test (unit,
+          integration, end-to-end)</pr:li>
+          <pr:li><pr:code>witness</pr:code>: external verification
+          (third-party audit, formal proof artifact)</pr:li>
+        </pr:ul>
+        <pr:ol>
+          <pr:li>For each requirement, identify what success looks like</pr:li>
+          <pr:li>Pick the test type that matches the verification style</pr:li>
+          <pr:li>Link the test to the spec node it verifies</pr:li>
+          <pr:li>For executable tests, link via artifact mapping to the
+          test source code</pr:li>
+        </pr:ol>
+        <pr:note type="warning">Anti-pattern: classifying every test as
+        <pr:code>program</pr:code>. A README walkthrough is
+        <pr:code>manual</pr:code>; a table of expected outputs is
+        <pr:code>vectors</pr:code>; a "for all valid inputs the output
+        is sorted" is <pr:code>property</pr:code>.</pr:note>
+      </pr:section>
     </lyr:mode>
   </lyr:layer>
 
@@ -373,10 +1062,32 @@
       <lyr:condition>Python source code exists in the project</lyr:condition>
       <lyr:acceptance>All public Python APIs have py:module, py:class, and
       py:function descriptions with parameter types and return types</lyr:acceptance>
-      <pr:p>Describe the Python API surface. Create py:module elements for
-      packages, py:class for classes, and py:function/py:method for
-      callables. Include parameter lists, return types, and raised
-      exceptions.</pr:p>
+      <pr:section id="py-onboard-guidance">
+        <pr:title>Python API Onboarding</pr:title>
+        <pr:p>Describe the Python API surface. Create
+        <pr:code>py:module</pr:code> elements for packages,
+        <pr:code>py:class</pr:code> for classes, and
+        <pr:code>py:function</pr:code> or <pr:code>py:method</pr:code>
+        for callables. Include parameter lists with types, return
+        types, and raised exceptions.</pr:p>
+        <pr:ol>
+          <pr:li>Walk the Python package tree</pr:li>
+          <pr:li>For each module, add a <pr:code>py:module</pr:code>
+          with the module's purpose</pr:li>
+          <pr:li>For each public class, add a <pr:code>py:class</pr:code>
+          with attributes and methods</pr:li>
+          <pr:li>For each public function or method, add a
+          <pr:code>py:function</pr:code> or <pr:code>py:method</pr:code>
+          with parameters (name and type), return type, and raised
+          exceptions</pr:li>
+          <pr:li>Skip private members (leading underscore) unless they
+          are part of the documented API</pr:li>
+        </pr:ol>
+        <pr:note type="tip">The Python layer complements the artifact
+        layer: artifact mappings link to specific code ranges, while
+        Python descriptions capture the API contract that callers
+        depend on.</pr:note>
+      </pr:section>
     </lyr:mode>
   </lyr:layer>
 

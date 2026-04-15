@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Templates: XML boilerplate patterns for clayers elements.
+  Referenced by layer mode guidance via pr:xref.
+-->
+<spec:clayers xmlns:spec="urn:clayers:spec"
+       xmlns:cnt="urn:clayers:content"
+       xmlns:pr="urn:clayers:prose"
+       xmlns:llm="urn:clayers:llm"
+       spec:index="index.xml">
+
+  <pr:section id="templates-overview">
+    <pr:title>XML Templates</pr:title>
+    <pr:shortdesc>Canonical XML boilerplate for creating clayers elements.
+    Referenced by layer mode guidance.</pr:shortdesc>
+  </pr:section>
+
+  <!-- Namespace declarations for new spec files -->
+  <cnt:content id="tpl-namespace-declarations">
+    <cnt:body hash="sha256:placeholder"><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<spec:clayers xmlns:spec="urn:clayers:spec"
+       xmlns:pr="urn:clayers:prose"
+       xmlns:trm="urn:clayers:terminology"
+       xmlns:org="urn:clayers:organization"
+       xmlns:rel="urn:clayers:relation"
+       xmlns:art="urn:clayers:artifact"
+       xmlns:llm="urn:clayers:llm"
+       spec:index="index.xml">
+
+  <!-- Content goes here -->
+
+</spec:clayers>]]></cnt:body>
+  </cnt:content>
+
+  <!-- Terminology: trm:term -->
+  <cnt:content id="tpl-term">
+    <cnt:body hash="sha256:placeholder"><![CDATA[<trm:term id="term-CONCEPT-NAME">
+  <trm:name>Concept Name</trm:name>
+  <trm:definition>A precise, self-contained definition that distinguishes
+  this concept from similar ones. Should be understandable without reading
+  any other part of the spec.</trm:definition>
+</trm:term>]]></cnt:body>
+  </cnt:content>
+
+  <!-- Prose: pr:section -->
+  <cnt:content id="tpl-section">
+    <cnt:body hash="sha256:placeholder"><![CDATA[<pr:section id="section-MODULE-NAME">
+  <pr:title>Module Name</pr:title>
+  <pr:shortdesc>One-sentence summary of what this module does and why
+  it exists.</pr:shortdesc>
+
+  <pr:p>Explain the module's purpose, design rationale, and how it fits
+  into the larger system. Focus on intent ("why") rather than
+  implementation details ("what the code does").</pr:p>
+</pr:section>]]></cnt:body>
+  </cnt:content>
+
+  <!-- Organization: topic typing -->
+  <cnt:content id="tpl-topic-typing">
+    <cnt:body hash="sha256:placeholder"><![CDATA[<!-- Use concept for explanatory content -->
+<org:concept ref="section-ID">
+  <org:purpose>Understanding how X works and why it was designed
+  this way.</org:purpose>
+</org:concept>
+
+<!-- Use task for system behavior -->
+<org:task ref="section-ID">
+  <org:purpose>The system performs Y when Z happens.</org:purpose>
+</org:task>
+
+<!-- Use reference for lookup information -->
+<org:reference ref="section-ID">
+  <org:purpose>Quick lookup for API endpoints / configuration
+  keys / error codes.</org:purpose>
+</org:reference>]]></cnt:body>
+  </cnt:content>
+
+  <!-- Relation: rel:relation -->
+  <cnt:content id="tpl-relation">
+    <cnt:body hash="sha256:placeholder"><![CDATA[<rel:relation type="depends-on" from="SOURCE-ID" to="TARGET-ID">
+  <rel:note>Brief explanation of why this dependency exists.</rel:note>
+</rel:relation>
+
+<!-- Relation types:
+     depends-on  : SOURCE requires TARGET to function
+     refines     : SOURCE is a more specific version of TARGET
+     references  : SOURCE mentions or uses TARGET
+     precedes    : SOURCE must happen before TARGET
+     implements  : SOURCE realizes the concept in TARGET
+     constrains  : SOURCE limits what TARGET can do
+     reverses    : SOURCE undoes or opposes TARGET
+-->]]></cnt:body>
+  </cnt:content>
+
+  <!-- Artifact: art:mapping -->
+  <cnt:content id="tpl-artifact-mapping">
+    <cnt:body hash="sha256:placeholder"><![CDATA[<art:mapping id="map-CONCEPT-NAME">
+  <art:spec-ref node="NODE-ID"
+            revision="draft-1"
+            node-hash="sha256:placeholder"/>
+  <art:artifact repo="REPO-ID"
+            repo-revision="COMMIT-HASH"
+            path="path/to/file.rs">
+    <art:range hash="sha256:placeholder"
+               start-line="10" end-line="40"/>
+  </art:artifact>
+  <art:coverage>full</art:coverage>
+  <art:note>Brief description of what this code implements
+  from the spec node.</art:note>
+</art:mapping>]]></cnt:body>
+  </cnt:content>
+
+  <!-- Artifact: art:exempt -->
+  <cnt:content id="tpl-artifact-exempt">
+    <cnt:body hash="sha256:placeholder"><![CDATA[<art:exempt node="NODE-ID" revision="draft-1">
+  <art:reason>This node is an abstract concept / organizational
+  element with no direct code implementation.</art:reason>
+</art:exempt>]]></cnt:body>
+  </cnt:content>
+
+  <!-- LLM: llm:node and llm:schema -->
+  <cnt:content id="tpl-llm-descriptions">
+    <cnt:body hash="sha256:placeholder"><![CDATA[<!-- Describe a spec node for LLM consumption -->
+<llm:node ref="NODE-ID">
+  Explain what this node means, how it relates to other nodes,
+  and guidance for interpreting or modifying it. Start with the
+  most important information.
+</llm:node>
+
+<!-- Describe a schema (layer) for LLM consumption -->
+<llm:schema namespace="urn:clayers:LAYER-NAME">
+  Explain the layer's purpose, its main elements, and how they
+  relate to other layers. Include guidance on when to use this
+  layer and common patterns.
+</llm:schema>]]></cnt:body>
+  </cnt:content>
+
+  <!-- Decision: dec:decision -->
+  <cnt:content id="tpl-decision">
+    <cnt:body hash="sha256:placeholder"><![CDATA[<dec:decision ref="section-DECISION-NAME" id="dec-DECISION-NAME">
+  <dec:status>proposed</dec:status>
+  <dec:date>YYYY-MM-DD</dec:date>
+  <dec:alternative id="alt-OPTION-NAME">
+    <dec:title>Option name</dec:title>
+    <dec:rationale>Why this option was rejected.</dec:rationale>
+  </dec:alternative>
+</dec:decision>]]></cnt:body>
+  </cnt:content>
+
+  <!-- Plan: pln:plan -->
+  <cnt:content id="tpl-plan">
+    <cnt:body hash="sha256:placeholder"><![CDATA[<pln:plan id="plan-FEATURE-NAME">
+  <pln:title>Feature implementation plan</pln:title>
+  <pln:overview>Brief description of what this plan achieves.</pln:overview>
+  <pln:status>proposed</pln:status>
+  <pln:item id="item-STEP-NAME">
+    <pln:title>Step description</pln:title>
+    <pln:description>What to do in this step.</pln:description>
+    <pln:acceptance>
+      <pln:criterion>The expected outcome is verifiable.</pln:criterion>
+    </pln:acceptance>
+    <pln:item-status>pending</pln:item-status>
+  </pln:item>
+</pln:plan>]]></cnt:body>
+  </cnt:content>
+
+  <!-- VCS: vcs:git -->
+  <cnt:content id="tpl-vcs-git">
+    <cnt:body hash="sha256:placeholder"><![CDATA[<vcs:git id="repo-PROJECT-NAME"
+         remote="https://github.com/ORG/REPO.git"
+         default-branch="main"/>]]></cnt:body>
+  </cnt:content>
+
+  <llm:node ref="templates-overview">
+    XML boilerplate templates for creating clayers elements. Each
+    cnt:content element shows the canonical structure for a specific
+    element type. Mode guidance references these via pr:xref so agents
+    can copy and adapt the templates during onboarding.
+  </llm:node>
+
+</spec:clayers>
