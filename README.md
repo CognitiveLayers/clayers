@@ -148,13 +148,13 @@ Query the assembled spec as a structured knowledge base:
 
 ```bash
 # Find a term's definition
-clayers query clayers/my-project/ '//trm:term[@id="term-drift"]/trm:definition' --text
+clayers query '//trm:term[@id="term-drift"]/trm:definition' clayers/my-project/ --text
 
 # Locate code implementing a concept
-clayers query clayers/my-project/ '//art:mapping[art:spec-ref/@node="auth-flow"]/art:artifact/@path'
+clayers query '//art:mapping[art:spec-ref/@node="auth-flow"]/art:artifact/@path' clayers/my-project/
 
 # Get the LLM description for a node
-clayers query clayers/my-project/ '//llm:node[@ref="auth-flow"]' --text
+clayers query '//llm:node[@ref="auth-flow"]' clayers/my-project/ --text
 ```
 
 ### Content-addressed version control

@@ -72,8 +72,8 @@ cargo run -p clayers -- artifact --fix-node-hash clayers/clayers/
 # Fix artifact-side hashes (after editing code)
 cargo run -p clayers -- artifact --fix-artifact-hash clayers/clayers/
 
-# XPath query
-cargo run -p clayers -- query clayers/clayers/ '//trm:term/trm:name' --text
+# XPath query (XPath first, then path)
+cargo run -p clayers -- query '//trm:term/trm:name' clayers/clayers/ --text
 ```
 
 All commands accept a directory (searches recursively) or a single XML file.
@@ -332,40 +332,44 @@ structured knowledge base. Instead of grepping XML files, you can run typed
 XPath 1.0 queries against the fully assembled combined document (including
 XSLT-synthesized relations).
 
+CLI: `clayers query <XPATH> [PATH] [OPTIONS]`. The XPath is the
+required positional, the spec/repo path comes after it (optional in
+repo mode). Examples below abbreviate the path as `PATH`.
+
 Quick example:
 ```bash
-cargo run -p clayers -- query clayers/clayers/ '//trm:term[@id="term-drift"]/trm:definition' --text
+cargo run -p clayers -- query '//trm:term[@id="term-drift"]/trm:definition' clayers/clayers/ --text
 ```
 
 ### XPath Recipe Table
 
 | Task | Command |
 |------|---------|
-| Find a term's definition | `query PATH '//trm:term[@id="ID"]/trm:definition' --text` |
-| List all terms | `query PATH '//trm:term/trm:name' --text` |
-| Find code for a concept | `query PATH '//art:mapping[art:spec-ref/@node="ID"]'` |
-| Get file paths for a node | `query PATH '//art:mapping[art:spec-ref/@node="ID"]/art:artifact/@path'` |
-| Get line ranges | `query PATH '//art:mapping[art:spec-ref/@node="ID"]//art:range/@start-line'` |
-| Get LLM description | `query PATH '//llm:node[@ref="ID"]' --text` |
-| Find relations from a node | `query PATH '//rel:relation[@from="ID"]'` |
-| Find relations to a node | `query PATH '//rel:relation[@to="ID"]'` |
-| List all sections | `query PATH '//pr:section/pr:title' --text` |
-| Count terms | `query PATH '//trm:term' --count` |
-| Find depends-on relations | `query PATH '//rel:relation[@type="depends-on"]'` |
+| Find a term's definition | `query '//trm:term[@id="ID"]/trm:definition' PATH --text` |
+| List all terms | `query '//trm:term/trm:name' PATH --text` |
+| Find code for a concept | `query '//art:mapping[art:spec-ref/@node="ID"]' PATH` |
+| Get file paths for a node | `query '//art:mapping[art:spec-ref/@node="ID"]/art:artifact/@path' PATH` |
+| Get line ranges | `query '//art:mapping[art:spec-ref/@node="ID"]//art:range/@start-line' PATH` |
+| Get LLM description | `query '//llm:node[@ref="ID"]' PATH --text` |
+| Find relations from a node | `query '//rel:relation[@from="ID"]' PATH` |
+| Find relations to a node | `query '//rel:relation[@to="ID"]' PATH` |
+| List all sections | `query '//pr:section/pr:title' PATH --text` |
+| Count terms | `query '//trm:term' PATH --count` |
+| Find depends-on relations | `query '//rel:relation[@type="depends-on"]' PATH` |
 
 ### Workflow: Understanding a Concept End-to-End
 
-1. Find the term definition: `query PATH '//trm:term[@id="ID"]/trm:definition' --text`
-2. Read the LLM description: `query PATH '//llm:node[@ref="ID"]' --text`
-3. Find what it depends on: `query PATH '//rel:relation[@from="ID"]'`
-4. Find what depends on it: `query PATH '//rel:relation[@to="ID"]'`
-5. Locate implementing code: `query PATH '//art:mapping[art:spec-ref/@node="ID"]/art:artifact/@path'`
+1. Find the term definition: `query '//trm:term[@id="ID"]/trm:definition' PATH --text`
+2. Read the LLM description: `query '//llm:node[@ref="ID"]' PATH --text`
+3. Find what it depends on: `query '//rel:relation[@from="ID"]' PATH`
+4. Find what depends on it: `query '//rel:relation[@to="ID"]' PATH`
+5. Locate implementing code: `query '//art:mapping[art:spec-ref/@node="ID"]/art:artifact/@path' PATH`
 
 ### Workflow: Finding Code That Implements a Spec Concept
 
-1. Get artifact mappings: `query PATH '//art:mapping[art:spec-ref/@node="ID"]'`
-2. Extract file paths: `query PATH '//art:mapping[art:spec-ref/@node="ID"]/art:artifact/@path'`
-3. Extract line ranges: `query PATH '//art:mapping[art:spec-ref/@node="ID"]//art:range/@start-line'`
+1. Get artifact mappings: `query '//art:mapping[art:spec-ref/@node="ID"]' PATH`
+2. Extract file paths: `query '//art:mapping[art:spec-ref/@node="ID"]/art:artifact/@path' PATH`
+3. Extract line ranges: `query '//art:mapping[art:spec-ref/@node="ID"]//art:range/@start-line' PATH`
 
 ### Notes
 

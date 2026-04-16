@@ -36,6 +36,13 @@ fixes and additions.
 
 ### Fixed
 
+- **Documented `clayers query` argument order matches the CLI.**
+  README and AGENTS.md examples and the XPath recipe table previously
+  showed `query PATH XPATH`, but the CLI is `query XPATH [PATH]`
+  (XPath required, path optional in repo mode). Following the docs
+  produced "unable to open database file" errors because the XPath
+  string was being interpreted as the path. All examples are now
+  corrected.
 - **`clayers artifact --drift` now detects spec-side drift.** Previously
   `check_single_mapping` in `clayers-spec` had a placeholder for the
   spec-side hash check that never ran, so any edit to a mapped spec
