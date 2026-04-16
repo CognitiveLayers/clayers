@@ -211,7 +211,7 @@ struct NodeHashChange {
 
 // --- Helpers ---
 
-fn find_node_by_id(
+pub(crate) fn find_node_by_id(
     xot: &xot::Xot,
     node: xot::Node,
     id_attr: xot::NameId,

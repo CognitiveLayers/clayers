@@ -1,4 +1,7 @@
+use std::collections::HashMap;
 use std::path::Path;
+
+use clayers_xml::c14n;
 
 use crate::artifact::{self, ArtifactMapping};
 
@@ -62,14 +65,15 @@ pub fn check_drift(spec_dir: &Path, repo_root: Option<&Path>) -> Result<DriftRep
         all_file_paths.extend(file_paths);
     }
 
-    // Collect all spec nodes for node-hash comparison
-    let nodes = collect_spec_node_ids(&all_file_paths)?;
+    // Compute current C14N hashes for each mapped spec node by assembling
+    // the combined document once and serializing each referenced node.
+    let current_node_hashes = collect_current_node_hashes(&all_file_paths, &all_mappings);
 
     let mut mapping_drifts = Vec::new();
     let mut drifted_count = 0;
 
     for mapping in &all_mappings {
-        let drift = check_single_mapping(mapping, &nodes, repo_root, spec_dir);
+        let drift = check_single_mapping(mapping, &current_node_hashes, repo_root, spec_dir);
         if matches!(
             drift.status,
             DriftStatus::SpecDrifted { .. } | DriftStatus::ArtifactDrifted { .. }
@@ -89,20 +93,27 @@ pub fn check_drift(spec_dir: &Path, repo_root: Option<&Path>) -> Result<DriftRep
 
 fn check_single_mapping(
     mapping: &ArtifactMapping,
-    nodes: &std::collections::HashMap<String, xot::Node>,
+    current_node_hashes: &HashMap<String, String>,
     repo_root: Option<&Path>,
     spec_dir: &Path,
 ) -> MappingDrift {
     let id = mapping.id.clone();
 
-    // Check node hash
-    if let Some(ref stored_hash) = mapping.node_hash {
-        if !stored_hash.starts_with("sha256:") || stored_hash == "sha256:placeholder" {
-            // Skip placeholder hashes
-        } else if let Some(&_node) = nodes.get(&mapping.spec_ref_node) {
-            // We would compute C14N hash here but we need the serialized XML
-            // For now, report as unavailable (node hash checking requires xot serialization)
-        }
+    // Check spec-side node hash. Placeholders and missing hashes are skipped
+    // so freshly-authored mappings without `--fix-node-hash` don't false-positive.
+    if let Some(stored_hash) = &mapping.node_hash
+        && stored_hash.starts_with("sha256:")
+        && stored_hash != "sha256:placeholder"
+        && let Some(current_hash) = current_node_hashes.get(&mapping.spec_ref_node)
+        && current_hash != stored_hash
+    {
+        return MappingDrift {
+            mapping_id: id,
+            status: DriftStatus::SpecDrifted {
+                stored_hash: stored_hash.clone(),
+                current_hash: current_hash.clone(),
+            },
+        };
     }
 
     // Check artifact hash
@@ -163,37 +174,43 @@ fn check_single_mapping(
     }
 }
 
-fn collect_spec_node_ids(
-    file_paths: &[impl AsRef<Path>],
-) -> Result<std::collections::HashMap<String, xot::Node>, crate::Error> {
-    let mut nodes = std::collections::HashMap::new();
-    // Simple collection: store node IDs (we can't easily keep xot Nodes
-    // across multiple parse calls since each parse creates nodes in a different Xot)
-    for file_path in file_paths {
-        let content = std::fs::read_to_string(file_path.as_ref())?;
-        let mut xot = xot::Xot::new();
-        let doc = xot.parse(&content).map_err(xot::Error::from)?;
-        let root = xot.document_element(doc)?;
-        let id_attr = xot.add_name("id");
-        collect_nodes_recursive(&xot, root, id_attr, &mut nodes);
-    }
-    Ok(nodes)
-}
+/// Compute current C14N hashes for every spec node referenced by a mapping.
+///
+/// Builds the combined document once, then for each unique `spec_ref_node`
+/// looks up the node, serializes it, and applies inclusive C14N + SHA-256.
+/// Returns a map `node_id -> "sha256:<hex>"` for nodes that were found and
+/// hashed successfully. Nodes that don't exist or fail to hash are simply
+/// absent from the map; callers must handle that case as "no drift signal".
+fn collect_current_node_hashes(
+    file_paths: &[std::path::PathBuf],
+    mappings: &[ArtifactMapping],
+) -> HashMap<String, String> {
+    let mut hashes = HashMap::new();
+    let Ok((mut xot, root)) = crate::assembly::assemble_combined(file_paths) else {
+        return hashes;
+    };
+    let id_attr = xot.add_name("id");
+    let xml_ns = xot.add_namespace(crate::namespace::XML);
+    let xml_id_attr = xot.add_name_ns("id", xml_ns);
 
-fn collect_nodes_recursive(
-    xot: &xot::Xot,
-    node: xot::Node,
-    id_attr: xot::NameId,
-    nodes: &mut std::collections::HashMap<String, xot::Node>,
-) {
-    // Note: storing xot::Node across different Xot instances doesn't work.
-    // This is a placeholder - proper implementation would use a single Xot.
-    // We still traverse to maintain the recursive structure.
-    let _ = xot.get_attribute(node, id_attr);
-    let _ = &nodes;
-    for child in xot.children(node) {
-        collect_nodes_recursive(xot, child, id_attr, nodes);
+    for mapping in mappings {
+        if mapping.spec_ref_node.is_empty() || hashes.contains_key(&mapping.spec_ref_node) {
+            continue;
+        }
+        let Some(node) =
+            crate::fix::find_node_by_id(&xot, root, id_attr, xml_id_attr, &mapping.spec_ref_node)
+        else {
+            continue;
+        };
+        let xml_str = xot.to_string(node).unwrap_or_default();
+        let Ok(hash) = c14n::canonicalize_and_hash(&xml_str, c14n::CanonicalizationMode::Inclusive)
+        else {
+            continue;
+        };
+        hashes.insert(mapping.spec_ref_node.clone(), hash.to_prefixed());
     }
+
+    hashes
 }
 
 /// Compare two hashes and return whether they match.
@@ -233,6 +250,104 @@ mod tests {
         assert!(
             report.total_mappings > 0,
             "shipped spec should have artifact mappings"
+        );
+    }
+
+    /// When a mapped spec node's content changes after `fix_node_hashes` has
+    /// recorded its C14N hash, `check_drift` must report that mapping as
+    /// `SpecDrifted`. Without this, the documented spec-side drift workflow
+    /// is silently broken.
+    #[test]
+    fn spec_node_edit_is_reported_as_spec_drifted() {
+        let dir = tempfile::tempdir().expect("tempdir");
+
+        let index_xml = r#"<?xml version="1.0"?>
+<spec:clayers xmlns:spec="urn:clayers:spec"
+              xmlns:idx="urn:clayers:index"
+              spec:spec="drift-test"
+              spec:version="0.1.0">
+  <idx:file href="content.xml"/>
+  <idx:file href="revision.xml"/>
+</spec:clayers>"#;
+        std::fs::write(dir.path().join("index.xml"), index_xml).expect("write index");
+
+        let revision_xml = r#"<?xml version="1.0"?>
+<spec:clayers xmlns:spec="urn:clayers:spec"
+              xmlns:rev="urn:clayers:revision"
+              spec:index="index.xml">
+  <rev:revision name="draft-1"/>
+</spec:clayers>"#;
+        std::fs::write(dir.path().join("revision.xml"), revision_xml).expect("write revision");
+
+        let content_xml = r#"<?xml version="1.0"?>
+<spec:clayers xmlns:spec="urn:clayers:spec"
+              xmlns:pr="urn:clayers:prose"
+              xmlns:art="urn:clayers:artifact"
+              xmlns:vcs="urn:clayers:vcs"
+              spec:index="index.xml">
+  <vcs:git id="repo-test" remote="https://example.com/test.git" default-branch="main"/>
+  <pr:section id="sec-tracked">
+    <pr:title>Tracked Section</pr:title>
+    <pr:p>Original content.</pr:p>
+  </pr:section>
+  <art:mapping id="map-tracked">
+    <art:spec-ref node="sec-tracked"
+                  revision="draft-1"
+                  node-hash="sha256:placeholder"/>
+    <art:artifact repo="repo-test" repo-revision="HEAD" path="README.md"/>
+    <art:coverage>full</art:coverage>
+  </art:mapping>
+</spec:clayers>"#;
+        std::fs::write(dir.path().join("content.xml"), content_xml).expect("write content");
+
+        // First, compute and record the correct node hash via the fixer.
+        let fix_report = crate::fix::fix_node_hashes(dir.path()).expect("fix failed");
+        assert!(
+            fix_report.fixed_count >= 1,
+            "fixer should record at least one node hash, got {}",
+            fix_report.fixed_count
+        );
+
+        // Drift check immediately after fixing should be clean.
+        let clean = check_drift(dir.path(), None).expect("clean drift check failed");
+        let map_status = clean
+            .mapping_drifts
+            .iter()
+            .find(|m| m.mapping_id == "map-tracked")
+            .expect("map-tracked missing from clean report");
+        assert!(
+            matches!(map_status.status, DriftStatus::Clean),
+            "expected Clean before edit, got {:?}",
+            map_status.status
+        );
+
+        // Edit the prose paragraph inside the tracked section. Read the file
+        // back from disk first because `fix_node_hashes` rewrote it with the
+        // computed hash; mutating the original string would also wipe the hash.
+        let on_disk = std::fs::read_to_string(dir.path().join("content.xml")).expect("read");
+        let edited = on_disk.replace("Original content.", "Edited content.");
+        assert_ne!(on_disk, edited, "edit should change file content");
+        std::fs::write(dir.path().join("content.xml"), edited).expect("rewrite content");
+
+        // Drift check should now report SpecDrifted for map-tracked.
+        let report = check_drift(dir.path(), None).expect("drift check failed");
+        let drifted = report
+            .mapping_drifts
+            .iter()
+            .find(|m| m.mapping_id == "map-tracked")
+            .expect("map-tracked missing from report");
+
+        match &drifted.status {
+            DriftStatus::SpecDrifted { stored_hash, current_hash } => {
+                assert_ne!(stored_hash, current_hash,
+                    "stored and current hashes should differ after edit");
+            }
+            other => panic!("expected SpecDrifted after edit, got {other:?}"),
+        }
+
+        assert_eq!(
+            report.drifted_count, 1,
+            "drifted_count should reflect the spec-side drift"
         );
     }
 }

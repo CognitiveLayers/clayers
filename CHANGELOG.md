@@ -36,6 +36,16 @@ fixes and additions.
 
 ### Fixed
 
+- **`clayers artifact --drift` now detects spec-side drift.** Previously
+  `check_single_mapping` in `clayers-spec` had a placeholder for the
+  spec-side hash check that never ran, so any edit to a mapped spec
+  node was silently reported as `Clean`. The combined-document
+  assembly + C14N hashing pipeline already used by
+  `--fix-node-hash` is now also used by `--drift`, producing
+  `SpecDrifted` results when a node's current C14N hash differs from
+  its stored `node-hash`. Includes a regression test
+  (`spec_node_edit_is_reported_as_spec_drifted`) that fixes a hash,
+  edits the node, and asserts `SpecDrifted` is returned.
 - `clayers log` now shows real content-addressed commit hashes instead
   of fake hashes derived from timestamp/index/string lengths
 - `clayers merge` commit hash display no longer truncates into the

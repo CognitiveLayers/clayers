@@ -232,7 +232,7 @@
   <art:mapping id="map-artifact-drift-overview">
     <art:spec-ref node="artifact-drift" revision="draft-1" node-hash="sha256:ac41112ec144ee6292daf7fb17960f3c1d73a8fda2feb45749b75646b34f2bab"/>
     <art:artifact repo="repo-clayers" repo-revision="HEAD" path="crates/clayers-spec/src/drift.rs">
-      <art:range hash="sha256:60670a6a01bb40307bce1ec3894ebac75c0fff71d7b8f4cd2863ce777c1eb059" start-line="49" end-line="88"/>
+      <art:range hash="sha256:b02f5e484c08bd9e9a4c130291b473598faa5ec788f17cf784f98d303373f93a" start-line="52" end-line="92"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>check_drift: top-level drift checking across all mappings in a spec.</art:note>
@@ -241,7 +241,7 @@
   <art:mapping id="map-artifact-drift-single">
     <art:spec-ref node="artifact-drift" revision="draft-1" node-hash="sha256:ac41112ec144ee6292daf7fb17960f3c1d73a8fda2feb45749b75646b34f2bab"/>
     <art:artifact repo="repo-clayers" repo-revision="HEAD" path="crates/clayers-spec/src/drift.rs">
-      <art:range hash="sha256:d9244caed515eb94ff4c38025bdb47c3021d675838af46cfd82879e8b98bd446" start-line="90" end-line="164"/>
+      <art:range hash="sha256:b4db788cac6fa5d1180dc491410935fbcc04a64ac6af472fe7e5d384bf87d35e" start-line="94" end-line="175"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>check_single_mapping: per-mapping spec-side and artifact-side drift detection.</art:note>
@@ -312,8 +312,8 @@
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/drift.rs">
-        <art:range hash="sha256:0d58c0d80003751f7a58bd61f0b85b925d410376d44a0cfb596ce27e998bf51b"
-                   start-line="6" end-line="23"/>
+        <art:range hash="sha256:03aa75007fde53207ad186eab1366760974da66a0d389329ee7efd28a5ce4bdb"
+                   start-line="10" end-line="26"/>
       </art:artifact>
     <art:coverage>partial</art:coverage>
     <art:note>Hash comparison logic in _fix_node_hashes detects spec-side drift.
@@ -430,7 +430,7 @@
   <art:mapping id="map-drift-types">
     <art:spec-ref node="drift-detection-tooling" revision="draft-1" node-hash="sha256:0a214cde0ddaf6810fa2af3ead2d349f8bea7c30e286b785ee00565e7d50faa3"/>
     <art:artifact repo="repo-clayers" repo-revision="HEAD" path="crates/clayers-spec/src/drift.rs">
-      <art:range hash="sha256:8b9feb7abfe57b9ee9d30057c1be3ae45f2db665699ea5f643a7be4afbb8367b" start-line="1" end-line="47"/>
+      <art:range hash="sha256:59152f0739b9c50fdbff29950c09944a6d439f1b24dd5edfd6b3cd7712b8e512" start-line="1" end-line="42"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>DriftStatus enum, MappingDrift struct, DriftReport struct: output types for drift detection.</art:note>
@@ -439,7 +439,7 @@
   <art:mapping id="map-drift-check-impl">
     <art:spec-ref node="drift-detection-tooling" revision="draft-1" node-hash="sha256:0a214cde0ddaf6810fa2af3ead2d349f8bea7c30e286b785ee00565e7d50faa3"/>
     <art:artifact repo="repo-clayers" repo-revision="HEAD" path="crates/clayers-spec/src/drift.rs">
-      <art:range hash="sha256:60670a6a01bb40307bce1ec3894ebac75c0fff71d7b8f4cd2863ce777c1eb059" start-line="49" end-line="88"/>
+      <art:range hash="sha256:b02f5e484c08bd9e9a4c130291b473598faa5ec788f17cf784f98d303373f93a" start-line="52" end-line="92"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>check_drift: discovers specs, iterates mappings, assembles per-mapping drift status into DriftReport.</art:note>
@@ -448,7 +448,7 @@
   <art:mapping id="map-drift-single-mapping">
     <art:spec-ref node="drift-detection-tooling" revision="draft-1" node-hash="sha256:0a214cde0ddaf6810fa2af3ead2d349f8bea7c30e286b785ee00565e7d50faa3"/>
     <art:artifact repo="repo-clayers" repo-revision="HEAD" path="crates/clayers-spec/src/drift.rs">
-      <art:range hash="sha256:d9244caed515eb94ff4c38025bdb47c3021d675838af46cfd82879e8b98bd446" start-line="90" end-line="164"/>
+      <art:range hash="sha256:b4db788cac6fa5d1180dc491410935fbcc04a64ac6af472fe7e5d384bf87d35e" start-line="94" end-line="175"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>check_single_mapping: spec-side hash comparison, artifact-side file resolution and hash comparison.</art:note>
@@ -457,10 +457,10 @@
   <art:mapping id="map-drift-helpers">
     <art:spec-ref node="drift-detection-tooling" revision="draft-1" node-hash="sha256:0a214cde0ddaf6810fa2af3ead2d349f8bea7c30e286b785ee00565e7d50faa3"/>
     <art:artifact repo="repo-clayers" repo-revision="HEAD" path="crates/clayers-spec/src/drift.rs">
-      <art:range hash="sha256:8a40d8865d7b45bdd850ace63b3d7b9bb517e0d7304b6d4fd4d8e48cc0ff26bf" start-line="166" end-line="203"/>
+      <art:range hash="sha256:59054fdc10194a4733b084a32bf7a420249b9c52113f30cc19a090b7cfa3c6c4" start-line="184" end-line="220"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
-    <art:note>collect_spec_node_ids, collect_nodes_recursive, hashes_match: helper functions for drift checking.</art:note>
+    <art:note>collect_current_node_hashes (assembles combined doc, computes C14N hashes for mapped nodes), hashes_match: helper functions for drift checking.</art:note>
   </art:mapping>
 
   <!-- Step-level artifact mappings for artifact-hash-tooling -->
@@ -520,8 +520,8 @@
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/drift.rs">
-        <art:range hash="sha256:fbb77143546a125f7812c3cef3bd2e938c6e5b2abd11a06af6a81ae4485c1db0"
-                   start-line="98" end-line="106"/>
+        <art:range hash="sha256:7ed766e66c9c4a165a51f5c3b648f2c8d798e6c8b38880c315375376ccd1aab3"
+                   start-line="102" end-line="117"/>
       </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>Revision check in _fix_node_hashes() skips spec-refs pinned
@@ -649,7 +649,7 @@
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/drift.rs">
         <art:range hash="sha256:b61a6f9c9987f1c719235b6a332cef320bcaa04cce58def17c06d31d46efc3db"
-                   start-line="49" end-line="63"/>
+                   start-line="52" end-line="66"/>
       </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>find_index_files() discovers specs from the given path.</art:note>
@@ -662,8 +662,8 @@
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/drift.rs">
-        <art:range hash="sha256:fbb77143546a125f7812c3cef3bd2e938c6e5b2abd11a06af6a81ae4485c1db0"
-                   start-line="98" end-line="106"/>
+        <art:range hash="sha256:7ed766e66c9c4a165a51f5c3b648f2c8d798e6c8b38880c315375376ccd1aab3"
+                   start-line="102" end-line="117"/>
       </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>Spec-side check in _check_drift() compares C14N node hash
@@ -677,8 +677,8 @@
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/drift.rs">
-        <art:range hash="sha256:aacb8190d5a230f2780ab068e6bda5a866c666e95ad788e0ec884c23fa781871"
-                   start-line="108" end-line="161"/>
+        <art:range hash="sha256:d8711b515c08824a8425fffd88968d1b648a67c4856b43910a1d00fdfb8d32e5"
+                   start-line="119" end-line="169"/>
       </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>Artifact-side check in _check_drift() resolves file path,
@@ -692,11 +692,11 @@
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/drift.rs">
-        <art:range hash="sha256:d9244caed515eb94ff4c38025bdb47c3021d675838af46cfd82879e8b98bd446"
-                   start-line="90" end-line="164"/>
+        <art:range hash="sha256:b4db788cac6fa5d1180dc491410935fbcc04a64ac6af472fe7e5d384bf87d35e"
+                   start-line="94" end-line="175"/>
       </art:artifact>
     <art:coverage>full</art:coverage>
-    <art:note>check_single_mapping (90-164) checks both spec and artifact hashes.
+    <art:note>check_single_mapping (94-175) checks both spec and artifact hashes.
     Git log attribution for causal commits is not yet ported to Rust.</art:note>
   </art:mapping>
 
@@ -1360,10 +1360,10 @@
     <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="crates/clayers-spec/src/fix.rs">
-        <art:range hash="sha256:da3eb31822a7549d4f04a5b03c5551d012f59f16febe8f31bad2d6a736a0432c" start-line="192" end-line="277"/>
+        <art:range hash="sha256:8fe051673496fa46fdec72bcdd24ac8199fafa7ecaf63c7cc03925e474577ce2" start-line="192" end-line="277"/>
       </art:artifact>
     <art:coverage>full</art:coverage>
-    <art:note>RangeChange (194-200), NodeHashChange (202-206), find_node_by_id (210-230), apply_range_changes (232-249), apply_node_hash_changes (251-271).</art:note>
+    <art:note>RangeChange (194-200), NodeHashChange (202-206), find_node_by_id (pub(crate), shared with drift) (210-230), apply_range_changes (232-249), apply_node_hash_changes (251-271).</art:note>
   </art:mapping>
 
 
@@ -1655,10 +1655,10 @@
   <art:mapping id="map-drift-tests">
     <art:spec-ref node="drift-detection-tooling" revision="draft-1" node-hash="sha256:0a214cde0ddaf6810fa2af3ead2d349f8bea7c30e286b785ee00565e7d50faa3"/>
     <art:artifact repo="repo-clayers" repo-revision="753ad37" path="crates/clayers-spec/src/drift.rs">
-        <art:range hash="sha256:bf9b48de12eec07101e98e1a42e6f1c259a6f0a50e29dc55d0c24e28bc9b199b" start-line="205" end-line="238"/>
+        <art:range hash="sha256:48ceae1ce2d05dd107ee53e07d86cf008e863bc9f0cc9845b3a0e91c1c4a0f14" start-line="222" end-line="353"/>
       </art:artifact>
     <art:coverage>full</art:coverage>
-    <art:note>Test module for drift.rs: no-drift and drift-detected paths, shipped spec drift check.</art:note>
+    <art:note>Test module for drift.rs: no-drift and drift-detected paths, shipped spec drift check, end-to-end spec-edit-detected-as-SpecDrifted regression test.</art:note>
   </art:mapping>
 
   <art:mapping id="map-schema-tests">
