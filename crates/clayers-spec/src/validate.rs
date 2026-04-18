@@ -5,7 +5,11 @@ use xot::Xot;
 
 use crate::namespace;
 
-/// Result of structural validation.
+/// Result of running `validate_spec` over a spec directory: both the
+/// hand-rolled structural checks (well-formedness, cross-file ID
+/// uniqueness, cross-layer reference resolution) and the schema-driven
+/// checks (via [`crate::xsd_validation`]). Errors from both layers are
+/// merged into a single list.
 #[derive(Debug)]
 pub struct ValidationResult {
     pub spec_name: String,
@@ -20,20 +24,38 @@ impl ValidationResult {
     }
 }
 
-/// A structural validation error.
+/// A single validation finding. Messages carry enough context (file path,
+/// line/column when available, a human-readable description) to be
+/// printed directly by the CLI.
 #[derive(Debug)]
 pub struct ValidationError {
     pub message: String,
 }
 
-/// Validate a spec structurally: well-formedness, ID uniqueness, cross-layer keyrefs.
+/// Validate a spec against its layer schemas.
 ///
-/// Full XSD 1.1 validation is deferred (no Rust XSD 1.1 library exists).
-/// This implements structural checks that catch the most common errors.
+/// Runs two layers of checks over every file reachable from the index(es):
+///
+/// 1. **Structural (hand-rolled)** — well-formedness, cross-file ID
+///    uniqueness (XSD `xs:ID` only enforces within a single document;
+///    clayers specs are multi-file so this fills that gap), and
+///    cross-layer reference resolution (`rel:relation` `from`/`to`,
+///    `art:artifact/@repo`).
+/// 2. **Schema-driven (XSD 1.1)** — required attributes, pattern facets
+///    (e.g. hash format), enumeration restrictions (e.g. `coverage`
+///    values), content-model conformance, and strict
+///    `xs:any namespace="##other"` wildcard resolution. Delegated to
+///    [`crate::xsd_validation::validate_against_schemas`], which uses the
+///    `uppsala` crate under the hood. Runs only when a schema directory
+///    is reachable from `spec_dir`.
+///
+/// Both layers contribute to the same flat error list; the caller can
+/// print them directly or test `is_valid()` to gate a build.
 ///
 /// # Errors
 ///
-/// Returns an error if spec files cannot be discovered or read.
+/// Returns an error if spec files cannot be discovered or read, or if
+/// the schema-driven validator cannot be constructed.
 pub fn validate_spec(spec_dir: &Path) -> Result<ValidationResult, crate::Error> {
     let index_files = crate::discovery::find_index_files(spec_dir)?;
 

@@ -202,7 +202,7 @@
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/validate.rs">
         <art:range hash="sha256:468fac9bfbaf870fbd722ec1d97f0c82f12f368a4e2083221abe8c54489c1ad4"
-                   start-line="104" end-line="176"/>
+                   start-line="126" end-line="198"/>
       </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>collect_nodes() collects all elements with @id attributes,

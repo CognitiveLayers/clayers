@@ -141,7 +141,7 @@
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/validate.rs">
         <art:range hash="sha256:768442d93bf910d39fb11bc3c8ba082eaaad77a6fb88ab8abd58f04b39dc0e29"
-                   start-line="37" end-line="95"/>
+                   start-line="59" end-line="117"/>
       </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>clayers-cli implements the full discovery, assembly, and
@@ -201,7 +201,7 @@
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/validate.rs">
         <art:range hash="sha256:c8b761df2a0883e44194ca2ea073de6670214be5cf0633356158d6146e01c75c"
-                   start-line="178" end-line="254"/>
+                   start-line="200" end-line="276"/>
       </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>check_references() and collect_all_ids() implement cross-layer
@@ -216,7 +216,7 @@
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/validate.rs">
         <art:range hash="sha256:481b4e08312956f4ceba5b68dfee68c5fd1730f4c4fedebfb7719caa1953f279"
-                   start-line="282" end-line="327"/>
+                   start-line="304" end-line="349"/>
       </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>check_relation_refs() validates cross-layer reference resolution
@@ -322,7 +322,7 @@
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/validate.rs">
         <art:range hash="sha256:768442d93bf910d39fb11bc3c8ba082eaaad77a6fb88ab8abd58f04b39dc0e29"
-                   start-line="37" end-line="95"/>
+                   start-line="59" end-line="117"/>
       </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>validate command: schema validation + iter_errors loop.</art:note>
