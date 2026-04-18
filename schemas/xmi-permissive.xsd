@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:xmi="http://www.omg.org/spec/XMI/20131001"
+           targetNamespace="http://www.omg.org/spec/XMI/20131001"
+           elementFormDefault="qualified">
+
+  <xs:annotation>
+    <xs:documentation>
+      Permissive schema for XMI 2.5 namespace.
+
+      XMI (XML Metadata Interchange) is the serialization format OMG
+      specifications use to ship models (UML in particular). The full
+      XMI XSD is large and its xmi:XMI type uses processContents="strict"
+      for children, which would require a resolvable schema for every
+      namespace those children live in.
+
+      This permissive schema declares the common XMI element(s) used by
+      clayers model files with any-attribute / any-content semantics so
+      strict wildcard resolution succeeds without pulling in the full
+      XMI metamodel. Mirrors uml-permissive.xsd for the UML namespace.
+    </xs:documentation>
+  </xs:annotation>
+
+  <xs:complexType name="AnyXMIType">
+    <xs:sequence>
+      <xs:any namespace="##any" processContents="lax"
+              minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:anyAttribute namespace="##any" processContents="lax"/>
+  </xs:complexType>
+
+  <xs:element name="XMI" type="xmi:AnyXMIType"/>
+
+</xs:schema>

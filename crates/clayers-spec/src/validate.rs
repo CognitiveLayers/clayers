@@ -340,19 +340,11 @@ mod tests {
 
     #[test]
     fn shipped_spec_passes_validation() {
-        // Once schema-driven validation (xsd_validation::validate_against_schemas)
-        // was wired in, the shipped self-spec started reporting real
-        // schema/spec mismatches. This test tracks the remaining count as
-        // those are fixed; it should reach 0 and switch back to
-        // `assert!(result.is_valid())`.
-        //
-        const EXPECTED_REMAINING: usize = 1;
         let result = validate_spec(&spec_dir()).expect("validation failed");
-        assert_eq!(
-            result.errors.len(),
-            EXPECTED_REMAINING,
-            "shipped spec error count drifted; first errors: {:?}",
-            result.errors.iter().take(5).map(|e| &e.message).collect::<Vec<_>>()
+        assert!(
+            result.is_valid(),
+            "shipped spec should be valid, got errors: {:?}",
+            result.errors.iter().map(|e| &e.message).collect::<Vec<_>>()
         );
     }
 
