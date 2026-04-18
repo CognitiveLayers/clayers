@@ -11,6 +11,10 @@ clayers-xml = { version = "0.2.0", path = "../clayers-xml" }
 petgraph = "0.8"
 sha2 = "0.10"
 thiserror = "2"
+# Use our fork while two upstream bug fixes (cross-namespace ref in
+# unbounded mixed-content choice; debug eprintlns gated behind feature)
+# are pending PRs. Switch back to a crates.io version once they land.
+uppsala = { git = "https://github.com/CognitiveLayers/uppsala.git", branch = "clayers-integration" }
 xot = "0.31"
 
 [dev-dependencies]

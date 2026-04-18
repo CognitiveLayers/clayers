@@ -10,6 +10,7 @@ pub mod query;
 pub mod rnc;
 pub mod schema;
 pub mod validate;
+pub mod xsd_validation;
 
 /// Errors from spec processing operations.
 #[derive(Debug, thiserror::Error)]
