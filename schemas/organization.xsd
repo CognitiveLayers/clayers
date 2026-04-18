@@ -184,6 +184,13 @@
       <xs:element name="title" type="xs:string"/>
       <xs:element name="topicref" type="org:TopicRefType" maxOccurs="unbounded"/>
     </xs:sequence>
+    <xs:attribute name="required" type="xs:boolean" default="true">
+      <xs:annotation>
+        <xs:documentation>Whether the entire part is mandatory (true, default)
+        or supplementary material (false). Mirrors the same attribute on
+        topicref for whole-part marking.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
     <xs:attributeGroup ref="org:ProfilingAttrs"/>
   </xs:complexType>
 

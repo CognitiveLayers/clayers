@@ -346,7 +346,7 @@ mod tests {
         // those are fixed; it should reach 0 and switch back to
         // `assert!(result.is_valid())`.
         //
-        const EXPECTED_REMAINING: usize = 55;
+        const EXPECTED_REMAINING: usize = 53;
         let result = validate_spec(&spec_dir()).expect("validation failed");
         assert_eq!(
             result.errors.len(),
