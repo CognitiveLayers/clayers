@@ -62,6 +62,10 @@
         <xs:element name="codeblock" type="pr:CodeBlockType"/>
         <xs:element name="table" type="pr:TableType"/>
         <xs:element name="section" type="pr:SectionType"/>
+        <!-- Block-level content from any other layer (e.g., py:class,
+             py:method, pln:plan, dec:decision). Matches the established
+             pattern in layer.xsd, plan.xsd, and testing.xsd. -->
+        <xs:any namespace="##other" processContents="strict"/>
       </xs:choice>
     </xs:sequence>
     <xs:attribute name="id" type="xs:ID" use="required"/>
