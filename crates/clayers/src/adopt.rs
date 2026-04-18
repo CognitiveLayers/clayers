@@ -405,7 +405,7 @@ fn amend_agent_file(target: &Path) -> Result<()> {
             );
         } else {
             // Append to existing file
-            let new_content = format!("{}\n{marked_content}", content.trim_end(),);
+            let new_content = format!("{}\n{marked_content}", content.trim_end());
             fs::write(&path, new_content).context("failed to append to agent file")?;
             println!(
                 "  updated: {} (appended workflow)",

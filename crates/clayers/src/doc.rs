@@ -395,10 +395,7 @@ fn inline_all(html: &str) -> Result<String> {
         .join("\n");
 
     for attr in &["href=\"https://", "src=\"https://"] {
-        loop {
-            let Some(attr_start) = result.find(attr) else {
-                break;
-            };
+        while let Some(attr_start) = result.find(attr) {
             let url_start = attr_start + attr.len() - "https://".len();
             let url_end = result[url_start..]
                 .find('"')

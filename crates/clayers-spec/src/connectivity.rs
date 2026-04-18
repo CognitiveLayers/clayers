@@ -389,7 +389,7 @@ fn find_hub_nodes(
         })
         .collect();
 
-    degrees.sort_by(|a, b| b.total_degree.cmp(&a.total_degree));
+    degrees.sort_by_key(|d| std::cmp::Reverse(d.total_degree));
     degrees.truncate(top_n);
     degrees
 }

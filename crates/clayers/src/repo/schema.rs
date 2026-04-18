@@ -109,8 +109,7 @@ pub fn migrate_schema(conn: &Connection) -> Result<()> {
             [],
             |row| row.get::<_, i64>(0),
         )
-        .map(|n| n > 0)
-        .unwrap_or(false);
+        .is_ok_and(|n| n > 0);
 
     if !has_meta {
         return Ok(());
