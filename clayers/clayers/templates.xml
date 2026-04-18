@@ -13,11 +13,19 @@
     <pr:title>XML Templates</pr:title>
     <pr:shortdesc>Canonical XML boilerplate for creating clayers elements.
     Referenced by layer mode guidance.</pr:shortdesc>
+
+    <pr:p>Each template below is a <pr:code>cnt:content</pr:code> node whose
+    body wraps a self-contained XML snippet in a CDATA section. Authors and
+    AI agents copy the snippet into a new spec file and replace the
+    capitalised placeholders (e.g. <pr:code>CONCEPT-NAME</pr:code>,
+    <pr:code>SOURCE-ID</pr:code>) with concrete values. The snippets are
+    opaque to schema validation by design: they are templates for new
+    content, not real spec elements.</pr:p>
   </pr:section>
 
   <!-- Namespace declarations for new spec files -->
-  <cnt:content id="tpl-namespace-declarations">
-    <cnt:body hash="sha256:placeholder"><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+  <cnt:content id="tpl-namespace-declarations" hash="sha256:placeholder">
+    <cnt:body><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
 <spec:clayers xmlns:spec="urn:clayers:spec"
        xmlns:pr="urn:clayers:prose"
        xmlns:trm="urn:clayers:terminology"
@@ -33,8 +41,8 @@
   </cnt:content>
 
   <!-- Terminology: trm:term -->
-  <cnt:content id="tpl-term">
-    <cnt:body hash="sha256:placeholder"><![CDATA[<trm:term id="term-CONCEPT-NAME">
+  <cnt:content id="tpl-term" hash="sha256:placeholder">
+    <cnt:body><![CDATA[<trm:term id="term-CONCEPT-NAME">
   <trm:name>Concept Name</trm:name>
   <trm:definition>A precise, self-contained definition that distinguishes
   this concept from similar ones. Should be understandable without reading
@@ -43,8 +51,8 @@
   </cnt:content>
 
   <!-- Prose: pr:section -->
-  <cnt:content id="tpl-section">
-    <cnt:body hash="sha256:placeholder"><![CDATA[<pr:section id="section-MODULE-NAME">
+  <cnt:content id="tpl-section" hash="sha256:placeholder">
+    <cnt:body><![CDATA[<pr:section id="section-MODULE-NAME">
   <pr:title>Module Name</pr:title>
   <pr:shortdesc>One-sentence summary of what this module does and why
   it exists.</pr:shortdesc>
@@ -56,8 +64,8 @@
   </cnt:content>
 
   <!-- Organization: topic typing -->
-  <cnt:content id="tpl-topic-typing">
-    <cnt:body hash="sha256:placeholder"><![CDATA[<!-- Use concept for explanatory content -->
+  <cnt:content id="tpl-topic-typing" hash="sha256:placeholder">
+    <cnt:body><![CDATA[<!-- Use concept for explanatory content -->
 <org:concept ref="section-ID">
   <org:purpose>Understanding how X works and why it was designed
   this way.</org:purpose>
@@ -76,8 +84,8 @@
   </cnt:content>
 
   <!-- Relation: rel:relation -->
-  <cnt:content id="tpl-relation">
-    <cnt:body hash="sha256:placeholder"><![CDATA[<rel:relation type="depends-on" from="SOURCE-ID" to="TARGET-ID">
+  <cnt:content id="tpl-relation" hash="sha256:placeholder">
+    <cnt:body><![CDATA[<rel:relation type="depends-on" from="SOURCE-ID" to="TARGET-ID">
   <rel:note>Brief explanation of why this dependency exists.</rel:note>
 </rel:relation>
 
@@ -93,8 +101,8 @@
   </cnt:content>
 
   <!-- Artifact: art:mapping -->
-  <cnt:content id="tpl-artifact-mapping">
-    <cnt:body hash="sha256:placeholder"><![CDATA[<art:mapping id="map-CONCEPT-NAME">
+  <cnt:content id="tpl-artifact-mapping" hash="sha256:placeholder">
+    <cnt:body><![CDATA[<art:mapping id="map-CONCEPT-NAME">
   <art:spec-ref node="NODE-ID"
             revision="draft-1"
             node-hash="sha256:placeholder"/>
@@ -111,16 +119,16 @@
   </cnt:content>
 
   <!-- Artifact: art:exempt -->
-  <cnt:content id="tpl-artifact-exempt">
-    <cnt:body hash="sha256:placeholder"><![CDATA[<art:exempt node="NODE-ID" revision="draft-1">
+  <cnt:content id="tpl-artifact-exempt" hash="sha256:placeholder">
+    <cnt:body><![CDATA[<art:exempt node="NODE-ID" revision="draft-1">
   <art:reason>This node is an abstract concept / organizational
   element with no direct code implementation.</art:reason>
 </art:exempt>]]></cnt:body>
   </cnt:content>
 
   <!-- LLM: llm:node and llm:schema -->
-  <cnt:content id="tpl-llm-descriptions">
-    <cnt:body hash="sha256:placeholder"><![CDATA[<!-- Describe a spec node for LLM consumption -->
+  <cnt:content id="tpl-llm-descriptions" hash="sha256:placeholder">
+    <cnt:body><![CDATA[<!-- Describe a spec node for LLM consumption -->
 <llm:node ref="NODE-ID">
   Explain what this node means, how it relates to other nodes,
   and guidance for interpreting or modifying it. Start with the
@@ -136,8 +144,8 @@
   </cnt:content>
 
   <!-- Decision: dec:decision -->
-  <cnt:content id="tpl-decision">
-    <cnt:body hash="sha256:placeholder"><![CDATA[<dec:decision ref="section-DECISION-NAME" id="dec-DECISION-NAME">
+  <cnt:content id="tpl-decision" hash="sha256:placeholder">
+    <cnt:body><![CDATA[<dec:decision ref="section-DECISION-NAME" id="dec-DECISION-NAME">
   <dec:status>proposed</dec:status>
   <dec:date>YYYY-MM-DD</dec:date>
   <dec:alternative id="alt-OPTION-NAME">
@@ -148,8 +156,8 @@
   </cnt:content>
 
   <!-- Plan: pln:plan -->
-  <cnt:content id="tpl-plan">
-    <cnt:body hash="sha256:placeholder"><![CDATA[<pln:plan id="plan-FEATURE-NAME">
+  <cnt:content id="tpl-plan" hash="sha256:placeholder">
+    <cnt:body><![CDATA[<pln:plan id="plan-FEATURE-NAME">
   <pln:title>Feature implementation plan</pln:title>
   <pln:overview>Brief description of what this plan achieves.</pln:overview>
   <pln:status>proposed</pln:status>
@@ -165,8 +173,8 @@
   </cnt:content>
 
   <!-- VCS: vcs:git -->
-  <cnt:content id="tpl-vcs-git">
-    <cnt:body hash="sha256:placeholder"><![CDATA[<vcs:git id="repo-PROJECT-NAME"
+  <cnt:content id="tpl-vcs-git" hash="sha256:placeholder">
+    <cnt:body><![CDATA[<vcs:git id="repo-PROJECT-NAME"
          remote="https://github.com/ORG/REPO.git"
          default-branch="main"/>]]></cnt:body>
   </cnt:content>
