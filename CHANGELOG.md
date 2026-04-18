@@ -11,6 +11,35 @@ fixes and additions.
 
 ## [Unreleased]
 
+### Added
+
+- **Schema-driven validation** in `clayers validate`. The shipped layer
+  XSDs are now enforced end-to-end on every spec file: required
+  attributes, pattern facets (e.g. hash format), enumeration
+  restrictions (e.g. `coverage` values), content-model conformance,
+  and strict `xs:any namespace="##other"` wildcard resolution. The
+  existing structural checks (well-formedness, ID uniqueness,
+  relation/artifact ref resolution) still run; schema findings are
+  layered on top and fail the command the same way.
+
+### Changed
+
+- **Schema refinements** to make the self-spec pass under the new
+  validation:
+  - `trm:definition` is now mixed content with inline `trm:ref` and a
+    lax `xs:any ##other` (previously `xs:string` — rejected the
+    inline `pr:code` / `trm:ref` usages already in the spec).
+  - `org:part` accepts an optional `required` boolean (mirrors the
+    same attribute on `org:topicref`; lets a whole reading-map part
+    be marked supplementary).
+  - `pr:section` body allows foreign-layer block elements via
+    `xs:any namespace="##other" processContents="strict"`, matching
+    the established pattern in `layer`/`plan`/`testing` schemas.
+- **New `xmi-permissive.xsd`**: declares the `xmi:XMI` root with any
+  attribute / any content so UML architecture models pass strict
+  wildcard resolution without pulling in the full XMI metamodel.
+  Mirrors `uml-permissive.xsd`.
+
 ## [0.2.0] - 2026-04-18
 
 ### Added
