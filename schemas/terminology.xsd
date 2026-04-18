@@ -42,9 +42,34 @@
     </xs:annotation>
     <xs:sequence>
       <xs:element name="name" type="xs:string"/>
-      <xs:element name="definition" type="xs:string"/>
+      <xs:element name="definition" type="trm:DefinitionType"/>
     </xs:sequence>
     <xs:attribute name="id" type="xs:ID" use="required"/>
+  </xs:complexType>
+
+  <!-- Definition body: mixed content allowing plain text plus inline
+       elements. trm:ref is explicitly allowed (same-namespace cross-
+       references); foreign-namespace inlines (typically pr:code, src:cite,
+       pr:xref) are accepted via xs:any with processContents="lax" because
+       not all permissible inlines are declared as global elements in their
+       layer schemas. Switch to processContents="strict" once those layers
+       expose their inline elements globally. -->
+  <xs:complexType name="DefinitionType" mixed="true">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          The body of a term definition. Mixed content allows running
+          prose interleaved with inline references: trm:ref (link to
+          another term), pr:code (inline code spans), src:cite (citations
+          to source layer entries), pr:xref (cross-references to spec
+          nodes). Pure-text definitions remain valid.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:choice minOccurs="0" maxOccurs="unbounded">
+      <xs:element ref="trm:ref"/>
+      <xs:any namespace="##other" processContents="lax"/>
+    </xs:choice>
   </xs:complexType>
 
   <!-- Ref element for use in other namespaces (e.g., prose layer) -->
