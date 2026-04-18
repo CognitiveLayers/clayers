@@ -244,6 +244,57 @@ Use `repo-revision` from `git rev-parse --short HEAD`. Multiple
 `<art:range>` elements per artifact are allowed for non-contiguous
 code regions.
 
+## Workflow: Cutting a Release
+
+clayers uses lockstep versioning: all five workspace crates
+(`clayers`, `clayers-xml`, `clayers-spec`, `clayers-repo`,
+`clayers-py`) and the Python binding (`clayers` on PyPI, built from
+`crates/clayers-py`) share a single version.
+
+Pushing a `v*` tag triggers two GitHub Actions workflows:
+
+- `.github/workflows/crates.yml` publishes the four rust crates to
+  crates.io in dependency order (`clayers-xml` → `clayers-spec` →
+  `clayers-repo` → `clayers`) with 30s waits between for index
+  propagation.
+- `.github/workflows/wheels.yml` builds the sdist and wheels
+  (Linux/macOS x86_64 + aarch64, Windows x86_64) for
+  `crates/clayers-py` and publishes to PyPI via trusted publishing.
+
+### Steps
+
+1. **Preview the bump** (writes nothing):
+   ```bash
+   ./bump-version.py 0.2.0 --dry-run
+   ```
+2. **Apply the bump.** Rewrites `version = "OLD"` across all five
+   `Cargo.toml` files (package versions + internal path-dep
+   versions on `clayers-*` crates) and `crates/clayers-py/pyproject.toml`;
+   promotes `## [Unreleased]` in `CHANGELOG.md` to `## [NEW] - TODAY`
+   and adds a compare link at the bottom; refreshes `Cargo.lock`
+   (via `cargo update -p ...`) and `crates/clayers-py/uv.lock`
+   (via `uv lock`).
+   ```bash
+   ./bump-version.py 0.2.0
+   ```
+   Flags: `--skip-lock` skips lockfile refresh, `--no-changelog`
+   leaves `CHANGELOG.md` untouched.
+3. **Review the CHANGELOG.** The script only shuffles headings and
+   links: the prose under each section is whatever you curated in
+   `[Unreleased]` during the release cycle. Fix wording, grouping,
+   and attributions before committing.
+4. **Commit and tag:**
+   ```bash
+   git add -A
+   git commit -m 'Problem: ...'
+   git tag v0.2.0
+   git push origin main v0.2.0
+   ```
+5. **Watch the workflows.** `crates.yml` and `wheels.yml` must both
+   succeed. If a crates.io publish step fails for a non-trivial
+   reason (not "Already published"), investigate: later crates in
+   the chain depend on earlier ones being on the index.
+
 ## Drift Detection Output
 
 ```
