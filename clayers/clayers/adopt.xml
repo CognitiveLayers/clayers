@@ -299,7 +299,7 @@
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
-      <art:range hash="sha256:ff78cc60ebff3a974169524f52f57e96b357b4eadf6a2a6df60d29a06719cf00"/>
+      <art:range hash="sha256:79298c603742b6bb56a6d8963c46d08fddbc3506a4cf59b789d32bece81e0e0d"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>The adopt module implements all adopt command logic:
@@ -328,7 +328,7 @@
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
-      <art:range hash="sha256:ff78cc60ebff3a974169524f52f57e96b357b4eadf6a2a6df60d29a06719cf00"/>
+      <art:range hash="sha256:79298c603742b6bb56a6d8963c46d08fddbc3506a4cf59b789d32bece81e0e0d"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>The adopt module is the canonical implementation of the
@@ -463,7 +463,7 @@
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
-      <art:range hash="sha256:1877a4a83bea6d9714e3bcc06b6456b952943484934e5d5fb3840762b2fa70e4"
+      <art:range hash="sha256:07bd509ef7710623e690fc014316a071f7b33cf68c548092d5cb37cb75ba893d"
                  start-line="341" end-line="422"/>
     </art:artifact>
     <art:coverage>full</art:coverage>

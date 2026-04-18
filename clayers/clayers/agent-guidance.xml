@@ -639,7 +639,7 @@ Update the plan's status from `active` to `completed`.
               path="crates/clayers/src/adopt.rs">
       <art:range hash="sha256:07a8c63ed59ebb54b1f4b7798d4b095cfca2224cf452a23283a8abbcb75534bb"
                  start-line="16" end-line="31"/>
-      <art:range hash="sha256:bccd6c531dbdb0737897f7548411a55b1139795362745027c9089a6327504597"
+      <art:range hash="sha256:cb7e1044820ad7cff87f29ed6f31a160db4388ad1fb8db815aeba28f5a939e10"
                  start-line="378" end-line="422"/>
     </art:artifact>
     <art:coverage>full</art:coverage>

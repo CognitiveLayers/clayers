@@ -173,7 +173,7 @@
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="README.md">
-        <art:range hash="sha256:2c984cd96033cf2fc90d98bd2c9b137b4d98d4879e3656b6224519daf4026809"/>
+        <art:range hash="sha256:cfa7cdc0f2d00bd672fe662099d494d4585f76ba07fa9ccde7acd9b9ada383dd"/>
       </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>README.md captures the full motivation, thesis, and overview
@@ -201,8 +201,8 @@
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/validate.rs">
-        <art:range hash="sha256:36fb7c7caad07e1f18cb3444fa861e641d6b91e89311001aa9728b01065a2733"
-                   start-line="95" end-line="141"/>
+        <art:range hash="sha256:468fac9bfbaf870fbd722ec1d97f0c82f12f368a4e2083221abe8c54489c1ad4"
+                   start-line="104" end-line="176"/>
       </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>collect_nodes() collects all elements with @id attributes,

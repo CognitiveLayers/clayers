@@ -1305,7 +1305,7 @@
   <art:mapping id="map-connectivity-bridges">
     <art:spec-ref node="connectivity-analysis" revision="draft-1" node-hash="sha256:71fde2165918019ba29bad37a4aeb27a185f6d07c54e975ed8bd7a87e8673e49"/>
     <art:artifact repo="repo-clayers" repo-revision="HEAD" path="crates/clayers-spec/src/connectivity.rs">
-      <art:range hash="sha256:69fe4f51c628d40d686adabda62da5d5f7872dd65b648174594104fd978e0148" start-line="386" end-line="466"/>
+      <art:range hash="sha256:3c1a9600365d6fc66298b737595e6a28c272cc8bc7fb0bc61e4382ea36f70ba7" start-line="386" end-line="466"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>find_bridge_nodes (386-466): betweenness centrality bridge node detection.</art:note>
@@ -1444,7 +1444,7 @@
   <art:mapping id="map-validate-id-uniqueness">
     <art:spec-ref node="cross-layer-integrity" revision="draft-1" node-hash="sha256:e5a6abdf801ee1970d5b8d807c90f702305c98fc94b7fb1a29a759b1be92303a"/>
     <art:artifact repo="repo-clayers" repo-revision="HEAD" path="crates/clayers-spec/src/validate.rs">
-      <art:range hash="sha256:8172934a44b6a8b4bc1924a918918e510ea584e58441a07a480c742971722699" start-line="88" end-line="141"/>
+      <art:range hash="sha256:3ee29300c770567154ff2708624920be2902db31856b299d9a661785dedf47b1" start-line="97" end-line="176"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>check_well_formed, check_id_uniqueness, collect_ids: ID uniqueness enforcement across all layer files.</art:note>
@@ -1453,7 +1453,7 @@
   <art:mapping id="map-validate-keyrefs">
     <art:spec-ref node="cross-layer-integrity" revision="draft-1" node-hash="sha256:e5a6abdf801ee1970d5b8d807c90f702305c98fc94b7fb1a29a759b1be92303a"/>
     <art:artifact repo="repo-clayers" repo-revision="HEAD" path="crates/clayers-spec/src/validate.rs">
-      <art:range hash="sha256:edabacbd879261973799d66ba2412153918bff7c7332e3fa1bcc16602b0a21bd" start-line="143" end-line="199"/>
+      <art:range hash="sha256:c8b761df2a0883e44194ca2ea073de6670214be5cf0633356158d6146e01c75c" start-line="178" end-line="254"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>check_references and collect_all_ids: keyref validation of cross-layer node references.</art:note>
@@ -1462,7 +1462,7 @@
   <art:mapping id="map-validate-relation-refs">
     <art:spec-ref node="cross-layer-integrity" revision="draft-1" node-hash="sha256:e5a6abdf801ee1970d5b8d807c90f702305c98fc94b7fb1a29a759b1be92303a"/>
     <art:artifact repo="repo-clayers" repo-revision="HEAD" path="crates/clayers-spec/src/validate.rs">
-      <art:range hash="sha256:ac6b2849a294496192f6e30cd09b6282953f4e4ddd287de8da94470b315f19cd" start-line="202" end-line="249"/>
+      <art:range hash="sha256:481b4e08312956f4ceba5b68dfee68c5fd1730f4c4fedebfb7719caa1953f279" start-line="282" end-line="327"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>check_relation_refs: validates that relation from/to attributes reference existing node IDs.</art:note>
@@ -1646,7 +1646,7 @@
   <art:mapping id="map-validate-tests">
     <art:spec-ref node="cross-layer-integrity" revision="draft-1" node-hash="sha256:e5a6abdf801ee1970d5b8d807c90f702305c98fc94b7fb1a29a759b1be92303a"/>
     <art:artifact repo="repo-clayers" repo-revision="753ad37" path="crates/clayers-spec/src/validate.rs">
-        <art:range hash="sha256:89f5e4c4b13de83e0a9cab76f6d14002ff11410e90c3ab355b38004163f20c05" start-line="251" end-line="310"/>
+        <art:range hash="sha256:61e0d6158e7f2c0b0ca512778466a1693a6bba8e4060ea54ad03e659da8e607f" start-line="329" end-line="388"/>
       </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>Test module for validate.rs: ID uniqueness detection, valid spec passes, shipped spec validation, malformed XML detection.</art:note>
