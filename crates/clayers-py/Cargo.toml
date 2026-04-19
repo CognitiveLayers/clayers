@@ -1,6 +1,6 @@
 [package]
 name = "clayers-py"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2024"
 license = "Apache-2.0"
 description = "Python bindings for clayers"
@@ -18,10 +18,10 @@ compliance = ["clayers-repo/compliance", "dep:serde_json", "dep:proptest"]
 
 [dependencies]
 chrono = "0.4"
-clayers-cli = { version = "0.2.0", path = "../clayers", package = "clayers", optional = true }
-clayers-repo = { version = "0.2.0", path = "../clayers-repo", features = ["serde"] }
-clayers-spec = { version = "0.2.0", path = "../clayers-spec" }
-clayers-xml = { version = "0.2.0", path = "../clayers-xml" }
+clayers-cli = { version = "0.2.1", path = "../clayers", package = "clayers", optional = true }
+clayers-repo = { version = "0.2.1", path = "../clayers-repo", features = ["serde"] }
+clayers-spec = { version = "0.2.1", path = "../clayers-spec" }
+clayers-xml = { version = "0.2.1", path = "../clayers-xml" }
 pyo3 = { version = "0.28.2", features = ["extension-module"] }
 pyo3-async-runtimes = { version = "0.28.0", features = ["tokio-runtime"] }
 async-stream = "0.3"

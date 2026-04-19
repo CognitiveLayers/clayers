@@ -201,7 +201,7 @@ checksum = "827ebdf4f369f70c5c4401e30d381147c7fdc9ff00e540f85a1c41c89fcc21ed"
 dependencies = [
  "bergshamra-core",
  "bergshamra-xml",
- "uppsala 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "uppsala",
 ]
 
 [[package]]
@@ -220,7 +220,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "728be7c1ce772d87807d1727b3b32726b5850f20a004e962b7d3ccff26cb01ba"
 dependencies = [
  "bergshamra-core",
- "uppsala 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "uppsala",
 ]
 
 [[package]]
@@ -453,7 +453,7 @@ checksum = "c8d4a3bb8b1e0c1050499d1815f5ab16d04f0959b233085fb31653fbfc9d98f9"
 
 [[package]]
 name = "clayers"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -481,7 +481,7 @@ dependencies = [
 
 [[package]]
 name = "clayers-py"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -500,7 +500,7 @@ dependencies = [
 
 [[package]]
 name = "clayers-repo"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -522,20 +522,20 @@ dependencies = [
 
 [[package]]
 name = "clayers-spec"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "clayers-xml",
+ "clayers-xml-uppsala",
  "petgraph",
  "sha2",
  "tempfile",
  "thiserror",
- "uppsala 0.3.0 (git+https://github.com/CognitiveLayers/uppsala.git?branch=clayers-integration)",
  "xot",
 ]
 
 [[package]]
 name = "clayers-xml"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "bergshamra-c14n",
  "bytes",
@@ -547,6 +547,12 @@ dependencies = [
  "xee-xpath",
  "xot",
 ]
+
+[[package]]
+name = "clayers-xml-uppsala"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "048df5d14c285d7a91f4fbec430ed14f9adeb038431e942de4452746375e299b"
 
 [[package]]
 name = "colorchoice"
@@ -3480,11 +3486,6 @@ name = "uppsala"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1600dc6ec465bbba4056042fc73041b82081849ab3117f5d2e233eb96e3e1725"
-
-[[package]]
-name = "uppsala"
-version = "0.3.0"
-source = "git+https://github.com/CognitiveLayers/uppsala.git?branch=clayers-integration#d98f99f76e48e34c87389a8c4268d326ab8c3492"
 
 [[package]]
 name = "url"

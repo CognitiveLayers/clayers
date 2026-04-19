@@ -11,6 +11,8 @@ fixes and additions.
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-04-18
+
 ### Added
 
 - **Schema-driven validation** in `clayers validate`. The shipped layer
@@ -140,7 +142,8 @@ Initial public release.
 - **CI/CD pipeline** for crates.io and PyPI publishing (x86_64 + aarch64)
 - Apache-2.0 license
 
-[Unreleased]: https://github.com/CognitiveLayers/clayers/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/CognitiveLayers/clayers/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/CognitiveLayers/clayers/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/CognitiveLayers/clayers/compare/v0.1.3...v0.2.0
 [0.1.3]: https://github.com/CognitiveLayers/clayers/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/CognitiveLayers/clayers/compare/v0.1.1...v0.1.2

@@ -1,20 +1,19 @@
 [package]
 name = "clayers-spec"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2024"
 license = "Apache-2.0"
 description = "Spec-aware logic for clayers (validate, drift, coverage, connectivity)"
 repository = "https://github.com/CognitiveLayers/clayers"
 
 [dependencies]
-clayers-xml = { version = "0.2.0", path = "../clayers-xml" }
+clayers-xml = { version = "0.2.1", path = "../clayers-xml" }
 petgraph = "0.8"
 sha2 = "0.10"
 thiserror = "2"
-# Use our fork while two upstream bug fixes (cross-namespace ref in
-# unbounded mixed-content choice; debug eprintlns gated behind feature)
-# are pending PRs. Switch back to a crates.io version once they land.
-uppsala = { git = "https://github.com/CognitiveLayers/uppsala.git", branch = "clayers-integration" }
+# Temporary republish of our fork pending upstream PRs; switch back to
+# `uppsala` once a crates.io release with both fixes is available.
+uppsala = { version = "0.3.0", package = "clayers-xml-uppsala" }
 xot = "0.31"
 
 [dev-dependencies]

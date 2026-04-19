@@ -1,6 +1,6 @@
 [package]
 name = "clayers"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2024"
 license = "Apache-2.0"
 description = "Cognitive layers: structured XML specifications with version control and machine-verifiable traceability"
@@ -19,9 +19,9 @@ anyhow = "1"
 base64 = "0.22"
 reqwest = { version = "0.13", default-features = false, features = ["blocking", "native-tls-vendored"] }
 clap = { version = "4", features = ["derive"] }
-clayers-spec = { version = "0.2.0", path = "../clayers-spec" }
-clayers-repo = { version = "0.2.0", path = "../clayers-repo", features = ["sqlite", "websocket"] }
-clayers-xml = { version = "0.2.0", path = "../clayers-xml" }
+clayers-spec = { version = "0.2.1", path = "../clayers-spec" }
+clayers-repo = { version = "0.2.1", path = "../clayers-repo", features = ["sqlite", "websocket"] }
+clayers-xml = { version = "0.2.1", path = "../clayers-xml" }
 tokio = { version = "1", features = ["rt", "rt-multi-thread", "net", "signal"] }
 rusqlite = { version = "0.39", features = ["bundled"] }
 serde = { version = "1", features = ["derive"] }
