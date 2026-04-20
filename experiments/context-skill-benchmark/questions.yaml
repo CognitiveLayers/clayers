@@ -1,0 +1,16 @@
+# Benchmark questions for clayers/clayers/ (self-spec).
+# Each question tests a specific area of the spec. Answers should be
+# derivable from the XML files alone (no external knowledge).
+#
+# If this file is used against a different spec, swap the questions.
+
+- question: How does drift detection work in clayers, and what makes it bidirectional?
+- question: What are the three edge kinds the clayers-context skill traverses, and why only relations is insufficient?
+- question: How does clayers search combine text embeddings with structural fingerprints?
+- question: What does the plant_skills function do, and where does it read content from?
+- question: Which relation types can appear in cycles, and which must be acyclic?
+- question: What is the purpose of the --also flag in clayers search, and how are results merged?
+- question: How do reading maps differ from the clayers-context skill in intent and output?
+- question: What is C14N used for in clayers, and where does its hash show up?
+- question: What is the structural fingerprint in the search index, and how is it encoded?
+- question: Describe the incremental rebuild behavior of the search index cache.
