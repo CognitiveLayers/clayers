@@ -244,6 +244,44 @@ Use `repo-revision` from `git rev-parse --short HEAD`. Multiple
 `<art:range>` elements per artifact are allowed for non-contiguous
 code regions.
 
+## Skills live in the spec
+
+The `.claude/skills/<name>/SKILL.md` files are **generated**, not
+source of truth. Editing them directly is fruitless — they are
+rewritten every time `clayers adopt --skills` runs.
+
+**Source of truth.** Each skill is a pair of elements in
+`clayers/clayers/agent-guidance.xml`:
+
+- `<pr:section id="skill-NAME">` — title, shortdesc, and a `pr:p`
+  describing what the skill does.
+- `<llm:node ref="skill-NAME" format="markdown">` — the full
+  SKILL.md body wrapped in `<![CDATA[...]]>`. Placeholders of the
+  form `{{PROJECT_NAME}}` are substituted with the target project
+  name at plant time.
+
+Both elements share the `skill-NAME` id. `adopt --skills` auto-discovers
+skills by scanning `agent-guidance.xml` for `<llm:node ref="skill-...">`
+entries — no list or generator array to maintain.
+
+**Editing a skill.**
+
+1. Edit the `<llm:node>` CDATA body (and the `<pr:section>` shortdesc
+   if the scope description changed).
+2. Rebuild: `cargo build -p clayers` (the XML is embedded via
+   `include_str!`, so the binary must be rebuilt to pick up changes).
+3. Regenerate the planted skill files in target projects:
+   `cargo run -p clayers -- adopt --skills <target-project-dir>`.
+4. Validate and fix hashes as usual:
+   `cargo run -p clayers -- validate clayers/clayers/`,
+   `cargo run -p clayers -- artifact --fix-node-hash clayers/clayers/`.
+
+**Adding a new skill.** Author the `pr:section` + `llm:node` pair as
+above, add an `<org:reference ref="skill-NAME">` under the
+organization block, and add at least one `<rel:relation>` so the
+skill is not isolated in connectivity analysis. Then rebuild, run
+adopt, validate. No further wiring needed.
+
 ## Workflow: Cutting a Release
 
 clayers uses lockstep versioning: all five workspace crates

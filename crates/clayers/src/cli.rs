@@ -69,6 +69,32 @@ enum Command {
         /// Path to the spec directory.
         path: PathBuf,
     },
+    /// Collect a landing node's neighbors across relations, terminology
+    /// refs, and artifact mappings in one pass. Phase-3 helper for the
+    /// clayers-context skill — replaces 6+N separate `clayers query`
+    /// calls per landing with a single assembled JSON bundle.
+    Neighbors {
+        /// The landing node `@id` to expand.
+        id: String,
+        /// Path to the spec directory.
+        #[arg(default_value = ".")]
+        path: PathBuf,
+        /// Output results as JSON (default: yes — this command is
+        /// designed for agent consumption). Pretty-prints to the
+        /// terminal if stdout is a TTY.
+        #[arg(long, default_value_t = true)]
+        json: bool,
+        /// Apply hub pre-filter when total degree exceeds this.
+        #[arg(long, default_value_t = 12)]
+        hub_threshold: usize,
+        /// Within the hub pre-filter, keep this many per edge-kind
+        /// bucket (artifact-map / relation / term-ref).
+        #[arg(long, default_value_t = 2)]
+        top_per_bucket: usize,
+        /// Truncate peek strings to at most this many characters.
+        #[arg(long, default_value_t = 350)]
+        peek_chars: usize,
+    },
     /// Export schemas as RELAX NG Compact notation.
     Schema {
         /// Path to the schema directory (auto-detected from schemas/ or .clayers/schemas/ if omitted).
@@ -166,6 +192,11 @@ enum Command {
         /// Layer filter(s), e.g. `--layer terminology --layer prose`.
         #[arg(long = "layer")]
         layer: Vec<String>,
+        /// Additional natural-language queries. Repeatable. Results
+        /// are unioned by id, keeping the highest score per node.
+        /// See `search-multi-query` in the spec for semantics.
+        #[arg(long = "also")]
+        also: Vec<String>,
     },
 
     /// Bootstrap clayers in a project (plant schemas, amend agent file).
@@ -399,6 +430,21 @@ fn run(cli: &Cli) -> Result<()> {
             code_path.as_deref(),
         ),
         Command::Connectivity { path } => cmd_connectivity(path),
+        Command::Neighbors {
+            id,
+            path,
+            json,
+            hub_threshold,
+            top_per_bucket,
+            peek_chars,
+        } => cmd_neighbors(
+            id,
+            path,
+            *json,
+            *hub_threshold,
+            *top_per_bucket,
+            *peek_chars,
+        ),
         Command::Schema { path, layer } => cmd_schema(path.as_deref(), layer),
         Command::Query {
             xpath,
@@ -444,6 +490,7 @@ fn run(cli: &Cli) -> Result<()> {
             beta,
             xpath,
             layer,
+            also,
         } => {
             if let Some(sub) = cmd {
                 return crate::search_cmd::dispatch_sub(sub);
@@ -464,6 +511,7 @@ fn run(cli: &Cli) -> Result<()> {
                 beta: *beta,
                 xpath: xpath.as_deref(),
                 layer,
+                also,
             };
             crate::search_cmd::cmd_search(&effective_path, query.as_deref(), &opts)
         }
@@ -848,6 +896,49 @@ fn cmd_connectivity(path: &Path) -> Result<()> {
         }
     }
 
+    Ok(())
+}
+
+fn cmd_neighbors(
+    landing_id: &str,
+    path: &Path,
+    json: bool,
+    hub_threshold: usize,
+    top_per_bucket: usize,
+    peek_chars: usize,
+) -> Result<()> {
+    let config = clayers_spec::neighbors::Config {
+        hub_threshold,
+        top_per_bucket,
+        peek_chars,
+    };
+    let bundle = clayers_spec::neighbors::neighbors_for(path, landing_id, config)
+        .context("neighbors walk failed")?;
+
+    if json {
+        println!(
+            "{}",
+            serde_json::to_string(&bundle)
+                .context("serializing neighbor bundle to JSON")?
+        );
+    } else {
+        // Human-readable rendering for terminal use.
+        println!("neighbors: {}", bundle.landing_id);
+        println!(
+            "  degree={} hub_engaged={} kept={}",
+            bundle.degree_observed,
+            bundle.hub_engaged,
+            bundle.candidates.len()
+        );
+        println!("  by_edge_kind: {:?}", bundle.neighbors_by_edge_kind);
+        for c in &bundle.candidates {
+            let kind = match &c.edge_subtype {
+                Some(sub) => format!("{}:{sub}", c.edge_kind),
+                None => c.edge_kind.clone(),
+            };
+            println!("  [{kind}] {} — {}", c.id, c.peek);
+        }
+    }
     Ok(())
 }
 

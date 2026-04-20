@@ -25,6 +25,9 @@ pub struct BareSearchOpts<'a> {
     pub beta: f32,
     pub xpath: Option<&'a str>,
     pub layer: &'a [String],
+    /// Additional queries for multi-query mode. See `search-multi-query`
+    /// in the spec for union-by-id-with-max-score semantics.
+    pub also: &'a [String],
 }
 
 /// Dispatch for `clayers search <subcommand>`.
@@ -50,15 +53,25 @@ pub fn cmd_search(path: &Path, query: Option<&str>, opts: &BareSearchOpts<'_>) -
     if opts.dump_chunks {
         return dump_chunks_cmd(path, opts.json);
     }
-    if opts.rebuild && query.is_none() {
+    if opts.rebuild && query.is_none() && opts.also.is_empty() {
         return cmd_index(path, true, opts.verbose, opts.model);
     }
-    let Some(query_text) = query else {
+    let mut queries: Vec<&str> = Vec::with_capacity(1 + opts.also.len());
+    if let Some(q) = query {
+        queries.push(q);
+    }
+    queries.extend(opts.also.iter().map(String::as_str));
+    if queries.is_empty() {
         anyhow::bail!(
-            "clayers search: pass a query string, `index PATH`, or `--dump-chunks PATH`."
+            "clayers search: pass a query string, one or more `--also QUERY` flags, \
+             `index PATH`, or `--dump-chunks PATH`."
         );
-    };
-    run_query(path, query_text, opts)
+    }
+    if queries.len() == 1 {
+        run_query(path, queries[0], opts)
+    } else {
+        run_multi_query(path, &queries, opts)
+    }
 }
 
 fn cmd_index(path: &Path, rebuild: bool, verbose: bool, model: Option<&str>) -> Result<()> {
@@ -92,6 +105,65 @@ fn run_query(path: &Path, query_text: &str, opts: &BareSearchOpts<'_>) -> Result
         println!("{}", serde_json::to_string(&hits)?);
     } else {
         render_hits(query_text, &hits);
+    }
+    Ok(())
+}
+
+/// Run multiple queries, union by id (max score wins), sort, truncate to k.
+///
+/// Semantics documented in `clayers/clayers/search.xml` under
+/// `search-multi-query`. Each variant runs independently; results merge
+/// on the way out so agents paraphrasing to hedge vocabulary mismatch pay
+/// only one CLI warm-up instead of one per variant.
+fn run_multi_query(
+    path: &Path,
+    queries: &[&str],
+    opts: &BareSearchOpts<'_>,
+) -> Result<()> {
+    use std::cmp::Ordering;
+    use std::collections::HashMap;
+
+    let model = opts.model.unwrap_or(DEFAULT_MODEL);
+    // Merge by id; keep the whole Hit record from the best-scoring variant
+    // so text_score/struct_score/preview reflect the variant that won.
+    let mut best: HashMap<String, clayers_search::query::Hit> = HashMap::new();
+    for &q in queries {
+        let params = clayers_search::query::QueryParams {
+            query_text: q,
+            k: opts.k,
+            alpha: opts.alpha,
+            beta: opts.beta,
+            xpath: opts.xpath,
+            layer_filter: opts.layer,
+            model,
+            verbose: opts.verbose,
+        };
+        let hits = clayers_search::query::run(path, &params)
+            .with_context(|| format!("search {q:?}"))?;
+        for h in hits {
+            match best.get(&h.id) {
+                Some(existing) if existing.score >= h.score => {}
+                _ => {
+                    best.insert(h.id.clone(), h);
+                }
+            }
+        }
+    }
+    let mut merged: Vec<clayers_search::query::Hit> = best.into_values().collect();
+    merged.sort_by(|a, b| {
+        b.score
+            .partial_cmp(&a.score)
+            .unwrap_or(Ordering::Equal)
+            .then_with(|| a.id.cmp(&b.id))
+    });
+    merged.truncate(opts.k);
+
+    if opts.json {
+        println!("{}", serde_json::to_string(&merged)?);
+    } else {
+        // Use a pipe-joined label so the header shows which variants ran.
+        let label = queries.join(" | ");
+        render_hits(&label, &merged);
     }
     Ok(())
 }

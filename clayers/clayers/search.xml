@@ -324,6 +324,44 @@
     emits machine-readable output for agent pipelines.</pr:p>
   </pr:section>
 
+  <pr:section id="search-multi-query">
+    <pr:title>Multi-query mode</pr:title>
+    <pr:shortdesc>One CLI invocation, N parallel natural-language
+    queries, results unioned by id with the max score kept per
+    node.</pr:shortdesc>
+
+    <pr:p>Agents that paraphrase a user question to hedge vocabulary
+    mismatch need to run the same search with two or three worded
+    variants. Doing that as three separate CLI invocations pays three
+    warm-up costs and returns three JSON envelopes the caller must
+    merge. The multi-query mode folds those into a single call.</pr:p>
+
+    <pr:p>Shape:</pr:p>
+
+    <pr:ul>
+      <pr:li><pr:code>clayers search "raw query" PATH --also "paraphrase 1" --also "paraphrase 2" --k 10 --json</pr:code></pr:li>
+      <pr:li><pr:code>--also</pr:code> is a repeatable flag carrying
+      one additional natural-language query string. Any number may be
+      given; the positional <pr:code>QUERY</pr:code> becomes
+      optional once at least one <pr:code>--also</pr:code> is
+      supplied.</pr:li>
+    </pr:ul>
+
+    <pr:p>Semantics: the engine runs one semantic search per variant
+    (positional + all <pr:code>--also</pr:code> entries), collects the
+    top-2k candidates from each, then unions the results by
+    <pr:code>id</pr:code> keeping the highest <pr:code>score</pr:code>
+    seen across variants. The merged set is re-sorted by score
+    descending and truncated to the requested <pr:code>--k</pr:code>.
+    <pr:code>--xpath</pr:code> and <pr:code>--layer</pr:code>
+    post-filters apply to every variant identically.</pr:p>
+
+    <pr:p>JSON output is the same shape as single-query mode (a list
+    of hit records). Callers that want to know which variant produced
+    the winning score can re-run a single query against a specific
+    id; the merged output does not track provenance today.</pr:p>
+  </pr:section>
+
   <pr:section id="search-adopt-integration">
     <pr:title>Adopt Integration (.gitignore)</pr:title>
     <pr:shortdesc>How `clayers adopt` keeps the sidecar out of git
@@ -822,14 +860,14 @@
                   revision="draft-1"
                   node-hash="sha256:97201a2e9288b0acd38f941720f8b866f033e957ac20a1ed4ddc2866df4e273c"/>
     <art:artifact repo="repo-clayers"
-                  repo-revision="456975c"
+                  repo-revision="d66b4b2"
                   path="crates/clayers/src/cli.rs">
-      <art:range hash="sha256:e24c949d7019b1a2ed6ee5b91783ef34a8c28e68c235f9c8fbac32546c5ba889"
-                 start-line="1" end-line="1015"/>
+      <art:range hash="sha256:260252a46b6aa01859df365ad2ae1374f65766a252d2e824629f9a48a5b27114"
+                 start-line="1" end-line="1025"/>
     </art:artifact>
     <art:coverage>partial</art:coverage>
     <art:note>search subcommand wiring in the top-level CLI. Covers
-    the Clap subcommand definition + dispatch. Step 7 reconciles.</art:note>
+    the Clap subcommand definition + dispatch.</art:note>
   </art:mapping>
 
   <art:mapping id="map-search-subcmd">
@@ -837,14 +875,30 @@
                   revision="draft-1"
                   node-hash="sha256:97201a2e9288b0acd38f941720f8b866f033e957ac20a1ed4ddc2866df4e273c"/>
     <art:artifact repo="repo-clayers"
-                  repo-revision="456975c"
+                  repo-revision="d66b4b2"
                   path="crates/clayers/src/search_cmd.rs">
-      <art:range hash="sha256:f383e5b34f6dd05d107040bcd1dd44987c1fc4cd7c87b57974681688ffe6a4ee"
-                 start-line="1" end-line="141"/>
+      <art:range hash="sha256:367f4ff580d7a69667dd472538108df85a42d0d68ef1a2e47f6585cb958fc879"
+                 start-line="1" end-line="115"/>
+    </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>Subcommand handler: parses flags, dispatches to
+    run_query (single) or run_multi_query (see map-search-multi-query).</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-search-multi-query">
+    <art:spec-ref node="search-multi-query"
+                  revision="draft-1"
+                  node-hash="sha256:932466db8dc7ae54bb48ea2300e155a58c8b294551b96400720c03e9db7c8b38"/>
+    <art:artifact repo="repo-clayers"
+                  repo-revision="d66b4b2"
+                  path="crates/clayers/src/search_cmd.rs">
+      <art:range hash="sha256:6a53fc3439ac412cfea8f9431b281c02271f07dbca2f921d2ae60ed324a93bbd"
+                 start-line="118" end-line="169"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
-    <art:note>Subcommand handler: parse flags, call clayers-search
-    Indexer/Searcher, format output. Step 7 reconciles.</art:note>
+    <art:note>run_multi_query: runs clayers_search::query::run per
+    variant, unions by id keeping max score, sorts descending,
+    truncates to k. JSON output matches single-query shape.</art:note>
   </art:mapping>
 
   <art:mapping id="map-search-gitignore">

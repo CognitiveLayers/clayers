@@ -8,6 +8,7 @@ pub mod drift;
 pub mod fix;
 pub mod hash;
 pub mod namespace;
+pub mod neighbors;
 pub mod query;
 pub mod rnc;
 pub mod schema;
