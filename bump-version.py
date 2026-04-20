@@ -11,6 +11,7 @@ path-dep versions on clayers-* crates) in:
   - crates/clayers-xml/Cargo.toml
   - crates/clayers-spec/Cargo.toml
   - crates/clayers-repo/Cargo.toml
+  - crates/clayers-search/Cargo.toml
   - crates/clayers-py/Cargo.toml
   - crates/clayers-py/pyproject.toml
 
@@ -45,13 +46,21 @@ CRATES = [
     "crates/clayers-xml/Cargo.toml",
     "crates/clayers-spec/Cargo.toml",
     "crates/clayers-repo/Cargo.toml",
+    "crates/clayers-search/Cargo.toml",
     "crates/clayers-py/Cargo.toml",
 ]
 PYPROJECT = "crates/clayers-py/pyproject.toml"
 VERSION_TARGETS = CRATES + [PYPROJECT]
 CHANGELOG = "CHANGELOG.md"
 
-CARGO_PACKAGES = ["clayers", "clayers-xml", "clayers-spec", "clayers-repo", "clayers-py"]
+CARGO_PACKAGES = [
+    "clayers",
+    "clayers-xml",
+    "clayers-spec",
+    "clayers-repo",
+    "clayers-search",
+    "clayers-py",
+]
 
 SEMVER_RE = re.compile(r"^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$")
 

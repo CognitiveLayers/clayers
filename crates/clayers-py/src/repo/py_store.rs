@@ -27,10 +27,15 @@ use crate::xml::ContentHash as PyContentHash;
 // Error conversion
 // ---------------------------------------------------------------------------
 
+// Used by the ObjectStore/RefStore/QueryStore impl blocks below. These
+// trait methods are exercised by the compliance test harness; cargo's
+// dead-code analysis doesn't see the harness unless that feature is on.
+#[allow(dead_code)]
 fn py_to_store_err(e: PyErr) -> Error {
     Error::Storage(e.to_string())
 }
 
+#[allow(dead_code)]
 fn conversion_err(msg: String) -> Error {
     Error::Storage(msg)
 }
@@ -44,11 +49,13 @@ fn conversion_err(msg: String) -> Error {
 /// The Python object must provide methods matching `ObjectStore`, `RefStore`,
 /// and optionally `QueryStore`. See the compliance test runner for the full
 /// protocol surface.
+#[allow(dead_code)]
 pub struct PyStore {
     py_object: Py<PyAny>,
 }
 
 impl PyStore {
+    #[allow(dead_code)]
     pub fn new(py_object: Py<PyAny>) -> Self {
         Self { py_object }
     }
@@ -316,11 +323,13 @@ impl QueryStore for PyStore {
 // ---------------------------------------------------------------------------
 
 /// A transaction backed by a Python transaction object.
+#[allow(dead_code)]
 pub struct PyTransaction {
     py_object: Py<PyAny>,
 }
 
 impl PyTransaction {
+    #[allow(dead_code)]
     pub fn new(py_object: Py<PyAny>) -> Self {
         Self { py_object }
     }

@@ -28,5 +28,9 @@ jobs:
         run: cargo publish -p clayers-repo --token ${{ secrets.CARGO_REGISTRY_TOKEN }} || echo "Already published or failed"
       - name: Wait for crates.io index
         run: sleep 30
+      - name: Publish clayers-search
+        run: cargo publish -p clayers-search --token ${{ secrets.CARGO_REGISTRY_TOKEN }} || echo "Already published or failed"
+      - name: Wait for crates.io index
+        run: sleep 30
       - name: Publish clayers
         run: cargo publish -p clayers --token ${{ secrets.CARGO_REGISTRY_TOKEN }} || echo "Already published or failed"

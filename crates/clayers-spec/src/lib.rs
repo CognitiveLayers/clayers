@@ -1,10 +1,12 @@
 pub mod artifact;
 pub mod assembly;
+pub mod chunker;
 pub mod connectivity;
 pub mod coverage;
 pub mod discovery;
 pub mod drift;
 pub mod fix;
+pub mod hash;
 pub mod namespace;
 pub mod query;
 pub mod rnc;

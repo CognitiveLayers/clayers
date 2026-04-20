@@ -2,7 +2,10 @@ mod adopt;
 mod cli;
 mod doc;
 mod embedded;
+mod gitignore;
 mod repo;
+#[cfg(feature = "semantic-search")]
+mod search_cmd;
 mod serve;
 
 /// Run the clayers CLI, parsing arguments from `std::env::args`.

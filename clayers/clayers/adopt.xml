@@ -299,7 +299,7 @@
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
-      <art:range hash="sha256:79298c603742b6bb56a6d8963c46d08fddbc3506a4cf59b789d32bece81e0e0d"/>
+      <art:range hash="sha256:4f3bc0bee39b80b63dce85f0d8bd9d821b095da86ef69f430d0260636f9bfeed"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>The adopt module implements all adopt command logic:
@@ -328,7 +328,7 @@
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
-      <art:range hash="sha256:79298c603742b6bb56a6d8963c46d08fddbc3506a4cf59b789d32bece81e0e0d"/>
+      <art:range hash="sha256:4f3bc0bee39b80b63dce85f0d8bd9d821b095da86ef69f430d0260636f9bfeed"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>The adopt module is the canonical implementation of the
@@ -402,7 +402,7 @@
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
-      <art:range hash="sha256:2998a703f70469131d6d4ff333d92016d1bc94ed2e78e0510bfbd0bdb8b6268f"
+      <art:range hash="sha256:c77410cf40cb2494515f9752364274ef0f10f7c99bfe0e3b850e4eac50733f73"
                  start-line="160" end-line="191"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -417,7 +417,7 @@
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
-      <art:range hash="sha256:04e11bbc51c4adb7a9e680a87d6f7f36e459324d424a86d8d38f8f9f5be21f43"
+      <art:range hash="sha256:567334e791db3410664f34d694ed0adeef323d555b7c5daf312208581eb0f1e8"
                  start-line="193" end-line="262"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -433,7 +433,7 @@
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
-      <art:range hash="sha256:f8559fc284f6c737121f9355e7bbca50573a9935b53d33563fe352aebb157301"
+      <art:range hash="sha256:8ed09838922f1bdfa03df0ef4749b8215635c6d7edb01df7ffd542f772b579d5"
                  start-line="264" end-line="280"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -448,7 +448,7 @@
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
-      <art:range hash="sha256:4af8173796a3e59e7e901a87f834b3fd9961216dbaf8f2ea19898178d04cbb21"
+      <art:range hash="sha256:f487bbe96e3759a98bc7f8629887f97eafe057d8a498d35e78e53dd41c2225a5"
                  start-line="282" end-line="339"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -463,7 +463,7 @@
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
-      <art:range hash="sha256:07bd509ef7710623e690fc014316a071f7b33cf68c548092d5cb37cb75ba893d"
+      <art:range hash="sha256:d49732df65a617d12eb310f5bb6e66f17da4784fe3e5529bfb779c217dcde1fe"
                  start-line="341" end-line="422"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -479,7 +479,7 @@
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
-      <art:range hash="sha256:847d09cf0626d4eeb1b3056410c54b410765d70271f380d203ac0cdd48ce0cba"
+      <art:range hash="sha256:6eecf20f7506c75df5b57e0de2fcd02350951bd6dcc18b876ad970f35877d4cc"
                  start-line="424" end-line="508"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -494,7 +494,7 @@
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
-      <art:range hash="sha256:cddf5e2b113eaf42ab76db8ff76010856f2ac23496e2fd339bf44cdca78bbbf0"
+      <art:range hash="sha256:28e4e002deeb4d18865e93545b84969c67ff3e051cc0ec01aa8ffb441341a296"
                  start-line="510" end-line="583"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -509,7 +509,7 @@
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
-      <art:range hash="sha256:57e24bc7da4781eb852fe60d2db39e1e776896e713b84ddd22d3c6d978242920"
+      <art:range hash="sha256:7719156fa36e80847e8884e444bfe59daf5cb3f139883187ab35c74d8f1531ae"
                  start-line="585" end-line="747"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -525,11 +525,11 @@
     <art:artifact repo="repo-clayers"
               repo-revision="2916ded"
               path="crates/clayers/src/cli.rs">
-      <art:range hash="sha256:657d9ed0e443edf991f7ce20bf59a0d6c132b261c27238ac9ddafc656a1fed1b"
+      <art:range hash="sha256:9b7e858d2e4cc88c0b0dcea3235624b0e2f1e5ef691c7d24baeb09305b02faf5"
                  start-line="104" end-line="114"/>
-      <art:range hash="sha256:a37e41625d1a1db4bbce4fb8a86d6c22d2da9cb32a1b1edb8272b6528336eff8"
+      <art:range hash="sha256:6e22ae0480182c616ce5297e9b5f4cb68a57cc4f326df319d228be682742430e"
                  start-line="364" end-line="368"/>
-      <art:range hash="sha256:6da135958327a17b6dfcbf66e334babb86bc709b064b71786130e46bab0060f9"
+      <art:range hash="sha256:f206e17d648acc4999177e39b33de026827b714d662b159dfd92f9abb0c394ee"
                  start-line="770" end-line="772"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -664,7 +664,7 @@
               path="crates/clayers/src/adopt.rs">
       <art:range hash="sha256:3b0bb51368e30f6c4b77690cae0284e8eee53a80ed6ceebc4b112d3592da3345"
                  start-line="38" end-line="55"/>
-      <art:range hash="sha256:3ca74ed2fe22aba6fd9b4b15bfeecde3b60331032112f47475766219962fd586"
+      <art:range hash="sha256:1abb41c9296f2c133a1265a0432727656997cee7e3644ae017f4f5abde9d951c"
                  start-line="240" end-line="260"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -681,7 +681,7 @@
               path="crates/clayers/src/adopt.rs">
       <art:range hash="sha256:59c577737c3c8faf17ea5944b0d61511e0e876c53b56cc6e0a9e4cbdf5a7f589"
                  start-line="16" end-line="55"/>
-      <art:range hash="sha256:3ca74ed2fe22aba6fd9b4b15bfeecde3b60331032112f47475766219962fd586"
+      <art:range hash="sha256:1abb41c9296f2c133a1265a0432727656997cee7e3644ae017f4f5abde9d951c"
                  start-line="240" end-line="260"/>
     </art:artifact>
     <art:coverage>full</art:coverage>

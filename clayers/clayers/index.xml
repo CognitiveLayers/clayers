@@ -31,5 +31,6 @@
   <file href="architecture-model.xml"/>
   <file href="templates.xml"/>
   <file href="layers.xml"/>
+  <file href="search.xml"/>
   <file href="revision.xml" layer="urn:clayers:revision"/>
 </spec:clayers>

@@ -222,6 +222,8 @@ clayers validate clayers/my-project/
 | `connectivity <path>` | Graph metrics: density, hubs, bridges, cycles |
 | `schema [path]` | Export XSD schemas as RELAX NG Compact |
 | `query <path> <xpath>` | XPath query against assembled spec |
+| `search "<query>" <path>` | Semantic search over a spec (see [`clayers/clayers/search.xml`](clayers/clayers/search.xml) for the full design) |
+| `search index <path>` | Build or update the semantic-search index |
 | `doc <path>` | Generate HTML documentation |
 | `adopt [path]` | Bootstrap clayers in a project |
 

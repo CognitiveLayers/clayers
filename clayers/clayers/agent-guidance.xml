@@ -607,7 +607,7 @@ Update the plan's status from `active` to `completed`.
     <art:artifact repo="repo-clayers"
               repo-revision="9191483"
               path="crates/clayers/src/adopt.rs">
-      <art:range hash="sha256:3ca74ed2fe22aba6fd9b4b15bfeecde3b60331032112f47475766219962fd586"
+      <art:range hash="sha256:1abb41c9296f2c133a1265a0432727656997cee7e3644ae017f4f5abde9d951c"
                  start-line="240" end-line="260"/>
     </art:artifact>
     <art:coverage>partial</art:coverage>
@@ -622,7 +622,7 @@ Update the plan's status from `active` to `completed`.
     <art:artifact repo="repo-clayers"
               repo-revision="9191483"
               path="crates/clayers/src/adopt.rs">
-      <art:range hash="sha256:3ca74ed2fe22aba6fd9b4b15bfeecde3b60331032112f47475766219962fd586"
+      <art:range hash="sha256:1abb41c9296f2c133a1265a0432727656997cee7e3644ae017f4f5abde9d951c"
                  start-line="240" end-line="260"/>
     </art:artifact>
     <art:coverage>partial</art:coverage>
@@ -639,7 +639,7 @@ Update the plan's status from `active` to `completed`.
               path="crates/clayers/src/adopt.rs">
       <art:range hash="sha256:07a8c63ed59ebb54b1f4b7798d4b095cfca2224cf452a23283a8abbcb75534bb"
                  start-line="16" end-line="31"/>
-      <art:range hash="sha256:cb7e1044820ad7cff87f29ed6f31a160db4388ad1fb8db815aeba28f5a939e10"
+      <art:range hash="sha256:1ab87f251c5ca25beb244bfa2924b31dcf7d3cc69ac210db215b130dc124d354"
                  start-line="378" end-line="422"/>
     </art:artifact>
     <art:coverage>full</art:coverage>

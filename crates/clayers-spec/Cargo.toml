@@ -9,6 +9,7 @@ repository = "https://github.com/CognitiveLayers/clayers"
 [dependencies]
 clayers-xml = { version = "0.2.1", path = "../clayers-xml" }
 petgraph = "0.8"
+serde = { version = "1", features = ["derive"] }
 sha2 = "0.10"
 thiserror = "2"
 # Temporary republish of our fork pending upstream PRs; switch back to

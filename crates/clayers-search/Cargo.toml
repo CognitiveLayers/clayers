@@ -1,0 +1,25 @@
+[package]
+name = "clayers-search"
+version = "0.2.1"
+edition = "2024"
+license = "Apache-2.0"
+description = "Semantic search for clayers specs: two-pass chunker, structural fingerprints, fastembed-rs embeddings, USearch index with custom metric"
+repository = "https://github.com/CognitiveLayers/clayers"
+
+[dependencies]
+anyhow = "1"
+clayers-spec = { version = "0.2.1", path = "../clayers-spec" }
+clayers-xml = { version = "0.2.1", path = "../clayers-xml" }
+fastembed = "5"
+rusqlite = { version = "0.39", features = ["bundled"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+thiserror = "2"
+usearch = "2"
+
+[dev-dependencies]
+tempfile = "3"
+
+[lints]
+workspace = true

@@ -7,6 +7,8 @@
 //! discovered from the XML document's root element declarations. Callers
 //! may supply additional bindings that override or supplement these.
 
+use std::collections::HashSet;
+
 use xee_xpath::context::StaticContextBuilder;
 use xee_xpath::{Documents, Item, Queries, Query};
 
@@ -113,6 +115,87 @@ pub fn evaluate_xpath(
     }
 }
 
+/// Evaluate an `XPath` expression and return the `@id` value set of the
+/// matched nodes.
+///
+/// For element nodes, the element's `@id` attribute is read (empty namespace
+/// only; `xml:id` is not treated as the clayers id). For attribute nodes or
+/// scalar values, the string value is used directly — lets callers pass
+/// either `//trm:term` (elements with @id) or `//trm:term/@id` (attribute
+/// values) interchangeably. Empty strings are skipped.
+///
+/// Used by `clayers search --xpath` / `--layer` to build a post-filter
+/// allowlist.
+///
+/// # Errors
+///
+/// Returns an error if the XML cannot be parsed, the `XPath` cannot be
+/// compiled, or execution fails.
+pub fn xpath_to_id_set(
+    xml: &str,
+    xpath_expr: &str,
+    namespaces: &[(&str, &str)],
+) -> Result<HashSet<String>, crate::Error> {
+    let mut documents = Documents::new();
+    let doc = documents
+        .add_string_without_uri(xml)
+        .map_err(|e| crate::Error::Query(format!("XML parse error: {e}")))?;
+
+    let doc_namespaces = {
+        let xot = documents.xot();
+        let doc_node = documents
+            .document_node(doc)
+            .ok_or_else(|| crate::Error::Query("missing document node".into()))?;
+        let mut ns_map = std::collections::HashMap::<String, String>::new();
+        collect_namespace_declarations(xot, doc_node, &mut ns_map);
+        ns_map.into_iter().collect::<Vec<_>>()
+    };
+
+    let mut ctx = StaticContextBuilder::default();
+    for (prefix, uri) in &doc_namespaces {
+        if !prefix.is_empty() && !uri.is_empty() {
+            ctx.add_namespace(prefix, uri);
+        }
+    }
+    ctx.namespaces(namespaces.iter().copied());
+
+    let queries = Queries::new(ctx);
+    let q = queries
+        .sequence(xpath_expr)
+        .map_err(|e| crate::Error::Query(format!("XPath compile error: {e}")))?;
+    let seq = q
+        .execute(&mut documents, doc)
+        .map_err(|e| crate::Error::Query(format!("XPath execution error: {e}")))?;
+
+    let xot = documents.xot();
+    let mut out = HashSet::new();
+
+    for item in seq.iter() {
+        if let Item::Node(n) = item
+            && xot.is_element(n)
+        {
+            // Element node — find the @id attribute (empty namespace).
+            for (attr_name_id, attr_value) in xot.attributes(n).iter() {
+                let (local, ns) = xot.name_ns_str(attr_name_id);
+                if local == "id" && ns.is_empty() {
+                    out.insert(attr_value.to_owned());
+                    break;
+                }
+            }
+        } else {
+            // Attribute, text node, or scalar — use the string value.
+            let val = item
+                .string_value(xot)
+                .map_err(|e| crate::Error::Query(format!("string value error: {e}")))?;
+            if !val.is_empty() {
+                out.insert(val);
+            }
+        }
+    }
+
+    Ok(out)
+}
+
 /// Recursively collect all namespace declarations from a node and its descendants.
 ///
 /// First declaration wins: if a prefix is declared on multiple elements,
@@ -215,5 +298,40 @@ mod tests {
             }
             _ => panic!("expected Text"),
         }
+    }
+
+    #[test]
+    fn xpath_to_id_set_reads_element_ids() {
+        let xml = r#"<root xmlns:app="urn:test:app">
+            <app:item id="a">one</app:item>
+            <app:item id="b">two</app:item>
+            <app:other id="c">three</app:other>
+        </root>"#;
+        let ids = xpath_to_id_set(xml, "//app:item", &[]).unwrap();
+        assert_eq!(ids, HashSet::from(["a".into(), "b".into()]));
+    }
+
+    #[test]
+    fn xpath_to_id_set_reads_attribute_values() {
+        let xml = r#"<root xmlns:app="urn:test:app">
+            <app:item id="a">one</app:item>
+            <app:item id="b">two</app:item>
+        </root>"#;
+        let ids = xpath_to_id_set(xml, "//app:item/@id", &[]).unwrap();
+        assert_eq!(ids, HashSet::from(["a".into(), "b".into()]));
+    }
+
+    #[test]
+    fn xpath_to_id_set_empty_on_no_matches() {
+        let xml = r#"<root><a id="x"/></root>"#;
+        let ids = xpath_to_id_set(xml, "//missing", &[]).unwrap();
+        assert!(ids.is_empty());
+    }
+
+    #[test]
+    fn xpath_to_id_set_skips_elements_without_id() {
+        let xml = r"<root><a id='x'/><a/><a id='y'/></root>";
+        let ids = xpath_to_id_set(xml, "//a", &[]).unwrap();
+        assert_eq!(ids, HashSet::from(["x".into(), "y".into()]));
     }
 }

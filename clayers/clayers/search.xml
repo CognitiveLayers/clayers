@@ -1,0 +1,1128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Search: Semantic search subcommand design.
+
+  Describes the `clayers search` CLI: how it chunks the spec, encodes
+  structure as a fingerprint, embeds text with a HuggingFace model,
+  stores a combined index, and ranks hits with a weighted metric.
+
+  This file mixes all layers for the feature in one place: prose,
+  terminology, organization, relations, decisions, plan, artifact
+  mappings, and LLM descriptions (one-file-mixes-layers pattern).
+
+  Artifact mappings use placeholder hashes on first landing; Step 7
+  of the implementation plan reconciles them to real values.
+-->
+<spec:clayers xmlns:spec="urn:clayers:spec"
+       xmlns:pr="urn:clayers:prose"
+       xmlns:trm="urn:clayers:terminology"
+       xmlns:org="urn:clayers:organization"
+       xmlns:rel="urn:clayers:relation"
+       xmlns:dec="urn:clayers:decision"
+       xmlns:pln="urn:clayers:plan"
+       xmlns:art="urn:clayers:artifact"
+       xmlns:llm="urn:clayers:llm"
+       spec:index="index.xml">
+
+  <!-- ========================================================== -->
+  <!-- Vocabulary                                                   -->
+  <!-- ========================================================== -->
+
+  <trm:term id="term-semantic-search">
+    <trm:name>Semantic Search</trm:name>
+    <trm:definition>A retrieval mode that returns spec nodes ranked by
+    meaning, not by identifier. The query is a natural-language string
+    (or partial phrase); the ranker converts it to an embedding, compares
+    against stored per-node embeddings, and returns the closest matches.
+    Complements the XPath query command, which requires knowing the
+    target node's id or namespace.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-structural-fingerprint">
+    <trm:name>Structural Fingerprint</trm:name>
+    <trm:definition>A fixed-size bit vector encoding a node's structural
+    position in the spec: its layer, namespace, ancestor-path n-grams,
+    element-name hash, and incoming/outgoing relation types. Enables
+    similarity comparisons based on structure alone, independent of
+    textual content.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-concatenated-fingerprint">
+    <trm:name>Concatenated Fingerprint</trm:name>
+    <trm:definition>The stored vector for one spec node: a dense
+    text embedding concatenated with the node's structural
+    fingerprint, resulting in a single fixed-length vector. A custom
+    distance metric treats the two halves differently (cosine on
+    text, Tanimoto on bits), so one index supports both semantic
+    and structural retrieval simultaneously.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-sidecar-index">
+    <trm:name>Sidecar Index</trm:name>
+    <trm:definition>The derived-artifact directory `.clayers/search/`
+    colocated with the spec. Holds the binary vector index
+    (`index.usearch`), the metadata store (`meta.sqlite`), and the
+    build configuration (`config.json`). Gitignored via clayers
+    adopt; never enters source control.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-incremental-rebuild">
+    <trm:name>Incremental Rebuild</trm:name>
+    <trm:definition>A rebuild mode that re-embeds only nodes whose
+    C14N content hash changed since the last index build. Reuses the
+    node-hash computation path already maintained by the artifact
+    drift detector, so the search cache and drift detection agree
+    on what "changed" means.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-custom-metric">
+    <trm:name>Custom Metric</trm:name>
+    <trm:definition>A user-supplied distance function registered with
+    the vector index at runtime. Clayers search registers a Rust
+    closure via `usearch::Index::change_metric` that computes
+    `alpha * cosine(text_half) + beta * tanimoto(struct_half)` on raw
+    pointer slices. Invoked during HNSW graph traversal, not merely
+    after the fact.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-context-prepended-chunk">
+    <trm:name>Context-Prepended Chunk</trm:name>
+    <trm:definition>The text fed to the embedder for a single spec
+    node: a structural header `[layer=X path=A>B>C]` followed by the
+    node's own text content. The header cheaply injects structural
+    locality into the semantic embedding, so identical phrases in
+    different layers end up in different neighbourhoods.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-tanimoto-similarity">
+    <trm:name>Tanimoto Similarity</trm:name>
+    <trm:definition>A similarity measure on binary vectors defined as
+    the ratio of intersecting bits to union bits. Widely used in
+    chemical-fingerprint retrieval. Applied here to the 256-bit
+    structural fingerprint so two nodes sharing a layer, ancestor
+    path, and relation signature score as similar regardless of
+    prose differences.</trm:definition>
+  </trm:term>
+
+  <!-- ========================================================== -->
+  <!-- Content: prose sections, top-down                            -->
+  <!-- ========================================================== -->
+
+  <pr:section id="search-overview">
+    <pr:title>Semantic Search Overview</pr:title>
+    <pr:shortdesc>What the clayers search command does, how it differs
+    from query, and when to prefer each.</pr:shortdesc>
+
+    <pr:p>The <pr:code>clayers query</pr:code> command answers precise
+    questions with XPath: "give me the definition of `term-drift`",
+    "list all artifact mappings for `crates/clayers-spec/src/drift.rs`".
+    It requires knowing identifiers and namespaces up front.</pr:p>
+
+    <pr:p>The <pr:code>clayers search</pr:code> command answers fuzzy
+    questions with natural language: "which terms define drift?",
+    "which plan items touch hashing?" It ranks nodes by semantic
+    closeness to the query and reveals ids the caller did not know.</pr:p>
+
+    <pr:p>The two modes compose. A user can start with
+    <pr:code>search "drift detection"</pr:code> to discover relevant
+    node ids, then feed those ids into <pr:code>query</pr:code>
+    expressions for precise extraction.</pr:p>
+
+    <pr:note type="info">Structure matters in clayers specs, so search
+    does not reduce everything to text. A 256-bit structural
+    fingerprint rides alongside each text embedding, letting users
+    rank by meaning, structure, or a weighted mix (`--alpha`,
+    `--beta`).</pr:note>
+  </pr:section>
+
+  <pr:section id="search-how-it-works">
+    <pr:title>Pipeline</pr:title>
+    <pr:shortdesc>Chunker, embedder, fingerprint, index, metric, CLI —
+    the pieces and how they fit.</pr:shortdesc>
+
+    <pr:p>Indexing walks the spec twice: first per-source-file to
+    collect byte spans (xot's <pr:code>parse_with_span_info</pr:code>),
+    then across the combined document to collect ancestor chains,
+    layers, and relation incidence. The two passes merge into a set of
+    <trm:ref term="term-context-prepended-chunk">context-prepended
+    chunks</trm:ref>, one per <pr:code>@id</pr:code>-bearing
+    element.</pr:p>
+
+    <pr:p>Each chunk runs through two parallel pipelines. The text
+    half is embedded with fastembed-rs (BGE-small-en-v1.5 by default,
+    384-dim). The structural half is compressed into the
+    <trm:ref term="term-structural-fingerprint">structural
+    fingerprint</trm:ref> (256 bits). Both halves are written to
+    <pr:code>.clayers/search/index.usearch</pr:code> as a single
+    concatenated 640-dim f32 vector.</pr:p>
+
+    <pr:p>Per-node metadata (id, file, line range, layer, namespace,
+    content hash, preview, usearch key) lives in a sibling SQLite
+    database <pr:code>.clayers/search/meta.sqlite</pr:code>. This
+    doubles as the <trm:ref term="term-incremental-rebuild">
+    incremental-rebuild</trm:ref> cache: rebuilds skip any node whose
+    current content hash matches its stored one.</pr:p>
+
+    <pr:p>Querying embeds the user's string (without a context header,
+    since queries are not structural). The embedder pads the
+    structural half with zeros. usearch evaluates the
+    <trm:ref term="term-custom-metric">custom metric</trm:ref>
+    (<pr:code>alpha * cosine(text) + beta * tanimoto(struct)</pr:code>)
+    during HNSW traversal and returns top-k keys. The CLI joins those
+    keys with <pr:code>meta.sqlite</pr:code> to produce a ranked
+    table.</pr:p>
+  </pr:section>
+
+  <pr:section id="search-chunker-strategy">
+    <pr:title>Two-Pass Chunking</pr:title>
+    <pr:shortdesc>Why the chunker reads each file twice: to pair
+    source-accurate line numbers with combined-document context.</pr:shortdesc>
+
+    <pr:p>xot's span information returns byte offsets, not line
+    numbers, and is only available when a file is parsed with
+    <pr:code>parse_with_span_info</pr:code>. The existing combined-
+    document assembler parses without spans, so it cannot tell a
+    caller where node X came from.</pr:p>
+
+    <pr:p>The chunker compensates with a pre-assembly pass. It reads
+    each XML file in the spec, parses it with span info, and records
+    <pr:code>(id, path, byte_start, byte_end)</pr:code> per
+    <pr:code>@id</pr:code>-bearing element. A trivial
+    <pr:code>byte_to_line</pr:code> helper (counting
+    <pr:code>\n</pr:code> in the source string) converts byte offsets
+    to 1-indexed line numbers.</pr:p>
+
+    <pr:p>Ancestor chains and relation incidence come from the
+    assembled document. The chunker walks the combined tree and joins
+    on <pr:code>@id</pr:code> against the span map to produce the
+    final chunk record.</pr:p>
+  </pr:section>
+
+  <pr:section id="search-structural-fingerprint">
+    <pr:title>Structural Fingerprint Layout</pr:title>
+    <pr:shortdesc>How 256 bits encode layer, namespace, ancestor
+    path, element name, and relation types.</pr:shortdesc>
+
+    <pr:p>The fingerprint is a fixed 256-bit vector with six segments
+    + 5 reserved bits:</pr:p>
+
+    <pr:ul>
+      <pr:li>Bits 0-10 (11 bits): layer one-hot over the eleven
+      clayers layers (prose, terminology, organization, relation,
+      decision, source, plan, artifact, llm, revision, index).</pr:li>
+      <pr:li>Bits 11-42 (32 bits): FxHash of the namespace URI.</pr:li>
+      <pr:li>Bits 43-170 (128 bits): ancestor-path 3-gram shingles.
+      The ancestor chain's element localnames are joined with
+      <pr:code>/</pr:code>; each 3-gram is hashed into <pr:code>[0,
+      128)</pr:code> and the corresponding bit is set.</pr:li>
+      <pr:li>Bits 171-186 (16 bits): element-localname hash.</pr:li>
+      <pr:li>Bits 187-218 (32 bits): outgoing relation-type bitset
+      (hash-bucketed).</pr:li>
+      <pr:li>Bits 219-250 (32 bits): incoming relation-type
+      bitset.</pr:li>
+      <pr:li>Bits 251-255 (5 bits): reserved for future growth
+      (zero-filled).</pr:li>
+    </pr:ul>
+
+    <pr:p>The layout is frozen: a change in segment boundaries
+    invalidates every stored fingerprint. Bumping
+    <pr:code>config.json</pr:code>'s <pr:code>fingerprint-version</pr:code>
+    forces a full rebuild.</pr:p>
+  </pr:section>
+
+  <pr:section id="search-index-layout">
+    <pr:title>Sidecar Index Layout</pr:title>
+    <pr:shortdesc>What lives inside `.clayers/search/` and how the
+    three files cooperate.</pr:shortdesc>
+
+    <pr:p>The sidecar holds three files:</pr:p>
+
+    <pr:ul>
+      <pr:li><pr:code>index.usearch</pr:code> — a memory-mappable
+      usearch index of 640-dim f32 vectors, one per
+      <pr:code>@id</pr:code>-bearing node. The per-node
+      <trm:ref term="term-concatenated-fingerprint">concatenated
+      fingerprint</trm:ref> stores the text embedding in the first 384
+      dims and the structural fingerprint (bits cast to 0.0/1.0 f32s)
+      in the last 256 dims.</pr:li>
+      <pr:li><pr:code>meta.sqlite</pr:code> — a SQLite database with
+      table <pr:code>nodes(id TEXT PRIMARY KEY, file TEXT, line_start
+      INTEGER, line_end INTEGER, layer TEXT, namespace TEXT, node_hash
+      TEXT, preview TEXT, key INTEGER)</pr:code>. Supplies human-
+      readable fields for the query output and serves as the
+      incremental-rebuild cache.</pr:li>
+      <pr:li><pr:code>config.json</pr:code> — build configuration:
+      model name, text-dim, struct-dim, build timestamp, spec
+      revision, fingerprint-version. Changing the model or
+      fingerprint-version triggers a full rebuild.</pr:li>
+    </pr:ul>
+
+    <pr:p>Concurrent writes are serialized via a lockfile
+    <pr:code>.clayers/search/.lock</pr:code>; parallel
+    <pr:code>clayers search</pr:code> invocations cannot corrupt the
+    index or meta store.</pr:p>
+  </pr:section>
+
+  <pr:section id="search-incremental-rebuild">
+    <pr:title>Incremental Rebuild</pr:title>
+    <pr:shortdesc>How rebuilds reuse unchanged embeddings by keying
+    on the spec's own C14N node hash.</pr:shortdesc>
+
+    <pr:p>Each chunk carries a node-hash computed via clayers-spec's
+    <pr:code>compute_node_hash</pr:code> helper — the same path the
+    artifact drift detector uses. On rebuild, the indexer joins the
+    chunk stream with <pr:code>meta.sqlite.nodes</pr:code>. Matching
+    hashes keep the existing usearch key; mismatches re-embed.</pr:p>
+
+    <pr:p>Nodes that vanished from the spec (no chunk for their
+    stored id) are deleted from both meta and usearch. New nodes are
+    inserted with fresh keys. The indexer logs
+    <pr:code>re-embedded: N nodes</pr:code> per run for CI
+    verification.</pr:p>
+
+    <pr:p>Model or fingerprint-version changes invalidate every
+    stored embedding. In that case the indexer discards
+    <pr:code>meta.sqlite</pr:code> and rebuilds from scratch.</pr:p>
+  </pr:section>
+
+  <pr:section id="search-cli">
+    <pr:title>Command-Line Surface</pr:title>
+    <pr:shortdesc>Flags, defaults, and the post-filter semantics of
+    `--xpath` and `--layer`.</pr:shortdesc>
+
+    <pr:p>Two entry points share the <pr:code>search</pr:code>
+    subcommand: <pr:code>clayers search "QUERY" [PATH]</pr:code> runs
+    a ranked query; <pr:code>clayers search index [PATH]</pr:code>
+    builds or updates the index without querying (useful in CI).</pr:p>
+
+    <pr:p>Ranking knobs:</pr:p>
+
+    <pr:ul>
+      <pr:li><pr:code>--alpha F</pr:code> (default 0.7) — weight on
+      the cosine-over-text component.</pr:li>
+      <pr:li><pr:code>--beta F</pr:code> (default 0.3) — weight on
+      the Tanimoto-over-structure component.
+      <pr:code>--beta 0</pr:code> yields pure-semantic search.</pr:li>
+      <pr:li><pr:code>--k N</pr:code> (default 10) — result count.</pr:li>
+    </pr:ul>
+
+    <pr:p>Filter knobs (applied as post-filters on the top-2k
+    candidates returned from usearch):</pr:p>
+
+    <pr:ul>
+      <pr:li><pr:code>--xpath EXPR</pr:code> — keep only hits whose
+      id is in the set returned by the spec-level
+      <pr:code>xpath_to_id_set</pr:code> helper.</pr:li>
+      <pr:li><pr:code>--layer L[,L…]</pr:code> — convenience:
+      translates to <pr:code>//XXX:*[@id]</pr:code> and intersects.</pr:li>
+    </pr:ul>
+
+    <pr:p>Output is a ranked table of <pr:code>id</pr:code>,
+    <pr:code>file:line</pr:code>, <pr:code>layer</pr:code>, score
+    (total), <pr:code>text_score</pr:code>,
+    <pr:code>struct_score</pr:code>, and a preview. <pr:code>--json</pr:code>
+    emits machine-readable output for agent pipelines.</pr:p>
+  </pr:section>
+
+  <pr:section id="search-adopt-integration">
+    <pr:title>Adopt Integration (.gitignore)</pr:title>
+    <pr:shortdesc>How `clayers adopt` keeps the sidecar out of git
+    idempotently.</pr:shortdesc>
+
+    <pr:p>The sidecar directory <pr:code>.clayers/search/</pr:code>
+    holds derived artifacts that must never enter source control.
+    <pr:code>clayers adopt</pr:code> creates or extends
+    <pr:code>.gitignore</pr:code> with a
+    <pr:code>.clayers/search/</pr:code> entry bounded by sentinel
+    comments <pr:code># clayers:adopt:start</pr:code> and
+    <pr:code># clayers:adopt:end</pr:code>, mirroring the existing
+    marker pattern adopt uses in CLAUDE.md / AGENTS.md.</pr:p>
+
+    <pr:p>Re-running adopt replaces everything between the markers
+    in place, never duplicating entries. Pre-existing user-authored
+    lines outside the markers are preserved verbatim. The freshness
+    check in <pr:code>clayers adopt --update</pr:code> detects a
+    tampered or missing block and re-plants it.</pr:p>
+  </pr:section>
+
+  <!-- ========================================================== -->
+  <!-- Organization: topic typing                                   -->
+  <!-- ========================================================== -->
+
+  <org:concept ref="search-overview">
+    <org:purpose>Understanding semantic search as a complement to
+    XPath querying, and when to prefer each.</org:purpose>
+  </org:concept>
+
+  <org:reference ref="search-how-it-works">
+    <org:purpose>End-to-end pipeline reference: chunker, fingerprint,
+    embedder, index, metric, CLI.</org:purpose>
+  </org:reference>
+
+  <org:reference ref="search-chunker-strategy">
+    <org:purpose>Rationale and mechanics of the two-pass chunker:
+    pre-assembly span scan joined with combined-document context.</org:purpose>
+  </org:reference>
+
+  <org:reference ref="search-structural-fingerprint">
+    <org:purpose>Bit-level layout of the 256-bit structural
+    fingerprint and the segment responsibilities.</org:purpose>
+  </org:reference>
+
+  <org:reference ref="search-index-layout">
+    <org:purpose>File-by-file reference for the `.clayers/search/`
+    sidecar: index.usearch, meta.sqlite, config.json.</org:purpose>
+  </org:reference>
+
+  <org:concept ref="search-incremental-rebuild">
+    <org:purpose>How the indexer reuses unchanged embeddings via
+    node-hash matching against the persisted meta store.</org:purpose>
+  </org:concept>
+
+  <org:task ref="search-cli">
+    <org:purpose>Use the clayers search CLI to build indexes and
+    run ranked queries over a spec directory.</org:purpose>
+    <org:actor>clayers CLI</org:actor>
+  </org:task>
+
+  <org:task ref="search-adopt-integration">
+    <org:purpose>Extend clayers adopt so the sidecar index directory
+    is gitignored idempotently.</org:purpose>
+    <org:actor>clayers adopt subcommand</org:actor>
+  </org:task>
+
+  <!-- ========================================================== -->
+  <!-- Relations                                                    -->
+  <!-- ========================================================== -->
+
+  <rel:relation type="refines" from="search-overview" to="xpath-query-tooling">
+    <rel:note>Semantic search complements XPath query by accepting
+    natural-language input and ranking nodes by meaning.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="search-how-it-works" to="term-combined-document">
+    <rel:note>The pipeline assembles the combined document to collect
+    per-node context for chunking.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="search-chunker-strategy" to="search-how-it-works">
+    <rel:note>Chunker behaviour is a refinement of the end-to-end
+    pipeline overview.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="search-incremental-rebuild" to="artifact-drift">
+    <rel:note>The search cache reuses the same C14N node-hash path
+    maintained by the artifact drift detector.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="search-structural-fingerprint" to="search-how-it-works">
+    <rel:note>The fingerprint layout is one of the two parallel
+    pipelines described in the overview.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="search-index-layout" to="search-how-it-works">
+    <rel:note>Sidecar layout records the outputs the pipeline
+    produces.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="search-cli" to="search-how-it-works">
+    <rel:note>The CLI is the user-facing surface for the pipeline.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="search-adopt-integration" to="adopt-workflow">
+    <rel:note>Adopt gains a new responsibility: managing the
+    .gitignore entry for the search sidecar.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="term-custom-metric" to="term-concatenated-fingerprint">
+    <rel:note>The custom metric interprets the two halves of the
+    concatenated fingerprint differently.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="term-incremental-rebuild" to="term-sidecar-index">
+    <rel:note>Incremental rebuild keys on state persisted in the
+    sidecar's meta store.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="term-tanimoto-similarity" to="term-structural-fingerprint">
+    <rel:note>Tanimoto is the similarity measure used on the 256-bit
+    structural half.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="term-context-prepended-chunk" to="search-chunker-strategy">
+    <rel:note>Context-prepended chunks are produced by the two-pass
+    chunker.</rel:note>
+  </rel:relation>
+
+  <!-- ========================================================== -->
+  <!-- Decisions                                                    -->
+  <!-- ========================================================== -->
+
+  <dec:decision id="dec-search-embedding-model" ref="search-how-it-works">
+    <dec:status>accepted</dec:status>
+    <dec:alternative>
+      <dec:title>Jina-v2</dec:title>
+      <dec:rationale>Larger context window but also larger model
+      (~140 MB) and higher latency. Over-specified for spec-sized
+      corpora (hundreds of nodes, not millions).</dec:rationale>
+    </dec:alternative>
+    <dec:alternative>
+      <dec:title>E5-base</dec:title>
+      <dec:rationale>Stronger multilingual coverage but English
+      benchmarks favour BGE-small. Multilingual specs are not a
+      v1 requirement.</dec:rationale>
+    </dec:alternative>
+    <dec:alternative>
+      <dec:title>candle-transformers with a hand-picked model</dec:title>
+      <dec:rationale>Pure-Rust without ONNX, but demands more
+      boilerplate and locks us to whatever models have been ported
+      to candle.</dec:rationale>
+    </dec:alternative>
+  </dec:decision>
+
+  <dec:decision id="dec-search-metric-composition" ref="search-how-it-works">
+    <dec:status>accepted</dec:status>
+    <dec:alternative>
+      <dec:title>Stock cosine + Rust-side rerank of top-N</dec:title>
+      <dec:rationale>Works without custom metric support but biases
+      HNSW traversal toward the text half, hurting recall for
+      structurally-similar, textually-different nodes.</dec:rationale>
+    </dec:alternative>
+    <dec:alternative>
+      <dec:title>Two parallel indexes + reciprocal-rank fusion</dec:title>
+      <dec:rationale>Doubles storage, doubles build time, forces
+      the CLI to run two searches and merge results.</dec:rationale>
+    </dec:alternative>
+  </dec:decision>
+
+  <dec:decision id="dec-search-sidecar-location" ref="search-index-layout">
+    <dec:status>accepted</dec:status>
+    <dec:alternative>
+      <dec:title>User-cache location (~/.cache/clayers/search/&lt;spec-hash&gt;/)</dec:title>
+      <dec:rationale>Hides the index from the spec directory, but
+      decouples it from the spec's own lifecycle (git clean, branch
+      switch). Loses locality.</dec:rationale>
+    </dec:alternative>
+    <dec:alternative>
+      <dec:title>Workspace-global index</dec:title>
+      <dec:rationale>One index per machine instead of one per spec.
+      Cross-spec leakage and no per-spec model choice.</dec:rationale>
+    </dec:alternative>
+  </dec:decision>
+
+  <dec:decision id="dec-search-structural-fingerprint-layout" ref="search-structural-fingerprint">
+    <dec:status>accepted</dec:status>
+    <dec:alternative>
+      <dec:title>128-bit compact</dec:title>
+      <dec:rationale>Halves storage but collisions in the 128-bit
+      ancestor-path segment rise to ~12% on specs with deep
+      hierarchies. Recall degrades noticeably.</dec:rationale>
+    </dec:alternative>
+    <dec:alternative>
+      <dec:title>1024-bit high-fidelity</dec:title>
+      <dec:rationale>Near-zero collisions but 4x storage. No
+      observed quality gain on spec scale (hundreds of nodes).</dec:rationale>
+    </dec:alternative>
+  </dec:decision>
+
+  <dec:decision id="dec-search-xpath-filter-strategy" ref="search-cli">
+    <dec:status>accepted</dec:status>
+    <dec:alternative>
+      <dec:title>Pre-filter via usearch filter API</dec:title>
+      <dec:rationale>Evaluates the id predicate during graph
+      traversal; in principle cheaper for very selective filters,
+      but biases the HNSW entry points and surfaces fewer true
+      nearest neighbours.</dec:rationale>
+    </dec:alternative>
+    <dec:alternative>
+      <dec:title>Sequential scan</dec:title>
+      <dec:rationale>Skip usearch entirely when --xpath narrows to a
+      small set. Adds a second code path for a rare case.</dec:rationale>
+    </dec:alternative>
+  </dec:decision>
+
+  <dec:decision id="dec-search-hf-home-precedence" ref="search-index-layout">
+    <dec:status>accepted</dec:status>
+    <dec:alternative>
+      <dec:title>Force-unset HF_HOME at embedder init</dec:title>
+      <dec:rationale>Guarantees our with_cache_dir wins, but
+      overrides the user's explicit environment choice.</dec:rationale>
+    </dec:alternative>
+    <dec:alternative>
+      <dec:title>Fail fast if HF_HOME is set</dec:title>
+      <dec:rationale>Surfaces the precedence clearly but irritates
+      users on managed environments where HF_HOME is set by policy.</dec:rationale>
+    </dec:alternative>
+  </dec:decision>
+
+  <dec:decision id="dec-search-fastembed-major-version" ref="search-how-it-works">
+    <dec:status>accepted</dec:status>
+    <dec:alternative>
+      <dec:title>Pin to fastembed 4.x</dec:title>
+      <dec:rationale>Uses the InitOptions API the original plan
+      prose assumed. But InitOptions is now #[deprecated] and
+      breaking changes in 5.x cannot be cherry-picked.</dec:rationale>
+    </dec:alternative>
+    <dec:alternative>
+      <dec:title>Unpinned (^latest)</dec:title>
+      <dec:rationale>Picks up upstream bug fixes automatically but
+      exposes the workspace to surprise breakage.</dec:rationale>
+    </dec:alternative>
+  </dec:decision>
+
+  <dec:decision id="dec-search-feature-default-on" ref="search-cli">
+    <dec:status>accepted</dec:status>
+    <dec:alternative>
+      <dec:title>Off by default; opt-in via --features semantic-search</dec:title>
+      <dec:rationale>Keeps the base binary minimal (no ONNX, no
+      tokenizer, smaller `cargo install` footprint) but adds friction
+      for every user who wants search. Most users do want search;
+      this is a high-value feature that shouldn't require a
+      flag.</dec:rationale>
+    </dec:alternative>
+    <dec:alternative>
+      <dec:title>Always on (no feature flag at all)</dec:title>
+      <dec:rationale>Simplest code path but leaves no escape hatch
+      for minimal-binary CI jobs or embedded users for whom the
+      prebuilt ONNX runtime download is unwelcome.</dec:rationale>
+    </dec:alternative>
+  </dec:decision>
+
+  <!-- ========================================================== -->
+  <!-- Plan (in-spec)                                               -->
+  <!-- ========================================================== -->
+
+  <pln:plan id="plan-search-feature">
+    <pln:title>Implement `clayers search`</pln:title>
+    <pln:overview>Ships the clayers search semantic-search subcommand
+    across a new crate (clayers-search), two API additions in
+    clayers-spec and clayers-xml, CLI wiring in clayers, and
+    adopt/.gitignore integration. Execution mirrors the seven code
+    steps in the ~/.claude/plans/ plan file and is verified by the
+    workspace pytest checklist.</pln:overview>
+    <pln:status>completed</pln:status>
+
+    <pln:item id="plan-search-item-1">
+      <pln:title>Scaffold clayers-search crate and feature flag</pln:title>
+      <pln:description>New workspace crate with fastembed, usearch,
+      rusqlite deps. New semantic-search Cargo feature in the
+      clayers crate, bundled ON by default with an opt-out path via
+      --no-default-features.</pln:description>
+      <pln:acceptance>
+        <pln:criterion>crate exists, feature declared, existing
+        commands build with --no-default-features.
+          Verify with: uv run --script $INFERAL_WORKSPACE/.inferal/checklists/right-now-we-re-limited-gentle-cat.py -k test_step_01 -v
+        </pln:criterion>
+      </pln:acceptance>
+      <pln:item-status>completed</pln:item-status>
+    </pln:item>
+
+    <pln:item id="plan-search-item-2">
+      <pln:title>Chunker + compute_node_hash + xpath_to_id_set</pln:title>
+      <pln:description>Two-pass chunker in clayers-spec. Public
+      compute_node_hash wrapper in clayers-spec. Public
+      xpath_to_id_set in clayers-xml plus spec-level wrapper.</pln:description>
+      <pln:acceptance>
+        <pln:criterion>Chunker emits records with id/file/lines/layer.
+        compute_node_hash and xpath_to_id_set have unit tests that run
+        and pass.
+          Verify with: uv run --script $INFERAL_WORKSPACE/.inferal/checklists/right-now-we-re-limited-gentle-cat.py -k "test_step_02 or test_step_02b or test_step_02c" -v
+        </pln:criterion>
+      </pln:acceptance>
+      <pln:item-status>completed</pln:item-status>
+    </pln:item>
+
+    <pln:item id="plan-search-item-3">
+      <pln:title>Structural fingerprint encoder</pln:title>
+      <pln:description>256-bit fingerprint encoder with the six
+      segments documented in search-structural-fingerprint.
+      Deterministic across runs; snapshot-tested.</pln:description>
+      <pln:acceptance>
+        <pln:criterion>Rust fingerprint unit tests pass; identical
+        chunks produce identical bits.
+          Verify with: uv run --script $INFERAL_WORKSPACE/.inferal/checklists/right-now-we-re-limited-gentle-cat.py -k test_step_03 -v
+        </pln:criterion>
+      </pln:acceptance>
+      <pln:item-status>completed</pln:item-status>
+    </pln:item>
+
+    <pln:item id="plan-search-item-4">
+      <pln:title>Embedder, index, meta store</pln:title>
+      <pln:description>fastembed 5 TextEmbedding wrapper, usearch
+      index with custom metric via change_metric, SQLite meta store.
+      Incremental rebuild via node-hash.</pln:description>
+      <pln:acceptance>
+        <pln:criterion>search index PATH creates the three sidecar
+        files and config.json records the expected dims.
+          Verify with: uv run --script $INFERAL_WORKSPACE/.inferal/checklists/right-now-we-re-limited-gentle-cat.py -k test_step_04 -v
+        </pln:criterion>
+      </pln:acceptance>
+      <pln:item-status>completed</pln:item-status>
+    </pln:item>
+
+    <pln:item id="plan-search-item-5">
+      <pln:title>CLI wiring</pln:title>
+      <pln:description>clayers search subcommand with all flags
+      (alpha, beta, k, xpath, layer, model, rebuild, json, text,
+      verbose). Post-filter on top-2k candidates.</pln:description>
+      <pln:acceptance>
+        <pln:criterion>search returns ranked hits, --xpath narrows
+        to the requested layer, --beta 0 zeros the struct component.
+          Verify with: uv run --script $INFERAL_WORKSPACE/.inferal/checklists/right-now-we-re-limited-gentle-cat.py -k test_step_05 -v
+        </pln:criterion>
+      </pln:acceptance>
+      <pln:item-status>completed</pln:item-status>
+    </pln:item>
+
+    <pln:item id="plan-search-item-6">
+      <pln:title>Adopt .gitignore integration</pln:title>
+      <pln:description>gitignore.rs module; plant/check/update path
+      via sentinel markers; idempotent; preserves user lines.</pln:description>
+      <pln:acceptance>
+        <pln:criterion>adopt writes .clayers/search/ inside sentinel
+        markers, idempotent on repeat runs, preserves user content.
+          Verify with: uv run --script $INFERAL_WORKSPACE/.inferal/checklists/right-now-we-re-limited-gentle-cat.py -k test_step_06 -v
+        </pln:criterion>
+      </pln:acceptance>
+      <pln:item-status>completed</pln:item-status>
+    </pln:item>
+
+    <pln:item id="plan-search-item-7">
+      <pln:title>Hash reconciliation, coverage, docs, release</pln:title>
+      <pln:description>Replace placeholder hashes, fill real line
+      ranges, verify coverage + connectivity, flip plan status to
+      done, extend bump-version.py + crates.yml, document in
+      README and AGENTS.md.</pln:description>
+      <pln:acceptance>
+        <pln:criterion>Drift is clean, coverage lists no uncovered
+        search-* nodes, connectivity shows no isolated search-*
+        nodes, plan status is done, release plumbing includes the
+        new crate.
+          Verify with: uv run --script $INFERAL_WORKSPACE/.inferal/checklists/right-now-we-re-limited-gentle-cat.py -k test_step_07 -v
+        </pln:criterion>
+      </pln:acceptance>
+      <pln:item-status>completed</pln:item-status>
+    </pln:item>
+  </pln:plan>
+
+  <!-- ========================================================== -->
+  <!-- Artifact mappings — placeholder hashes, reconciled in Step 7 -->
+  <!-- ========================================================== -->
+
+  <art:mapping id="map-search-chunker">
+    <art:spec-ref node="search-chunker-strategy"
+                  revision="draft-1"
+                  node-hash="sha256:7df9fe6649c64a1e943094065c206927a324134be2f48014ca9fb76b884d3c03"/>
+    <art:artifact repo="repo-clayers"
+                  repo-revision="456975c"
+                  path="crates/clayers-spec/src/chunker.rs">
+      <art:range hash="sha256:f6bf0f2ed63e9bf14724bbd349b6d04821ebdcb4597a7c08ead38c385e7cbddf"
+                 start-line="1" end-line="329"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Two-pass chunker: per-file span scan + combined-doc
+    walk. Step 7 reconciles placeholder hashes and line range.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-search-node-hash">
+    <art:spec-ref node="search-incremental-rebuild"
+                  revision="draft-1"
+                  node-hash="sha256:db1625df959f9be800503b7ca18ce09c8b8cf0f2ff07bdc3193b4fab6df4ffda"/>
+    <art:artifact repo="repo-clayers"
+                  repo-revision="456975c"
+                  path="crates/clayers-spec/src/hash.rs">
+      <art:range hash="sha256:ceef457ed9e06fabc67558eb3ece1c99acaad15fd060e4f01cc4cf86b869bf99"
+                 start-line="1" end-line="80"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>pub fn compute_node_hash wrapper exposing the
+    previously private find_node_by_id + C14N path used by
+    artifact --drift. Step 7 reconciles.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-search-xpath-id-set">
+    <art:spec-ref node="search-cli"
+                  revision="draft-1"
+                  node-hash="sha256:97201a2e9288b0acd38f941720f8b866f033e957ac20a1ed4ddc2866df4e273c"/>
+    <art:artifact repo="repo-clayers"
+                  repo-revision="456975c"
+                  path="crates/clayers-xml/src/query.rs">
+      <art:range hash="sha256:fb7f4188e4d90ed7634dd38918788103a79ff58fb4ea7e7b3355c297e8387623"
+                 start-line="1" end-line="337"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>pub fn xpath_to_id_set in clayers-xml powering the
+    --xpath post-filter. Step 7 reconciles.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-search-fingerprint">
+    <art:spec-ref node="search-structural-fingerprint"
+                  revision="draft-1"
+                  node-hash="sha256:69af7be416470026536d8d001449e741d546f6a5e6f15b7cdbafb0dabded9edf"/>
+    <art:artifact repo="repo-clayers"
+                  repo-revision="456975c"
+                  path="crates/clayers-search/src/fingerprint.rs">
+      <art:range hash="sha256:a48295eba7462606d9d7fb078a47bda413f98e47e0be0c1c523b41ca95b5e5fc"
+                 start-line="1" end-line="265"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>256-bit structural fingerprint encoder with the six
+    segments documented in search-structural-fingerprint. Step 7
+    reconciles.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-search-embedder">
+    <art:spec-ref node="search-how-it-works"
+                  revision="draft-1"
+                  node-hash="sha256:04d2ce7153d670a2850b18a498e7190c023999f6a23e5f8d055a54c9825af25c"/>
+    <art:artifact repo="repo-clayers"
+                  repo-revision="456975c"
+                  path="crates/clayers-search/src/embedder.rs">
+      <art:range hash="sha256:69bc9ab6a6bcf766b40720f2e2c19cde9504304ef5a357bb02004938e35af5ee"
+                 start-line="1" end-line="85"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>fastembed 5 TextEmbedding wrapper. Honours HF_HOME,
+    logs effective cache path. Step 7 reconciles.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-search-indexer">
+    <art:spec-ref node="search-how-it-works"
+                  revision="draft-1"
+                  node-hash="sha256:04d2ce7153d670a2850b18a498e7190c023999f6a23e5f8d055a54c9825af25c"/>
+    <art:artifact repo="repo-clayers"
+                  repo-revision="456975c"
+                  path="crates/clayers-search/src/index.rs">
+      <art:range hash="sha256:25e819c31e27dfeddbcd2a1620d7e619190b41434d2990b4057c88295e13bde3"
+                 start-line="1" end-line="357"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Incrementally builds the usearch index with the custom
+    metric via change_metric. Reconciles meta.sqlite and manages the
+    file lock. Step 7 reconciles.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-search-meta-store">
+    <art:spec-ref node="search-index-layout"
+                  revision="draft-1"
+                  node-hash="sha256:9a8545e318aafa41a07d3925da2456b871a869e7a3bfdd234fc87a3a1d258e63"/>
+    <art:artifact repo="repo-clayers"
+                  repo-revision="456975c"
+                  path="crates/clayers-search/src/meta.rs">
+      <art:range hash="sha256:56306e38c9d647c2c1dda6bd937d8148c48d4ce510698ae471a90aa728ca472d"
+                 start-line="1" end-line="172"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>SQLite schema, reads, writes, incremental-rebuild
+    cache. Step 7 reconciles.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-search-cli">
+    <art:spec-ref node="search-cli"
+                  revision="draft-1"
+                  node-hash="sha256:97201a2e9288b0acd38f941720f8b866f033e957ac20a1ed4ddc2866df4e273c"/>
+    <art:artifact repo="repo-clayers"
+                  repo-revision="456975c"
+                  path="crates/clayers/src/cli.rs">
+      <art:range hash="sha256:e24c949d7019b1a2ed6ee5b91783ef34a8c28e68c235f9c8fbac32546c5ba889"
+                 start-line="1" end-line="1015"/>
+    </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>search subcommand wiring in the top-level CLI. Covers
+    the Clap subcommand definition + dispatch. Step 7 reconciles.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-search-subcmd">
+    <art:spec-ref node="search-cli"
+                  revision="draft-1"
+                  node-hash="sha256:97201a2e9288b0acd38f941720f8b866f033e957ac20a1ed4ddc2866df4e273c"/>
+    <art:artifact repo="repo-clayers"
+                  repo-revision="456975c"
+                  path="crates/clayers/src/search_cmd.rs">
+      <art:range hash="sha256:f383e5b34f6dd05d107040bcd1dd44987c1fc4cd7c87b57974681688ffe6a4ee"
+                 start-line="1" end-line="141"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Subcommand handler: parse flags, call clayers-search
+    Indexer/Searcher, format output. Step 7 reconciles.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-search-gitignore">
+    <art:spec-ref node="search-adopt-integration"
+                  revision="draft-1"
+                  node-hash="sha256:929aa4be70f1cde481f6610832fada03a29d42da979711300308f5d7cfc860aa"/>
+    <art:artifact repo="repo-clayers"
+                  repo-revision="456975c"
+                  path="crates/clayers/src/gitignore.rs">
+      <art:range hash="sha256:3885b05835d3263a04cfa92ea215a9273287f5014f5bb3b70b6a081caff57494"
+                 start-line="1" end-line="184"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>plant_gitignore + check_gitignore_freshness, sentinel-
+    bounded, idempotent. Step 7 reconciles.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-search-adopt-integration">
+    <art:spec-ref node="search-adopt-integration"
+                  revision="draft-1"
+                  node-hash="sha256:929aa4be70f1cde481f6610832fada03a29d42da979711300308f5d7cfc860aa"/>
+    <art:artifact repo="repo-clayers"
+                  repo-revision="456975c"
+                  path="crates/clayers/src/adopt.rs">
+      <art:range hash="sha256:3e0483512f61d7a2a2cab0e9871832cb7e54dcef7d08cc4fef0488734932feb2"
+                 start-line="1" end-line="795"/>
+    </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>Call-site for plant_gitignore + freshness check
+    extension inside adopt::adopt. Step 7 reconciles.</art:note>
+  </art:mapping>
+
+  <!-- ========================================================== -->
+  <!-- LLM descriptions                                             -->
+  <!-- ========================================================== -->
+
+  <llm:node ref="search-overview">
+    Semantic search is the clayers search subcommand: accepts natural-
+    language queries, ranks spec nodes by meaning, complements XPath
+    query (which requires known ids). Structure participates via the
+    structural fingerprint; --alpha/--beta tune the semantic/structural
+    mix; --beta 0 runs pure-semantic search.
+  </llm:node>
+
+  <llm:node ref="search-how-it-works">
+    Pipeline: two-pass chunker produces one chunk per @id-bearing node
+    with (id, file, line range, layer, namespace, text with [layer=...
+    path=...] header, node hash). Text half embedded with fastembed
+    (BGE-small-en-v1.5 384-dim). Structural half computed as a 256-bit
+    fingerprint. Both written to .clayers/search/index.usearch as one
+    concatenated 640-dim vector. meta.sqlite stores per-node metadata
+    and doubles as incremental-rebuild cache. Queries embed user
+    string, pad struct half zeros, search via usearch custom metric
+    alpha*cos + beta*tanimoto.
+  </llm:node>
+
+  <llm:node ref="search-chunker-strategy">
+    Chunker reads each file twice. Pass 1: xot parse_with_span_info
+    to get byte-offset spans per @id element; byte_to_line helper
+    converts to 1-indexed line numbers. Pass 2: combined-document
+    walk for ancestor chain, layer, namespace, and relation incidence.
+    Joins on @id to produce final chunks.
+  </llm:node>
+
+  <llm:node ref="search-structural-fingerprint">
+    256-bit vector: bits 0-10 layer one-hot, 11-42 namespace URI hash,
+    43-170 ancestor-path 3-gram shingles, 171-186 element-name hash,
+    187-218 outgoing relation types, 219-250 incoming relation types,
+    251-255 reserved. Layout frozen; changes require bumping
+    fingerprint-version in config.json and rebuilding.
+  </llm:node>
+
+  <llm:node ref="search-index-layout">
+    .clayers/search/ holds three files. index.usearch is a memory-
+    mappable usearch index of 640-dim f32 vectors (384 text + 256
+    struct-bits-as-f32). meta.sqlite has table nodes(id, file,
+    line_start, line_end, layer, namespace, node_hash, preview, key).
+    config.json stores model, dims, build timestamp, spec revision,
+    fingerprint-version. Lockfile .clayers/search/.lock serializes
+    concurrent builds.
+  </llm:node>
+
+  <llm:node ref="search-incremental-rebuild">
+    On rebuild, indexer joins the fresh chunk stream with
+    meta.sqlite.nodes by id. Matching node_hash keeps the usearch key
+    and skips embedding. Mismatches re-embed. Vanished ids are
+    deleted. New ids get fresh keys. Model or fingerprint-version
+    change drops meta.sqlite and rebuilds from scratch. Logs
+    "re-embedded: N nodes" per run.
+  </llm:node>
+
+  <llm:node ref="search-cli">
+    Two entry points under `clayers search`. `search "QUERY" [PATH]`
+    runs a ranked query. `search index [PATH]` builds/updates the
+    index without querying (useful in CI). Flags: --alpha/--beta
+    (metric weights, defaults 0.7/0.3), --k (top-k, default 10),
+    --xpath EXPR / --layer L[,L…] (post-filter on top-2k), --model,
+    --rebuild, --json, --text, --verbose. Output: ranked id,
+    file:line, layer, scores, preview.
+  </llm:node>
+
+  <llm:node ref="search-adopt-integration">
+    clayers adopt writes/extends .gitignore with .clayers/search/
+    entry between sentinel markers # clayers:adopt:start and
+    # clayers:adopt:end. Idempotent across adopt --update. Preserves
+    user-authored lines outside markers. Freshness check in adopt
+    detects missing/tampered markers and replants.
+  </llm:node>
+
+  <llm:node ref="term-semantic-search">
+    Natural-language retrieval mode over spec nodes. Embeds the query,
+    compares via a custom metric that combines cosine over text and
+    Tanimoto over structural fingerprints. Complements XPath query.
+  </llm:node>
+
+  <llm:node ref="term-structural-fingerprint">
+    A 256-bit vector encoding a node's structural position: layer,
+    namespace, ancestor-path n-grams, element name, relation types.
+    Enables structural similarity scoring independent of text.
+  </llm:node>
+
+  <llm:node ref="term-concatenated-fingerprint">
+    The stored per-node vector: 384-dim text embedding + 256-bit
+    structural fingerprint (stored as 256 f32 0.0/1.0s), totalling
+    640 f32 dimensions. One index, two signals.
+  </llm:node>
+
+  <llm:node ref="term-sidecar-index">
+    .clayers/search/ directory: index.usearch, meta.sqlite,
+    config.json. Derived artifact, gitignored by clayers adopt,
+    never in source control.
+  </llm:node>
+
+  <llm:node ref="term-incremental-rebuild">
+    Re-embeds only nodes whose C14N content hash changed since the
+    last build. Reuses the artifact drift detector's node-hash path
+    via pub fn compute_node_hash in clayers-spec.
+  </llm:node>
+
+  <llm:node ref="term-custom-metric">
+    Rust closure registered with usearch via Index::change_metric.
+    Signature: fn(*const f32, *const f32) -> f32. Invoked during HNSW
+    traversal. Computes alpha*cosine(first 384 dims) + beta*tanimoto
+    (last 256 dims as bits). Derisk H2 confirmed invocation via
+    inverted-metric negative control.
+  </llm:node>
+
+  <llm:node ref="term-context-prepended-chunk">
+    The embed-string for one node: "[layer=&lt;layer&gt;
+    path=&lt;ancestors&gt;]\n&lt;node text&gt;". Header injects
+    structural context into the dense text embedding so the same
+    phrase in different layers ranks differently.
+  </llm:node>
+
+  <llm:node ref="term-tanimoto-similarity">
+    |A &amp; B| / |A | B| on binary vectors. Standard in
+    cheminformatics fingerprint search. Applied here to the 256-bit
+    structural half so nodes sharing layer + ancestors + relations
+    score similar regardless of prose.
+  </llm:node>
+
+  <llm:node ref="dec-search-embedding-model">
+    Chose BGE-small-en-v1.5 via fastembed 5.x. Alternatives Jina-v2
+    (too large), E5 (multilingual overkill), candle-transformers
+    (more code, narrower model coverage). Validated in derisk H1.
+  </llm:node>
+
+  <llm:node ref="dec-search-metric-composition">
+    Chose usearch Index::change_metric with a Rust closure. Alternatives:
+    stock cosine + post-rerank (biases HNSW, loses structural recall),
+    two-index + reciprocal-rank fusion (2x storage, 2x build). Custom
+    metric confirmed in derisk H2 via inverted-metric negative control.
+  </llm:node>
+
+  <llm:node ref="dec-search-sidecar-location">
+    Chose .clayers/search/ colocated with the spec. Alternatives:
+    ~/.cache/clayers/... (decouples from spec lifecycle, loses
+    locality), workspace-global (cross-spec leakage). Gitignored by
+    clayers adopt.
+  </llm:node>
+
+  <llm:node ref="dec-search-structural-fingerprint-layout">
+    Chose 256 bits with six segments. Alternatives: 128-bit (too
+    collision-prone on deep hierarchies), 1024-bit (4x storage, no
+    quality gain on spec scale). Layout frozen; bumps require
+    fingerprint-version change + full rebuild.
+  </llm:node>
+
+  <llm:node ref="dec-search-xpath-filter-strategy">
+    Chose post-filter on top-2k candidates from usearch. Alternatives:
+    usearch filter API (biases HNSW entry points), sequential scan
+    (adds second code path). Post-filter preserves recall with one
+    code path.
+  </llm:node>
+
+  <llm:node ref="dec-search-hf-home-precedence">
+    Chose to respect user's HF_HOME and log the effective cache path.
+    Alternatives: force-unset (overrides user intent), fail-fast
+    (irritates managed-environment users). Derisk H8 confirmed
+    hf-hub honours HF_HOME first.
+  </llm:node>
+
+  <llm:node ref="dec-search-fastembed-major-version">
+    Chose fastembed = "5" (validated at 5.13.2 in derisk H1).
+    Alternatives: pin to 4.x (deprecated InitOptions), unpinned
+    (surprise breakage risk).
+  </llm:node>
+
+  <llm:node ref="dec-search-feature-default-on">
+    Chose to bundle semantic-search in the default feature set of
+    the clayers crate. Most users want search; making it opt-in
+    adds friction. Users who need a minimal binary (no ONNX, small
+    footprint) opt out with --no-default-features at build time.
+  </llm:node>
+
+  <!-- ========================================================== -->
+  <!-- Coverage exemptions: plan and decisions do not have their    -->
+  <!-- own code artifacts beyond the existing mappings.             -->
+  <!-- ========================================================== -->
+
+  <art:exempt node="plan-search-feature">Implementation plan; its
+  items map to spec sections and code via the art:mapping entries
+  above, not directly.</art:exempt>
+
+  <art:exempt node="plan-search-item-1">Plan item; acceptance
+  witnessed by the pytest checklist, not by a specific code
+  location.</art:exempt>
+  <art:exempt node="plan-search-item-2">Plan item; acceptance
+  witnessed by the pytest checklist.</art:exempt>
+  <art:exempt node="plan-search-item-3">Plan item; acceptance
+  witnessed by the pytest checklist.</art:exempt>
+  <art:exempt node="plan-search-item-4">Plan item; acceptance
+  witnessed by the pytest checklist.</art:exempt>
+  <art:exempt node="plan-search-item-5">Plan item; acceptance
+  witnessed by the pytest checklist.</art:exempt>
+  <art:exempt node="plan-search-item-6">Plan item; acceptance
+  witnessed by the pytest checklist.</art:exempt>
+  <art:exempt node="plan-search-item-7">Plan item; acceptance
+  witnessed by the pytest checklist.</art:exempt>
+
+  <art:exempt node="dec-search-embedding-model">Decision record;
+  implementing code is covered by map-search-embedder.</art:exempt>
+  <art:exempt node="dec-search-metric-composition">Decision record;
+  implementing code is covered by map-search-indexer.</art:exempt>
+  <art:exempt node="dec-search-sidecar-location">Decision record;
+  implementing code covered by map-search-indexer and
+  map-search-gitignore.</art:exempt>
+  <art:exempt node="dec-search-structural-fingerprint-layout">
+  Decision record; implementing code is covered by
+  map-search-fingerprint.</art:exempt>
+  <art:exempt node="dec-search-xpath-filter-strategy">Decision
+  record; implementing code is covered by map-search-subcmd and
+  map-search-xpath-id-set.</art:exempt>
+  <art:exempt node="dec-search-hf-home-precedence">Decision record;
+  implementing code is covered by map-search-embedder.</art:exempt>
+  <art:exempt node="dec-search-fastembed-major-version">Decision
+  record; implementing code is covered by map-search-embedder.</art:exempt>
+  <art:exempt node="dec-search-feature-default-on">Decision record
+  about Cargo feature defaults; implementing config lives in
+  crates/clayers/Cargo.toml and is not a typical art:range target.</art:exempt>
+
+  <art:exempt node="term-semantic-search">Vocabulary term; referenced
+  by prose but has no direct code artifact.</art:exempt>
+  <art:exempt node="term-structural-fingerprint">Vocabulary term;
+  implementing code covered by map-search-fingerprint.</art:exempt>
+  <art:exempt node="term-concatenated-fingerprint">Vocabulary term;
+  implementing code covered by map-search-indexer.</art:exempt>
+  <art:exempt node="term-sidecar-index">Vocabulary term;
+  implementing code covered by map-search-indexer and
+  map-search-meta-store.</art:exempt>
+  <art:exempt node="term-incremental-rebuild">Vocabulary term;
+  implementing code covered by map-search-indexer and
+  map-search-node-hash.</art:exempt>
+  <art:exempt node="term-custom-metric">Vocabulary term;
+  implementing code covered by map-search-indexer.</art:exempt>
+  <art:exempt node="term-context-prepended-chunk">Vocabulary term;
+  implementing code covered by map-search-chunker.</art:exempt>
+  <art:exempt node="term-tanimoto-similarity">Vocabulary term;
+  implementing code covered by map-search-indexer.</art:exempt>
+
+</spec:clayers>

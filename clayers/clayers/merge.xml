@@ -485,9 +485,9 @@
     <art:artifact repo="repo-clayers"
               repo-revision="2916ded"
               path="crates/clayers/src/cli.rs">
-      <art:range hash="sha256:d259590f91d4f094896eca27c3719ca6dfc4fcc083f08dc9da640c156da61857"
+      <art:range hash="sha256:fff257c527e88c640886b28609c877ee183faa9515dcfe2e10bb5e8347a4ec62"
                  start-line="205" end-line="221"/>
-      <art:range hash="sha256:e07b07231e15bbc8f0281d4d9ef85abb560e37dfb531a1951569a5a2426eb915"
+      <art:range hash="sha256:a5682dd156a10cda0de4d2456fa51fd771386060532e6b158c33b01a6b404c0b"
                  start-line="439" end-line="451"/>
     </art:artifact>
     <art:coverage>full</art:coverage>

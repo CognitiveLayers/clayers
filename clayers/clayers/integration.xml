@@ -1570,7 +1570,7 @@ print(count_terms(repo))</pr:codeblock>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers-py/src/repo/py_store.rs">
-      <art:range hash="sha256:4b208a1dcf5fce2169debf342bc1c655b2ed2f7a34ff5fb6b5bc9b4d10ace2fa"
+      <art:range hash="sha256:c0715a81dfc7f6db61644af8dcae34040d8b47db1375a64132545818a549a3f3"
                  start-line="1" end-line="359"/>
     </art:artifact>
     <art:coverage>full</art:coverage>

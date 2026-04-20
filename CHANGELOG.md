@@ -11,6 +11,19 @@ fixes and additions.
 
 ## [Unreleased]
 
+### Added
+
+- **`clayers search`: semantic search over a spec.** New subcommand
+  that ranks nodes by meaning, complementing the XPath-based
+  `clayers query`. Combines HuggingFace text embeddings
+  (`fastembed`, default `bge-small-en-v1.5`) with a 256-bit
+  structural fingerprint per node in a single `usearch` index using
+  a weighted custom metric. Supports `--xpath`/`--layer` post-filters
+  and `--alpha`/`--beta` weight tuning. Index lives in a gitignored
+  `.clayers/search/` sidecar and rebuilds incrementally keyed on the
+  existing C14N content hash. Bundled on by default; opt out with
+  `--no-default-features` for a minimal binary.
+
 ## [0.2.1] - 2026-04-18
 
 ### Added

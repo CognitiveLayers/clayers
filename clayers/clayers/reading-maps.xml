@@ -248,6 +248,25 @@
       </org:topicref>
     </org:part>
 
+    <org:part>
+      <org:title>Semantic Search</org:title>
+      <org:topicref ref="search-overview">
+        <org:title>Semantic Search Overview</org:title>
+      </org:topicref>
+      <org:topicref ref="search-how-it-works">
+        <org:title>Pipeline</org:title>
+      </org:topicref>
+      <org:topicref ref="search-cli">
+        <org:title>CLI Surface</org:title>
+      </org:topicref>
+      <org:topicref ref="search-structural-fingerprint" required="false">
+        <org:title>Structural Fingerprint Layout</org:title>
+      </org:topicref>
+      <org:topicref ref="search-incremental-rebuild" required="false">
+        <org:title>Incremental Rebuild</org:title>
+      </org:topicref>
+    </org:part>
+
     <org:part audience="developer" role="implementor">
       <org:title>Python Integration</org:title>
       <org:topicref ref="python-integration">

@@ -171,6 +171,18 @@ fn check_freshness(target: &Path) -> Vec<FreshnessItem> {
         status,
     });
 
+    // Check .gitignore managed block.
+    let gi_status = match crate::gitignore::check(target) {
+        crate::gitignore::GitignoreStatus::Current => FreshnessStatus::Current,
+        crate::gitignore::GitignoreStatus::Outdated => FreshnessStatus::Outdated,
+        crate::gitignore::GitignoreStatus::Missing
+        | crate::gitignore::GitignoreStatus::NoMarkers => FreshnessStatus::Missing,
+    };
+    items.push(FreshnessItem {
+        path: ".gitignore (clayers:adopt block)".into(),
+        status: gi_status,
+    });
+
     items
 }
 
@@ -431,7 +443,10 @@ fn update_adopted(target: &Path, items: &[FreshnessItem]) -> Result<()> {
         if item.status == FreshnessStatus::Current {
             continue;
         }
-        if item.path.ends_with("instructions") {
+        if item.path.starts_with(".gitignore") {
+            crate::gitignore::plant(target)?;
+            println!("  updated: .gitignore");
+        } else if item.path.ends_with("instructions") {
             amend_agent_file(target)?;
         } else if item.path.starts_with(".claude/skills/") {
             plant_skills(target)?;
@@ -526,10 +541,15 @@ pub fn adopt(target: &Path, update: bool, skills: bool) -> Result<()> {
         embedded::SCHEMAS.len()
     );
 
-    // 2. Create starter spec
+    // 2. Plant .gitignore entries for derived sidecar artifacts.
+    crate::gitignore::plant(&target)
+        .context("failed to plant .gitignore")?;
+    println!("  planted: .gitignore (clayers:adopt block)");
+
+    // 3. Create starter spec
     create_starter_spec(&target)?;
 
-    // 3. Amend agent file
+    // 4. Amend agent file
     amend_agent_file(&target)?;
 
     // 4. Optionally generate skills

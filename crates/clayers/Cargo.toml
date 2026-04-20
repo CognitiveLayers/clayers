@@ -14,6 +14,14 @@ path = "src/lib.rs"
 name = "clayers"
 path = "src/main.rs"
 
+[features]
+default = ["semantic-search"]
+# The `clayers search` semantic-search subcommand. Pulls in
+# `clayers-search` (fastembed + usearch + ONNX runtime). Bundled by
+# default: search is a first-class feature. Power users who want a
+# minimal CLI without the ML stack can build with `--no-default-features`.
+semantic-search = ["dep:clayers-search"]
+
 [dependencies]
 anyhow = "1"
 base64 = "0.22"
@@ -21,6 +29,7 @@ reqwest = { version = "0.13", default-features = false, features = ["blocking", 
 clap = { version = "4", features = ["derive"] }
 clayers-spec = { version = "0.2.1", path = "../clayers-spec" }
 clayers-repo = { version = "0.2.1", path = "../clayers-repo", features = ["sqlite", "websocket"] }
+clayers-search = { version = "0.2.1", path = "../clayers-search", optional = true }
 clayers-xml = { version = "0.2.1", path = "../clayers-xml" }
 tokio = { version = "1", features = ["rt", "rt-multi-thread", "net", "signal"] }
 rusqlite = { version = "0.39", features = ["bundled"] }

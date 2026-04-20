@@ -11,6 +11,28 @@ struct Cli {
     command: Command,
 }
 
+/// Nested subcommands for `clayers search`.
+#[cfg(feature = "semantic-search")]
+#[derive(Subcommand)]
+pub enum SearchCmd {
+    /// Build or update the search index without running a query.
+    Index {
+        /// Path to the spec directory.
+        #[arg(default_value = ".")]
+        path: PathBuf,
+        /// Rebuild the index from scratch, ignoring any cached state.
+        #[arg(long)]
+        rebuild: bool,
+        /// Verbose logging (progress bars, model cache path, etc.).
+        #[arg(long)]
+        verbose: bool,
+        /// Override the embedder model. Supported: `bge-small-en-v1.5`
+        /// (default), `all-minilm-l6-v2`, `multilingual-e5-small`.
+        #[arg(long)]
+        model: Option<String>,
+    },
+}
+
 #[derive(Subcommand)]
 enum Command {
     // -----------------------------------------------------------------------
@@ -100,6 +122,52 @@ enum Command {
         #[arg(long)]
         watch: bool,
     },
+    /// Semantic search over a spec directory (behind `semantic-search` feature).
+    #[cfg(feature = "semantic-search")]
+    Search {
+        /// Nested action. When omitted, the positional args form a
+        /// ranked query (Step 5).
+        #[command(subcommand)]
+        cmd: Option<SearchCmd>,
+        /// Natural-language query (when no subcommand is given).
+        query: Option<String>,
+        /// Path to the spec directory.
+        #[arg(default_value = ".")]
+        path: PathBuf,
+        /// Emit chunker output as JSON (hidden, for Step 2 verification).
+        #[arg(long, hide = true)]
+        dump_chunks: bool,
+        /// Output results as JSON.
+        #[arg(long)]
+        json: bool,
+        /// Rebuild the index from scratch.
+        #[arg(long)]
+        rebuild: bool,
+        /// Verbose logging.
+        #[arg(long)]
+        verbose: bool,
+        /// Override the embedder model. Supported (384-dim only):
+        /// `bge-small-en-v1.5` (default), `all-minilm-l6-v2`,
+        /// `multilingual-e5-small`.
+        #[arg(long)]
+        model: Option<String>,
+        /// Number of results.
+        #[arg(long, default_value_t = 10)]
+        k: usize,
+        /// Weight on the text (cosine) distance component.
+        #[arg(long, default_value_t = 0.7)]
+        alpha: f32,
+        /// Weight on the structural (tanimoto) distance component.
+        #[arg(long, default_value_t = 0.3)]
+        beta: f32,
+        /// `XPath` expression to post-filter candidates.
+        #[arg(long)]
+        xpath: Option<String>,
+        /// Layer filter(s), e.g. `--layer terminology --layer prose`.
+        #[arg(long = "layer")]
+        layer: Vec<String>,
+    },
+
     /// Bootstrap clayers in a project (plant schemas, amend agent file).
     Adopt {
         /// Path to the target project directory.
@@ -361,6 +429,44 @@ fn run(cli: &Cli) -> Result<()> {
             self_contained,
             watch,
         } => crate::doc::cmd_doc(path, output.as_deref(), *self_contained, *watch),
+        #[cfg(feature = "semantic-search")]
+        Command::Search {
+            cmd,
+            query,
+            path,
+            dump_chunks,
+            json,
+            rebuild,
+            verbose,
+            model,
+            k,
+            alpha,
+            beta,
+            xpath,
+            layer,
+        } => {
+            if let Some(sub) = cmd {
+                return crate::search_cmd::dispatch_sub(sub);
+            }
+            let effective_path = if *dump_chunks {
+                query.as_deref().map_or_else(|| path.clone(), PathBuf::from)
+            } else {
+                path.clone()
+            };
+            let opts = crate::search_cmd::BareSearchOpts {
+                dump_chunks: *dump_chunks,
+                json: *json,
+                rebuild: *rebuild,
+                verbose: *verbose,
+                model: model.as_deref(),
+                k: *k,
+                alpha: *alpha,
+                beta: *beta,
+                xpath: xpath.as_deref(),
+                layer,
+            };
+            crate::search_cmd::cmd_search(&effective_path, query.as_deref(), &opts)
+        }
         Command::Adopt {
             path,
             update,
