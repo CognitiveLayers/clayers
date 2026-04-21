@@ -847,51 +847,63 @@ clayers query '//*[@id="ID"]' clayers/{{PROJECT_NAME}}/
 clayers query '//art:mapping[art:spec-ref/@node="ID"]' clayers/{{PROJECT_NAME}}/
 ```
 
-These return full XML (default output). Artifact mappings yield file
-paths with line ranges.
+These return full XML. Artifact mappings yield file paths with line
+ranges — **use those line ranges inline in the answer**. Specific
+locators like `crates/foo/src/bar.rs:94-175` are high-value for the
+reader and the single easiest way to let them drill deeper.
 
-**Answer the user's question directly. Do not produce a structured
-per-node report.** The skill's value is a focused, concise answer
-grounded in the kept nodes — not a document dump.
+**Answer the user's question directly**, synthesizing across the
+kept nodes. Use structure (**bold labels**, numbered steps, inline
+code) when it clarifies the answer. Organize by question topic, not
+by spec id — a document dump with one section per kept node is the
+failure mode.
 
-### Output template (strict)
+### Output template
 
-Emit exactly this, nothing more:
+Typical shape:
 
 ```
-<2-5 sentence prose answer to the user's question. Cite specific
-node ids inline in backticks when a claim comes from a specific
-node: e.g., "Drift is divergence between a spec node and its mapped
-artifact (`term-drift`), detected by comparing stored C14N hashes
-against current content (`drift-detection-tooling`)."
+<Opening sentence or paragraph that directly answers the question,
+citing specific ids inline in backticks and line ranges where
+available, e.g.: "Drift is divergence between a spec node and its
+mapped artifact (`term-drift`), detected via stored C14N hashes
+against current content (`drift-detection-tooling`, implemented in
+`crates/clayers-spec/src/drift.rs:94-175`)."
 
-If the answer references code that was surfaced via artifact
-mappings, include the `path:start-line-end-line` inline after the
-id, separated by a single space.>
+Follow with additional structure as the question warrants:
+- **Bold labels** with short explanations for list-of-parts answers
+- Numbered steps for how-does-X-work answers
+- Inline code for identifiers, file paths, and line ranges
+
+Keep it grounded in the kept nodes. Cite the id (backticks) and
+path:line-range (where artifact-mapped) each time you make a
+load-bearing claim.>
 
 References: <id-1>, <id-2>, <id-3>, … <id-N>
-
-(variants=N depth=M peeks=K/B)
 ```
 
 Rules:
 
 - **No preamble.** Do not say "Now I have the material" or "Let me
-  assemble the brief" or anything before the answer. Your first
-  output character is the first character of the prose answer.
-- **No trailing summary.** Do not write a "Summary:" paragraph after
-  the answer; the answer is already the summary.
-- **No per-node sections.** Do not emit `## <id>` headers or one
-  section per kept node. Synthesize across nodes into a single
-  short answer.
-- **No neighbor bullet lists.** The References line is flat — just
-  ids separated by commas, in descending relevance order. No edge
-  kinds, no descriptions per id.
-- **Target: ≤ 800 output tokens.** If the question intrinsically
-  needs more (e.g., "list all N layers"), exceed this, but only
-  enough to fully answer — no padding.
+  assemble the brief" or anything before the answer. First output
+  character is the first character of the answer.
+- **No trailing summary.** The structured answer IS the summary —
+  don't append another "In summary, …" paragraph.
+- **Don't dump per kept node.** If the same id is relevant to two
+  parts of the answer, cite it in both; it's fine — what you're
+  avoiding is a `## <id>` section per kept node.
+- **Cite line ranges where you have them.** Phase 3's
+  `artifact-map` candidates carry file paths and line ranges; surface
+  them inline. A claim about code without a locator is weaker than
+  one with `path:start-line-end-line`.
+- **References line** lists all cited ids, flat, descending
+  relevance. Short — don't re-describe each id on that line.
+- **Target: ≤ 1200 output tokens.** Concision still wins; structure
+  is for clarity, not volume. Longer is only justified when the
+  question genuinely requires enumeration (listing all N layers,
+  stepping through an N-stage pipeline).
 - **If Phase 2 returned empty `keep_ids`**, emit the one-line
-  no-match message instead of an answer and stop.
+  no-match message and stop.
 
 ## Subagent return contracts (strict)
 
