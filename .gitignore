@@ -9,3 +9,6 @@ __pycache__/
 *~
 .DS_Store
 docs/superpowers/
+
+# Benchmark run outputs — per-run JSON results, not source
+experiments/context-skill-benchmark/results-*.json
