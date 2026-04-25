@@ -367,6 +367,141 @@ impl WsRequestValidator for MultiTokenValidator {
 }
 
 #[cfg(test)]
+mod auth_tests {
+    //! Unit tests for `BearerToken` and `MultiTokenValidator` validator
+    //! impls. These exercise the `WsRequestValidator` path that the
+    //! integration test doesn't cover (the integration test uses
+    //! `MultiTokenValidator` for server validation, leaving
+    //! `BearerToken::validate` untested).
+
+    use super::{BearerToken, MultiTokenValidator, WsRequestTransformer, WsRequestValidator};
+
+    fn req_with_auth(value: &str) -> http::Request<()> {
+        http::Request::builder()
+            .uri("ws://example/")
+            .header(http::header::AUTHORIZATION, value)
+            .body(())
+            .unwrap()
+    }
+
+    fn req_without_auth() -> http::Request<()> {
+        http::Request::builder()
+            .uri("ws://example/")
+            .body(())
+            .unwrap()
+    }
+
+    #[test]
+    fn bearer_token_accepts_matching() {
+        let token = BearerToken("secret".to_string());
+        let req = req_with_auth("Bearer secret");
+        assert!(token.validate(&req).is_ok());
+    }
+
+    #[test]
+    fn bearer_token_rejects_mismatched() {
+        let token = BearerToken("secret".to_string());
+        let req = req_with_auth("Bearer wrong");
+        let err = token.validate(&req).unwrap_err();
+        assert!(err.contains("invalid"), "got: {err:?}");
+    }
+
+    #[test]
+    fn bearer_token_rejects_missing_header() {
+        let token = BearerToken("secret".to_string());
+        let req = req_without_auth();
+        let err = token.validate(&req).unwrap_err();
+        assert!(err.contains("missing"), "got: {err:?}");
+    }
+
+    #[test]
+    fn bearer_token_rejects_wrong_scheme() {
+        let token = BearerToken("secret".to_string());
+        let req = req_with_auth("Basic secret");
+        // Even though "Basic secret" doesn't have the "Bearer " prefix
+        // BearerToken::validate compares the whole header to "Bearer <token>".
+        // It must reject this.
+        assert!(token.validate(&req).is_err());
+    }
+
+    #[test]
+    fn bearer_token_rejects_empty_token() {
+        let token = BearerToken("secret".to_string());
+        let req = req_with_auth("Bearer ");
+        assert!(token.validate(&req).is_err());
+    }
+
+    #[test]
+    fn bearer_token_transformer_adds_authorization_header() {
+        let token = BearerToken("secret".to_string());
+        let original = http::Request::builder()
+            .uri("ws://example/")
+            .body(())
+            .unwrap();
+        let transformed = token.transform(original);
+        let auth = transformed
+            .headers()
+            .get(http::header::AUTHORIZATION)
+            .unwrap()
+            .to_str()
+            .unwrap();
+        assert_eq!(auth, "Bearer secret");
+    }
+
+    #[test]
+    fn multi_token_validator_accepts_known_token() {
+        let validator =
+            MultiTokenValidator::new(["alpha".into(), "beta".into()].into());
+        let req = req_with_auth("Bearer alpha");
+        assert!(validator.validate(&req).is_ok());
+    }
+
+    #[test]
+    fn multi_token_validator_rejects_unknown_token() {
+        let validator =
+            MultiTokenValidator::new(["alpha".into()].into());
+        let req = req_with_auth("Bearer not-in-set");
+        assert!(validator.validate(&req).is_err());
+    }
+
+    #[test]
+    fn multi_token_validator_rejects_missing_header() {
+        let validator =
+            MultiTokenValidator::new(["alpha".into()].into());
+        let req = req_without_auth();
+        assert!(validator.validate(&req).is_err());
+    }
+
+    #[test]
+    fn multi_token_validator_rejects_non_bearer_scheme() {
+        let validator =
+            MultiTokenValidator::new(["alpha".into()].into());
+        let req = req_with_auth("Basic alpha");
+        assert!(validator.validate(&req).is_err());
+    }
+
+    #[tokio::test]
+    async fn multi_token_validator_hot_reload_swaps_tokens() {
+        let validator =
+            MultiTokenValidator::new(["initial".into()].into());
+
+        // Initial token works.
+        let req_initial = req_with_auth("Bearer initial");
+        assert!(validator.validate(&req_initial).is_ok());
+
+        // Hot-reload to a different set.
+        validator.update_tokens(["replacement".into()].into()).await;
+
+        // Old token now rejected.
+        assert!(validator.validate(&req_initial).is_err());
+
+        // New token accepted.
+        let req_new = req_with_auth("Bearer replacement");
+        assert!(validator.validate(&req_new).is_ok());
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use std::net::SocketAddr;
     use std::sync::OnceLock;
@@ -496,23 +631,34 @@ mod tests {
         let hash = clayers_xml::ContentHash::from_canonical(b"test-ref-updated");
         client_a.set_ref("refs/heads/main", hash).await.unwrap();
 
-        // Client B should receive a RefUpdated notification.
-        let notification = tokio::time::timeout(
-            std::time::Duration::from_secs(2),
-            client_b.recv_notification(),
-        )
-        .await
-        .expect("timed out waiting for RefUpdated")
-        .expect("connection closed");
+        // Client B should receive a RefUpdated notification for OUR
+        // repo. The shared test server broadcasts RefUpdated to every
+        // connection regardless of repo, so we may see notifications
+        // from other tests; filter for ours.
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
+        loop {
+            assert!(
+                std::time::Instant::now() < deadline,
+                "timed out waiting for RefUpdated for {repo_name}",
+            );
+            let notification = tokio::time::timeout(
+                deadline.saturating_duration_since(std::time::Instant::now()),
+                client_b.recv_notification(),
+            )
+            .await
+            .expect("timed out waiting for RefUpdated")
+            .expect("connection closed");
 
-        match notification {
-            super::super::ServerMessage::RefUpdated {
-                name, new, ..
-            } => {
+            if let super::super::ServerMessage::RefUpdated {
+                repo, name, new, ..
+            } = notification
+                && repo == repo_name
+            {
                 assert_eq!(name, "refs/heads/main");
                 assert_eq!(new, Some(hash));
+                break;
             }
-            other => panic!("expected RefUpdated, got {other:?}"),
+            // Different repo / other notification type: ignore and keep looking.
         }
     }
 
@@ -534,5 +680,165 @@ mod tests {
     mod remote_prop_concurrency {
         use super::create_remote_store;
         crate::store::concurrency_tests::prop_concurrency_tests!(create_remote_store());
+    }
+
+    // ── Frame-handling edge cases ─────────────────────────────────────
+
+    /// Read messages from `ws` until we find a `ServerMessage` matching
+    /// `pred`, ignoring notifications and unrelated replies. Helper for
+    /// tests against the shared server, which broadcasts notifications
+    /// to all connections regardless of repo.
+    async fn read_until<F>(
+        ws: &mut tokio_tungstenite::WebSocketStream<
+            tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>,
+        >,
+        pred: F,
+    ) -> super::super::ServerMessage
+    where
+        F: Fn(&super::super::ServerMessage) -> bool,
+    {
+        use futures_util::StreamExt;
+        use tokio_tungstenite::tungstenite::Message;
+
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
+        loop {
+            assert!(std::time::Instant::now() < deadline, "timeout");
+            let msg = tokio::time::timeout(
+                deadline.saturating_duration_since(std::time::Instant::now()),
+                ws.next(),
+            )
+            .await
+            .expect("response timeout")
+            .expect("stream ended")
+            .expect("read error");
+
+            let bytes = match msg {
+                Message::Binary(b) => b.to_vec(),
+                Message::Text(t) => t.as_bytes().to_vec(),
+                _ => continue,
+            };
+            let parsed: super::super::ServerMessage =
+                serde_json::from_slice(&bytes).unwrap();
+            if pred(&parsed) {
+                return parsed;
+            }
+        }
+    }
+
+    /// The server must accept a Text-framed `ClientMessage` and respond.
+    /// `WsTransport` always sends Binary; this test specifically exercises
+    /// the Text fallback arm in the server's read loop.
+    #[tokio::test]
+    async fn server_accepts_text_framed_request() {
+        use futures_util::SinkExt;
+        use tokio_tungstenite::tungstenite::Message;
+
+        let addr = shared_server_addr();
+        let url = format!("ws://{addr}");
+        let (mut ws, _) = test_runtime()
+            .spawn(async move { tokio_tungstenite::connect_async(url).await.unwrap() })
+            .await
+            .unwrap();
+
+        // Send a JSON-encoded ListRepositories as a Text frame.
+        let req = super::super::ClientMessage::ListRepositories { id: 999_001 };
+        let payload = serde_json::to_string(&req).unwrap();
+        ws.send(Message::Text(payload.into())).await.unwrap();
+
+        let server_msg = read_until(&mut ws, |m| {
+            matches!(
+                m,
+                super::super::ServerMessage::RepositoryList { id: 999_001, .. },
+            )
+        })
+        .await;
+        assert!(matches!(
+            server_msg,
+            super::super::ServerMessage::RepositoryList { .. },
+        ));
+    }
+
+    /// The server must respond to a `WsTransport`-style Binary request
+    /// even after a previous unrelated Text frame. (Belt-and-suspenders
+    /// check that mixing frame types in one connection doesn't poison
+    /// the read loop.)
+    #[tokio::test]
+    async fn server_accepts_mixed_text_and_binary_frames() {
+        use futures_util::SinkExt;
+        use tokio_tungstenite::tungstenite::Message;
+
+        let addr = shared_server_addr();
+        let url = format!("ws://{addr}");
+        let (mut ws, _) = test_runtime()
+            .spawn(async move { tokio_tungstenite::connect_async(url).await.unwrap() })
+            .await
+            .unwrap();
+
+        // First request: Text-framed
+        let req1 = super::super::ClientMessage::ListRepositories { id: 999_010 };
+        ws.send(Message::Text(serde_json::to_string(&req1).unwrap().into()))
+            .await
+            .unwrap();
+        let _resp1 = read_until(&mut ws, |m| {
+            matches!(
+                m,
+                super::super::ServerMessage::RepositoryList { id: 999_010, .. },
+            )
+        })
+        .await;
+
+        // Second request: Binary-framed
+        let req2 = super::super::ClientMessage::ListRepositories { id: 999_011 };
+        ws.send(Message::Binary(serde_json::to_vec(&req2).unwrap().into()))
+            .await
+            .unwrap();
+        let resp2 = read_until(&mut ws, |m| {
+            matches!(
+                m,
+                super::super::ServerMessage::RepositoryList { id: 999_011, .. },
+            )
+        })
+        .await;
+        assert!(matches!(
+            resp2,
+            super::super::ServerMessage::RepositoryList { .. },
+        ));
+    }
+
+    /// When the client sends a Close frame, the server's read loop must
+    /// terminate cleanly (not keep running and not panic).
+    #[tokio::test]
+    async fn server_handles_client_close_frame() {
+        use futures_util::{SinkExt, StreamExt};
+        use tokio_tungstenite::tungstenite::Message;
+
+        let addr = shared_server_addr();
+        let url = format!("ws://{addr}");
+        let (mut ws, _) = test_runtime()
+            .spawn(async move { tokio_tungstenite::connect_async(url).await.unwrap() })
+            .await
+            .unwrap();
+
+        // Send a Close frame and verify it doesn't error on send.
+        ws.send(Message::Close(None)).await.unwrap();
+
+        // Give the server a moment to process the close. Then a fresh
+        // connection on the same shared server must still work — proves
+        // the server didn't deadlock or crash on the close.
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+
+        let url2 = format!("ws://{addr}");
+        let (mut ws2, _) = test_runtime()
+            .spawn(async move { tokio_tungstenite::connect_async(url2).await.unwrap() })
+            .await
+            .unwrap();
+        let req = super::super::ClientMessage::ListRepositories { id: 1 };
+        ws2.send(Message::Binary(serde_json::to_vec(&req).unwrap().into()))
+            .await
+            .unwrap();
+        let resp = tokio::time::timeout(std::time::Duration::from_secs(2), ws2.next())
+            .await
+            .expect("server unresponsive after a prior connection sent Close");
+        assert!(resp.is_some());
     }
 }
