@@ -393,6 +393,120 @@ mod tests {
 }
 
 #[cfg(test)]
+mod schema_tests {
+    //! Schema-version migration / mismatch tests.
+    //!
+    //! These verify the `init_schema` version-check branches that the
+    //! generic compliance suite cannot reach (the suite only opens fresh
+    //! in-memory stores).
+
+    use rusqlite::{Connection, params};
+    use tempfile::TempDir;
+
+    use super::SqliteStore;
+    use crate::error::Error;
+
+    /// Opening a fresh empty file initializes `schema_version` to current.
+    #[test]
+    fn fresh_db_inserts_current_schema_version() {
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().join("fresh.db");
+        let _store = SqliteStore::open(&path).unwrap();
+
+        let conn = Connection::open(&path).unwrap();
+        let v: i64 = conn
+            .query_row("SELECT version FROM schema_version LIMIT 1", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        assert_eq!(v, SqliteStore::SCHEMA_VERSION);
+    }
+
+    /// Reopening a current-version database is a no-op (no error, no
+    /// duplicate version row).
+    #[test]
+    fn reopen_current_version_is_idempotent() {
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().join("idem.db");
+
+        // First open initializes.
+        drop(SqliteStore::open(&path).unwrap());
+        // Second open must succeed without error.
+        drop(SqliteStore::open(&path).unwrap());
+
+        let conn = Connection::open(&path).unwrap();
+        let count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM schema_version", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(count, 1, "schema_version row must not be duplicated");
+    }
+
+    /// Opening a database with a *future* schema version must return an
+    /// error rather than corrupt data with a mismatched-version backend.
+    #[test]
+    fn future_version_rejected() {
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().join("future.db");
+
+        // Hand-craft a database with a future schema_version. We seed
+        // the schema_version table directly without going through
+        // SqliteStore::open (so the version row is the only thing).
+        {
+            let conn = Connection::open(&path).unwrap();
+            conn.execute_batch(
+                "CREATE TABLE schema_version (version INTEGER NOT NULL);",
+            )
+            .unwrap();
+            conn.execute(
+                "INSERT INTO schema_version (version) VALUES (?1)",
+                params![SqliteStore::SCHEMA_VERSION + 1],
+            )
+            .unwrap();
+        }
+
+        let result = SqliteStore::open(&path);
+        match result {
+            Err(Error::Storage(msg)) => {
+                assert!(
+                    msg.contains("schema version mismatch"),
+                    "unexpected error message: {msg}",
+                );
+            }
+            Ok(_) => panic!("opening a future-version DB must error"),
+            Err(e) => panic!("expected Storage error, got {e:?}"),
+        }
+    }
+
+    /// Opening a database with a *past* schema version must also return
+    /// an error (no silent downgrade or accidental write to old schema).
+    #[test]
+    fn past_version_rejected() {
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().join("past.db");
+
+        {
+            let conn = Connection::open(&path).unwrap();
+            conn.execute_batch(
+                "CREATE TABLE schema_version (version INTEGER NOT NULL);",
+            )
+            .unwrap();
+            conn.execute(
+                "INSERT INTO schema_version (version) VALUES (?1)",
+                // SCHEMA_VERSION is 1; use 0 as "older".
+                params![SqliteStore::SCHEMA_VERSION - 1],
+            )
+            .unwrap();
+        }
+
+        let result = SqliteStore::open(&path);
+        assert!(
+            matches!(result, Err(Error::Storage(_))),
+            "opening a past-version DB must error",
+        );
+    }
+}
+
+#[cfg(test)]
 mod query_tests {
     use super::SqliteStore;
     crate::query::tests::query_tests!(SqliteStore::open_in_memory().unwrap());

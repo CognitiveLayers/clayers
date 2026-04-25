@@ -289,7 +289,7 @@
     <art:artifact repo="repo-clayers"
               repo-revision="1934036"
               path="crates/clayers-repo/src/store/remote/client.rs">
-      <art:range hash="sha256:6e86a09b084ce60f7829e6fd54c6abe3d051fe142909884093fda5ad5a4ef2df"
+      <art:range hash="sha256:a7b44e35ed776a9f1c7c4422686bfb12029a65d6d82313235970c6eaa454ebe8"
                  start-line="1" end-line="522"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -305,7 +305,7 @@
     <art:artifact repo="repo-clayers"
               repo-revision="1934036"
               path="crates/clayers-repo/src/store/remote/server.rs">
-      <art:range hash="sha256:e1b8466794d6645d2c64eff0369ea2cb29ddfcc602e0427947da1a23bef6cdbc"
+      <art:range hash="sha256:43fa0fa9a0f581f34fe4739fdf24f29a5b2b23a522c05633be1c7a6f7a0ce2fa"
                  start-line="1" end-line="431"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -676,7 +676,7 @@
     <art:artifact repo="repo-clayers"
               repo-revision="9191483"
               path="crates/clayers-repo/src/store/remote/client.rs">
-      <art:range hash="sha256:6e86a09b084ce60f7829e6fd54c6abe3d051fe142909884093fda5ad5a4ef2df"
+      <art:range hash="sha256:a7b44e35ed776a9f1c7c4422686bfb12029a65d6d82313235970c6eaa454ebe8"
                  start-line="1" end-line="522"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -706,7 +706,7 @@
     <art:artifact repo="repo-clayers"
               repo-revision="9191483"
               path="crates/clayers-repo/src/store/remote/server.rs">
-      <art:range hash="sha256:5b60df63d209ed02ce702a8b0fbec26089f5c1c00c61222e7b74574670063a3e"
+      <art:range hash="sha256:50fa71763c2ea0a453b130e18c7fc26a5959a93c531dfcbd0d5287a728a51556"
                  start-line="403" end-line="423"/>
     </art:artifact>
     <art:coverage>partial</art:coverage>

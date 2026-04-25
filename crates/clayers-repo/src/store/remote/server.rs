@@ -242,14 +242,31 @@ impl<P: RepositoryProvider + 'static> Server<P> {
             }
             ClientMessage::TxRollback { id, tx_id } => {
                 let mut txns = self.transactions.lock().await;
-                match txns.remove(&tx_id) {
-                    Some(mut state) if state.connection_id == conn_id => {
+                // Check ownership BEFORE removing. Without this, any
+                // connection could silently cancel another's tx.
+                let owns = matches!(
+                    txns.get(&tx_id),
+                    Some(state) if state.connection_id == conn_id
+                );
+                if owns {
+                    if let Some(mut state) = txns.remove(&tx_id) {
                         match state.tx.rollback().await {
                             Ok(()) => vec![ServerMessage::Ok { id }],
                             Err(e) => vec![err(id, &e)],
                         }
+                    } else {
+                        // Should be unreachable: we just confirmed
+                        // the entry exists. Treat as missing for safety.
+                        vec![ServerMessage::Error {
+                            id,
+                            message: format!("transaction not found: {}", tx_id.0),
+                        }]
                     }
-                    _ => vec![ServerMessage::Ok { id }],
+                } else {
+                    vec![ServerMessage::Error {
+                        id,
+                        message: format!("transaction not found: {}", tx_id.0),
+                    }]
                 }
             }
         }
@@ -427,5 +444,237 @@ fn err(id: super::MessageId, e: &crate::error::Error) -> ServerMessage {
     ServerMessage::Error {
         id,
         message: e.to_string(),
+    }
+}
+
+#[cfg(test)]
+#[allow(clippy::doc_markdown, clippy::missing_panics_doc)]
+mod tests {
+    use std::collections::{HashMap, HashSet};
+    use std::sync::Arc;
+
+    use super::super::transport::Store;
+    use super::{RepositoryProvider, StaticRepositories};
+    use crate::store::memory::MemoryStore;
+
+    fn provider_with(names: &[&str]) -> StaticRepositories {
+        let mut map: HashMap<String, Arc<dyn Store>> = HashMap::new();
+        for name in names {
+            map.insert((*name).to_string(), Arc::new(MemoryStore::new()) as Arc<dyn Store>);
+        }
+        StaticRepositories::new(map)
+    }
+
+    #[tokio::test]
+    async fn empty_provider_lists_no_repos() {
+        let provider = provider_with(&[]);
+        let listed = provider.list().await.unwrap();
+        assert_eq!(listed.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn list_returns_exactly_inserted_names() {
+        let provider = provider_with(&["alpha", "beta", "gamma"]);
+        let listed = provider.list().await.unwrap();
+        assert_eq!(
+            listed.len(),
+            3,
+            "list cardinality must match provider input"
+        );
+        let listed_set: HashSet<&str> = listed.iter().map(String::as_str).collect();
+        let expected: HashSet<&str> = ["alpha", "beta", "gamma"].into_iter().collect();
+        assert_eq!(listed_set, expected, "listed names must match exactly");
+    }
+
+    #[tokio::test]
+    async fn list_does_not_contain_unrelated_names() {
+        let provider = provider_with(&["alpha"]);
+        let listed = provider.list().await.unwrap();
+        assert!(!listed.contains(&"beta".to_string()));
+        assert!(!listed.contains(&String::new()));
+        assert!(!listed.contains(&"xyzzy".to_string()));
+    }
+
+    #[tokio::test]
+    async fn list_excludes_empty_string_when_not_inserted() {
+        let provider = provider_with(&["a", "b"]);
+        let listed = provider.list().await.unwrap();
+        assert!(!listed.iter().any(String::is_empty));
+    }
+
+    #[tokio::test]
+    async fn get_unknown_returns_error() {
+        let provider = provider_with(&["alpha"]);
+        let result = provider.get("nonexistent").await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn get_returns_inserted_store() {
+        let provider = provider_with(&["alpha"]);
+        let _store = provider.get("alpha").await.unwrap();
+    }
+
+    // ── Cross-connection transaction isolation ─────────────────────────
+
+    use super::Server;
+    use crate::store::remote::{ClientMessage, ServerMessage, TxId};
+    use clayers_xml::ContentHash;
+
+    /// Begin a transaction on `conn_id` for the given repo. Returns the
+    /// server-assigned tx_id. Panics if the response isn't TransactionCreated.
+    async fn begin_tx<P: RepositoryProvider + 'static>(
+        server: &Server<P>,
+        conn_id: super::ConnectionId,
+        repo: &str,
+    ) -> TxId {
+        let resp = server
+            .handle(
+                conn_id,
+                ClientMessage::BeginTransaction { id: 1, repo: repo.into() },
+            )
+            .await;
+        match resp.as_slice() {
+            [ServerMessage::TransactionCreated { tx_id, .. }] => *tx_id,
+            other => panic!("expected TransactionCreated, got {other:?}"),
+        }
+    }
+
+    /// A non-owner connection sending TxPut for someone else's tx_id
+    /// must receive an Error (not Ok).
+    #[tokio::test]
+    async fn tx_put_rejects_foreign_connection() {
+        let provider = provider_with(&["myrepo"]);
+        let server = Server::new(provider);
+        let (conn_a, _rx_a) = server.register_connection().await;
+        let (conn_b, _rx_b) = server.register_connection().await;
+
+        let tx_id = begin_tx(&server, conn_a, "myrepo").await;
+
+        let resp = server
+            .handle(
+                conn_b,
+                ClientMessage::TxPut {
+                    id: 42,
+                    tx_id,
+                    hash: ContentHash::from_canonical(b"foreign_put"),
+                    object: crate::object::Object::Text(
+                        crate::object::TextObject { content: "hi".into() },
+                    ),
+                },
+            )
+            .await;
+
+        assert!(
+            matches!(resp.as_slice(), [ServerMessage::Error { .. }]),
+            "non-owner TxPut must error, got {resp:?}",
+        );
+    }
+
+    /// A non-owner connection sending TxCommit for someone else's tx_id
+    /// must receive an Error and must NOT consume the transaction.
+    #[tokio::test]
+    async fn tx_commit_rejects_foreign_connection_and_preserves_tx() {
+        let provider = provider_with(&["myrepo"]);
+        let server = Server::new(provider);
+        let (conn_a, _rx_a) = server.register_connection().await;
+        let (conn_b, _rx_b) = server.register_connection().await;
+
+        let tx_id = begin_tx(&server, conn_a, "myrepo").await;
+
+        // Conn B tries to commit A's tx.
+        let resp_b = server
+            .handle(conn_b, ClientMessage::TxCommit { id: 1, tx_id })
+            .await;
+        assert!(
+            matches!(resp_b.as_slice(), [ServerMessage::Error { .. }]),
+            "non-owner TxCommit must error, got {resp_b:?}",
+        );
+
+        // Conn A's tx must still be operable: legitimate commit succeeds.
+        let resp_a = server
+            .handle(conn_a, ClientMessage::TxCommit { id: 2, tx_id })
+            .await;
+        assert!(
+            matches!(resp_a.as_slice(), [ServerMessage::Ok { .. }]),
+            "owner TxCommit must succeed after foreign TxCommit was rejected, got {resp_a:?}",
+        );
+    }
+
+    /// A non-owner connection sending TxRollback for someone else's
+    /// tx_id must receive an Error and must NOT cancel the transaction.
+    /// (Pre-fix, this returned Ok and silently dropped the state.)
+    #[tokio::test]
+    async fn tx_rollback_rejects_foreign_connection_and_preserves_tx() {
+        let provider = provider_with(&["myrepo"]);
+        let server = Server::new(provider);
+        let (conn_a, _rx_a) = server.register_connection().await;
+        let (conn_b, _rx_b) = server.register_connection().await;
+
+        let tx_id = begin_tx(&server, conn_a, "myrepo").await;
+
+        // Conn B tries to rollback A's tx.
+        let resp_b = server
+            .handle(conn_b, ClientMessage::TxRollback { id: 1, tx_id })
+            .await;
+        assert!(
+            matches!(resp_b.as_slice(), [ServerMessage::Error { .. }]),
+            "non-owner TxRollback must error, got {resp_b:?}",
+        );
+
+        // Owner's commit must still work — proves the tx was not silently
+        // cancelled by the foreign rollback.
+        let resp_a = server
+            .handle(conn_a, ClientMessage::TxCommit { id: 2, tx_id })
+            .await;
+        assert!(
+            matches!(resp_a.as_slice(), [ServerMessage::Ok { .. }]),
+            "owner TxCommit must succeed after foreign TxRollback was rejected, got {resp_a:?}",
+        );
+    }
+
+    /// Owner's own TxPut, TxCommit, and TxRollback succeed (positive
+    /// control: ensures the connection_id check doesn't reject legitimate
+    /// requests).
+    #[tokio::test]
+    async fn owner_tx_operations_all_succeed() {
+        let provider = provider_with(&["myrepo"]);
+        let server = Server::new(provider);
+        let (conn, _rx) = server.register_connection().await;
+
+        // Tx 1: put + commit
+        let tx_id = begin_tx(&server, conn, "myrepo").await;
+        let put_resp = server
+            .handle(
+                conn,
+                ClientMessage::TxPut {
+                    id: 1,
+                    tx_id,
+                    hash: ContentHash::from_canonical(b"owner_put"),
+                    object: crate::object::Object::Text(
+                        crate::object::TextObject { content: "ok".into() },
+                    ),
+                },
+            )
+            .await;
+        assert!(
+            matches!(put_resp.as_slice(), [ServerMessage::Ok { .. }]),
+            "owner TxPut must succeed, got {put_resp:?}",
+        );
+
+        let commit_resp = server
+            .handle(conn, ClientMessage::TxCommit { id: 2, tx_id })
+            .await;
+        assert!(matches!(commit_resp.as_slice(), [ServerMessage::Ok { .. }]));
+
+        // Tx 2: rollback
+        let tx_id_2 = begin_tx(&server, conn, "myrepo").await;
+        let rollback_resp = server
+            .handle(conn, ClientMessage::TxRollback { id: 3, tx_id: tx_id_2 })
+            .await;
+        assert!(
+            matches!(rollback_resp.as_slice(), [ServerMessage::Ok { .. }]),
+            "owner TxRollback must succeed, got {rollback_resp:?}",
+        );
     }
 }
