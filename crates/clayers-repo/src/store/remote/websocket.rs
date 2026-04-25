@@ -525,4 +525,14 @@ mod tests {
         use super::create_remote_store;
         crate::store::prop_tests::prop_store_tests!(create_remote_store());
     }
+
+    mod remote_concurrency {
+        use super::create_remote_store;
+        crate::store::concurrency_tests::concurrency_tests!(create_remote_store());
+    }
+
+    mod remote_prop_concurrency {
+        use super::create_remote_store;
+        crate::store::concurrency_tests::prop_concurrency_tests!(create_remote_store());
+    }
 }

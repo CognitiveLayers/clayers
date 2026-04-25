@@ -442,4 +442,110 @@
   <art:exempt node="plan-revision-chains"/>
   <art:exempt node="src-anthropic-xml-tags"/>
 
+  <!-- ================================================================== -->
+  <!-- Plan: Extend store compliance suite with concurrency and edge cases -->
+  <!-- ================================================================== -->
+
+  <pln:plan id="plan-compliance-thoroughness">
+    <pln:title>Extend store compliance to cover concurrency, transaction
+    lifecycle edges, ref pathology, content variants, and subtree
+    consumer behavior</pln:title>
+    <pln:overview>The compliance suite covered ~88 tests of the
+    sequential happy path. This plan adds 41 tests across five categories
+    so any backend (Memory, SQLite, WebSocket, or a third-party Python
+    implementation) is exercised under contention and at the edges where
+    real bugs hide. Property concurrency tests use reduced case counts
+    (32 vs 256) and bounded task counts (2-8) to keep total runtime
+    tractable.</pln:overview>
+    <pln:status>completed</pln:status>
+
+    <pln:item id="plan-compliance-cat-b">
+      <pln:title>Add transaction lifecycle edges (Cat B)</pln:title>
+      <pln:description>Seven deterministic tests added to StoreTester:
+      empty commit, drop without commit/rollback, two independent
+      transactions, many puts (1000) in one tx, idempotent within-tx put,
+      rollback then fresh tx, and visibility-only-after-commit (no dirty
+      reads).</pln:description>
+      <pln:acceptance>
+        <pln:criterion>All seven tests pass on Memory, SQLite, and
+        WebSocket backends. Run: cargo test -p clayers-repo --lib --all-features tx_</pln:criterion>
+      </pln:acceptance>
+      <pln:item-status>completed</pln:item-status>
+    </pln:item>
+
+    <pln:item id="plan-compliance-cat-c">
+      <pln:title>Add ref name pathology (Cat C)</pln:title>
+      <pln:description>Nine tests covering Unicode names, 1000-char
+      names, special characters (dots, plus, equals, spaces), prefix
+      overlap (main vs main-2 vs main/sub), empty prefix returning all,
+      no-match prefix returning empty, set_ref to unstored hash,
+      delete_ref no-op, and CAS with same expected/new.</pln:description>
+      <pln:acceptance>
+        <pln:criterion>All nine tests pass on all three backends. Run: cargo test -p clayers-repo --lib --all-features ref_</pln:criterion>
+      </pln:acceptance>
+      <pln:item-status>completed</pln:item-status>
+    </pln:item>
+
+    <pln:item id="plan-compliance-cat-d">
+      <pln:title>Add object content variants (Cat D)</pln:title>
+      <pln:description>Nine tests covering octopus commits (8 parents),
+      element with extra namespace declarations + prefixed attributes,
+      document with multi-PI prologue, tag-of-tag chains, empty text,
+      ~1MB text, multiline comment, dataless PI, and bare element.</pln:description>
+      <pln:acceptance>
+        <pln:criterion>All nine tests pass on all three backends. Run: cargo test -p clayers-repo --lib --all-features commit_octopus_merge element_extra text_empty text_large pi_no_data tag_chain</pln:criterion>
+      </pln:acceptance>
+      <pln:item-status>completed</pln:item-status>
+    </pln:item>
+
+    <pln:item id="plan-compliance-cat-e">
+      <pln:title>Add subtree consumer behavior (Cat E)</pln:title>
+      <pln:description>Four tests: 100-deep linear chain, 1000-wide
+      element, mid-stream consumer drop is leak-safe (subsequent
+      operations and re-reads work), and partial consumption (take 1)
+      followed by full re-read yields complete set.</pln:description>
+      <pln:acceptance>
+        <pln:criterion>All four tests pass on all three backends. Run: cargo test -p clayers-repo --lib --all-features subtree_deep_chain subtree_wide_element subtree_consumer_drop_safe subtree_take_one_then_continue</pln:criterion>
+      </pln:acceptance>
+      <pln:item-status>completed</pln:item-status>
+    </pln:item>
+
+    <pln:item id="plan-compliance-cat-a">
+      <pln:title>Add concurrency tests (Cat A)</pln:title>
+      <pln:description>New module concurrency_tests.rs with
+      ConcurrencyTester&lt;S&gt; requiring S: Send + Sync + 'static.
+      Wraps store in Arc and spawns N (4-16) tokio tasks on a
+      multi-threaded runtime. Nine deterministic tests: CAS create race
+      (exactly one winner), CAS swap race, set_ref race (final value in
+      inputs), idempotent puts under contention, distinct puts all
+      visible, two transactions both visible, concurrent subtree readers
+      consistent, independent refs disjoint, reader during writer
+      observes no torn values. Three property tests with 32 cases each
+      and 2-8 task bounds to control total runtime.</pln:description>
+      <pln:acceptance>
+        <pln:criterion>All 9 deterministic + 3 property concurrency
+        tests pass on all three backends. Run: cargo test -p clayers-repo --lib --all-features concurrent_ prop_concurrent_</pln:criterion>
+      </pln:acceptance>
+      <pln:item-status>completed</pln:item-status>
+    </pln:item>
+
+    <pln:item id="plan-compliance-wire">
+      <pln:title>Wire new tests into Python compliance harness</pln:title>
+      <pln:description>Extend run_store_compliance to call new
+      categories: run_deterministic_tests includes Cat B/C/D/E,
+      run_concurrency_tests adds the 9 deterministic concurrency tests,
+      and run_concurrency_property_tests adds the 3 property tests.
+      Concurrency runners build their own multi_thread runtime per
+      test case.</pln:description>
+      <pln:acceptance>
+        <pln:criterion>The Python self-test passes against
+        ComplianceMemoryStore with 129 tests total and zero failures.
+        Run: uv run pytest tests/test_compliance.py -v</pln:criterion>
+        <pln:criterion>Test count by category: 49 deterministic, 21
+        property, 9 concurrency, 3 property:concurrency, 47 query.</pln:criterion>
+      </pln:acceptance>
+      <pln:item-status>completed</pln:item-status>
+    </pln:item>
+  </pln:plan>
+
 </spec:clayers>

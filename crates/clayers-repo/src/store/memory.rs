@@ -224,3 +224,15 @@ mod prop_tests {
     use super::MemoryStore;
     crate::store::prop_tests::prop_store_tests!(MemoryStore::new());
 }
+
+#[cfg(test)]
+mod concurrency {
+    use super::MemoryStore;
+    crate::store::concurrency_tests::concurrency_tests!(MemoryStore::new());
+}
+
+#[cfg(test)]
+mod prop_concurrency {
+    use super::MemoryStore;
+    crate::store::concurrency_tests::prop_concurrency_tests!(MemoryStore::new());
+}

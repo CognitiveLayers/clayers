@@ -1388,8 +1388,36 @@ print(count_terms(repo))</pr:codeblock>
     The compliance tester bridges the existing Rust test battery to Python:
     users write a Python class implementing the
     <trm:ref term="term-store-protocol">store protocols</trm:ref>, and the
-    suite runs 88 tests against it: 20 deterministic store tests, 21
-    property-based tests via proptest (256 cases each), and 47 query tests.</pr:p>
+    suite runs 129 tests against it: 49 deterministic store tests, 21
+    property-based tests via proptest (256 cases each), 9 deterministic
+    concurrency tests, 3 property-based concurrency tests (32 cases each,
+    bounded task counts), and 47 query tests.</pr:p>
+
+    <pr:p>The deterministic suite covers basic put/get/contains/rollback,
+    full DAG roundtrip across all object variants, eight subtree topology
+    cases (document, commit, diamond DAG, tag, mixed content, missing,
+    empty, tree variants), seven transaction lifecycle edges (empty
+    commit, drop without commit, tx interleaving, batch puts, idempotent
+    within-tx puts, post-rollback recovery, pre-commit visibility), nine
+    ref name pathology cases (Unicode, long names, special characters,
+    prefix overlap, empty/no-match prefix listing, dangling pointers,
+    delete idempotence, CAS with same expected/new), nine object content
+    variants (octopus merges, namespace combinations, multi-PI prologues,
+    tag chains, empty/large text, multiline comments, dataless PIs,
+    bare elements), and four subtree consumer scenarios (deep chains,
+    wide elements, mid-stream drop safety, partial consumption).</pr:p>
+
+    <pr:p>The concurrency suite spawns N=4-16 tokio tasks against a
+    shared <pr:code>Arc&lt;S&gt;</pr:code> on a multi-threaded runtime. It
+    verifies that exactly one CAS wins under contention (both create
+    and swap paths), that <pr:code>set_ref</pr:code> races leave the ref in
+    one of the input values, that idempotent puts are stable under
+    concurrent writers, that distinct concurrent puts and transactions
+    are all visible afterwards, that concurrent subtree readers agree
+    on a snapshot, that disjoint refs are not cross-contaminated, and
+    that readers during a writer never observe torn values. Property
+    tests use 32 cases (instead of the 256 used for sequential
+    properties) to keep total runtime bounded.</pr:p>
 
     <pr:p>The architecture has four layers. First,
     <trm:ref term="term-store-object-types">store object types</trm:ref>
@@ -1509,13 +1537,18 @@ print(count_terms(repo))</pr:codeblock>
 
   <llm:node ref="store-compliance-testing">
     Store compliance testing enables validation of custom Python store
-    backends against the clayers repository contract. It bridges 88 existing
-    Rust tests (20 deterministic, 21 property-based via proptest, 47 query)
+    backends against the clayers repository contract. It bridges 129
+    existing Rust tests (49 deterministic, 21 property-based via proptest,
+    9 deterministic concurrency, 3 property-based concurrency, 47 query)
     to Python through the PyStore bridge. Users implement Python Protocol
     classes (ObjectStore, RefStore, QueryStore, Transaction) and run the
     compliance suite via run_store_compliance() or pytest integration.
-    The ComplianceMemoryStore provides a reference implementation backed
-    by the Rust MemoryStore for self-testing the bridge.
+    Concurrency tests run on a multi-threaded tokio runtime with N tokio
+    tasks racing on a shared Arc&lt;S&gt;; property concurrency tests use
+    reduced case counts (32 vs 256) and bounded task counts (2-8) to keep
+    runtime tractable. The ComplianceMemoryStore provides a reference
+    implementation backed by the Rust MemoryStore for self-testing the
+    bridge.
   </llm:node>
 
   <llm:node ref="term-py-store">
@@ -1585,12 +1618,54 @@ print(count_terms(repo))</pr:codeblock>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers-py/src/repo/compliance.rs">
-      <art:range hash="sha256:4413cf5e6b629841a35fea5c4008d0a72047332e2f6e4f6c211f0a3f56d64509"
-                 start-line="1" end-line="913"/>
+      <art:range hash="sha256:4cd87fc23d27c6e03dc40b05364cf8d677bc2e98b0d54999042166d8cd749cec"
+                 start-line="1" end-line="1217"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>Compliance runner, ComplianceResult, ComplianceMemoryStore,
-    and ComplianceTransaction.</art:note>
+    ComplianceTransaction, and per-category orchestrators
+    (run_deterministic_tests, run_property_tests, run_concurrency_tests,
+    run_concurrency_property_tests, run_query_tests).</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-compliance-store-tests">
+    <art:spec-ref node="store-compliance-testing"
+              revision="draft-1"
+              node-hash="sha256:39210af5e81b914e61a8d2b5a71179f0b9251afb5fd35305420cc267e316d7da"/>
+    <art:artifact repo="repo-clayers"
+              repo-revision="HEAD"
+              path="crates/clayers-repo/src/store/tests.rs">
+      <art:range hash="sha256:2ba26b60c203aabf11e8f03b39562e75eb4c68a55c2db1a48e0743958cba8856"
+                 start-line="1" end-line="1401"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>StoreTester implementing 49 deterministic tests across base
+    (put/get/contains/rollback/CAS/list/delete/roundtrip), subtree
+    topology (Cat E base), transaction lifecycle (Cat B), ref name
+    pathology (Cat C), object content variants (Cat D), and subtree
+    consumer behavior (Cat E extensions). Reused across Memory, SQLite,
+    and WebSocket backends via the store_tests! macro.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-compliance-concurrency-tests">
+    <art:spec-ref node="store-compliance-testing"
+              revision="draft-1"
+              node-hash="sha256:39210af5e81b914e61a8d2b5a71179f0b9251afb5fd35305420cc267e316d7da"/>
+    <art:artifact repo="repo-clayers"
+              repo-revision="HEAD"
+              path="crates/clayers-repo/src/store/concurrency_tests.rs">
+      <art:range hash="sha256:8bf39cda353b2b98831626d2070b1cd155af0225358b3ebd621992a86046c18b"
+                 start-line="1" end-line="543"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>ConcurrencyTester implementing 9 deterministic concurrency
+    tests (CAS race winner uniqueness, set_ref last-write-wins, idempotent
+    concurrent puts, distinct concurrent puts, concurrent transactions,
+    concurrent subtree readers, independent ref isolation, reader during
+    writer) plus 3 property concurrency tests (32 cases each). Spawns
+    multi-threaded tokio tasks against a shared Arc&lt;S&gt;. Macros
+    concurrency_tests! and prop_concurrency_tests! are reused across
+    Memory, SQLite, and WebSocket backends.</art:note>
   </art:mapping>
 
   <art:mapping id="map-python-store-protocols">

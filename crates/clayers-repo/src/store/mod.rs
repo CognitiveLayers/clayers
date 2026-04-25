@@ -16,6 +16,9 @@ pub mod prop_tests;
 #[cfg(any(test, feature = "compliance"))]
 #[allow(clippy::missing_panics_doc)]
 pub mod tests;
+#[cfg(any(test, feature = "compliance"))]
+#[allow(clippy::missing_panics_doc)]
+pub mod concurrency_tests;
 
 use std::collections::HashSet;
 

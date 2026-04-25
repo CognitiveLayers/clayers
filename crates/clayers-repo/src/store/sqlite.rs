@@ -388,3 +388,15 @@ mod prop_tests {
     use super::SqliteStore;
     crate::store::prop_tests::prop_store_tests!(SqliteStore::open_in_memory().unwrap());
 }
+
+#[cfg(test)]
+mod concurrency {
+    use super::SqliteStore;
+    crate::store::concurrency_tests::concurrency_tests!(SqliteStore::open_in_memory().unwrap());
+}
+
+#[cfg(test)]
+mod prop_concurrency {
+    use super::SqliteStore;
+    crate::store::concurrency_tests::prop_concurrency_tests!(SqliteStore::open_in_memory().unwrap());
+}

@@ -143,6 +143,43 @@ fn run_deterministic_tests(
     det_test!(test_subtree_nonexistent_root);
     det_test!(test_subtree_tree);
     det_test!(test_subtree_tree_shared_elements);
+
+    // ── Transaction lifecycle edges (Cat B) ──────────────────────────
+    det_test!(test_tx_empty_commit);
+    det_test!(test_tx_drop_without_commit);
+    det_test!(test_tx_two_independent);
+    det_test!(test_tx_many_puts);
+    det_test!(test_tx_put_idempotent_within);
+    det_test!(test_tx_rollback_then_new_tx);
+    det_test!(test_tx_visibility_only_after_commit);
+
+    // ── Ref name pathology (Cat C) ──────────────────────────────────
+    det_test!(test_ref_unicode_name);
+    det_test!(test_ref_long_name);
+    det_test!(test_ref_special_chars_name);
+    det_test!(test_ref_prefix_overlap);
+    det_test!(test_ref_list_empty_prefix_returns_all);
+    det_test!(test_ref_list_no_match_returns_empty);
+    det_test!(test_ref_set_to_unstored_hash);
+    det_test!(test_ref_delete_nonexistent_is_noop);
+    det_test!(test_cas_with_same_expected_and_new);
+
+    // ── Object content variants (Cat D) ─────────────────────────────
+    det_test!(test_commit_octopus_merge);
+    det_test!(test_element_extra_namespaces);
+    det_test!(test_document_multi_pi_prologue);
+    det_test!(test_tag_chain);
+    det_test!(test_text_empty);
+    det_test!(test_text_large);
+    det_test!(test_comment_with_newlines);
+    det_test!(test_pi_no_data);
+    det_test!(test_element_zero_children);
+
+    // ── Subtree consumer behavior (Cat E) ───────────────────────────
+    det_test!(test_subtree_deep_chain);
+    det_test!(test_subtree_wide_element);
+    det_test!(test_subtree_consumer_drop_safe);
+    det_test!(test_subtree_take_one_then_continue);
 }
 
 // ---------------------------------------------------------------------------
@@ -646,6 +683,271 @@ fn run_property_tests(
 }
 
 // ---------------------------------------------------------------------------
+// Concurrency tests
+// ---------------------------------------------------------------------------
+
+fn run_concurrency_tests(
+    factory: &Py<PyAny>,
+    results: &mut Vec<ComplianceResult>,
+) {
+    use clayers_repo::store::concurrency_tests::ConcurrencyTester;
+
+    fn multi_thread_runtime() -> tokio::runtime::Runtime {
+        tokio::runtime::Builder::new_multi_thread()
+            .worker_threads(4)
+            .enable_all()
+            .build()
+            .expect("multi-thread runtime")
+    }
+
+    macro_rules! conc_test {
+        ($name:ident) => {{
+            let store = match create_store(factory) {
+                Ok(s) => s,
+                Err(e) => {
+                    results.push(ComplianceResult {
+                        name: stringify!($name).into(),
+                        category: "concurrency".into(),
+                        passed: false,
+                        error: Some(format!("factory error: {e}")),
+                    });
+                    return;
+                }
+            };
+            let result = run_test(
+                stringify!($name),
+                "concurrency",
+                AssertUnwindSafe(|| {
+                    let rt = multi_thread_runtime();
+                    rt.block_on(ConcurrencyTester::new(store).$name());
+                }),
+            );
+            results.push(result);
+        }};
+    }
+
+    conc_test!(test_cas_create_one_winner);
+    conc_test!(test_cas_swap_one_winner);
+    conc_test!(test_set_ref_final_in_inputs);
+    conc_test!(test_put_idempotent_same_object);
+    conc_test!(test_put_distinct_all_visible);
+    conc_test!(test_transactions_both_visible);
+    conc_test!(test_subtree_readers_consistent);
+    conc_test!(test_independent_refs);
+    conc_test!(test_reader_during_writer);
+}
+
+// ---------------------------------------------------------------------------
+// Property-based concurrency tests
+// ---------------------------------------------------------------------------
+
+fn run_concurrency_property_tests(
+    factory: &Py<PyAny>,
+    results: &mut Vec<ComplianceResult>,
+) {
+    use clayers_repo::store::concurrency_tests::ConcurrencyTester;
+    use clayers_repo::store::prop_strategies;
+    use proptest::strategy::Strategy;
+    use proptest::test_runner::{Config, TestRunner};
+
+    // Concurrent property cases each spawn N tasks against a fresh store.
+    // 32 cases keeps total runtime bounded.
+    let config = Config::with_cases(32);
+
+    fn multi_thread_runtime() -> tokio::runtime::Runtime {
+        tokio::runtime::Builder::new_multi_thread()
+            .worker_threads(4)
+            .enable_all()
+            .build()
+            .expect("multi-thread runtime")
+    }
+
+    // P-A1: concurrent CAS create -> exactly one winner.
+    {
+        let factory_ref = factory;
+        let mut runner = TestRunner::new(config.clone());
+        let strategy = proptest::collection::vec(
+            prop_strategies::arb_content_hash(),
+            2..=8_usize,
+        )
+        .prop_filter(
+            "hashes must be unique",
+            |hs| hs.iter().collect::<std::collections::HashSet<_>>().len() == hs.len(),
+        );
+        let run_result = runner.run(&strategy, |hashes| {
+            let store = create_store(factory_ref).map_err(|e| {
+                proptest::test_runner::TestCaseError::fail(format!("factory error: {e}"))
+            })?;
+            let rt = multi_thread_runtime();
+            rt.block_on(async move {
+                let store_arc = std::sync::Arc::new(store);
+                let name = "refs/heads/prop_compliance_cas_create";
+                let mut set = tokio::task::JoinSet::new();
+                for h in &hashes {
+                    let s = std::sync::Arc::clone(&store_arc);
+                    let h = *h;
+                    set.spawn(async move {
+                        clayers_repo::store::RefStore::cas_ref(&*s, name, None, h)
+                            .await
+                            .unwrap()
+                    });
+                }
+                let mut wins = 0;
+                while let Some(r) = set.join_next().await {
+                    if r.unwrap() {
+                        wins += 1;
+                    }
+                }
+                assert_eq!(wins, 1, "exactly one CAS create must win");
+            });
+            Ok(())
+        });
+        results.push(match run_result {
+            Ok(()) => ComplianceResult {
+                name: "prop_concurrent_cas_create_unique_winner".into(),
+                category: "property:concurrency".into(),
+                passed: true,
+                error: None,
+            },
+            Err(e) => ComplianceResult {
+                name: "prop_concurrent_cas_create_unique_winner".into(),
+                category: "property:concurrency".into(),
+                passed: false,
+                error: Some(e.to_string()),
+            },
+        });
+    }
+
+    // P-A2: concurrent set_ref -> final value in inputs.
+    {
+        let factory_ref = factory;
+        let mut runner = TestRunner::new(config.clone());
+        let strategy = proptest::collection::vec(
+            prop_strategies::arb_content_hash(),
+            2..=8_usize,
+        );
+        let run_result = runner.run(&strategy, |hashes| {
+            let store = create_store(factory_ref).map_err(|e| {
+                proptest::test_runner::TestCaseError::fail(format!("factory error: {e}"))
+            })?;
+            let rt = multi_thread_runtime();
+            rt.block_on(async move {
+                let store_arc = std::sync::Arc::new(store);
+                let name = "refs/heads/prop_compliance_set_race";
+                let allowed: std::collections::HashSet<_> = hashes.iter().copied().collect();
+                let mut set = tokio::task::JoinSet::new();
+                for h in &hashes {
+                    let s = std::sync::Arc::clone(&store_arc);
+                    let h = *h;
+                    set.spawn(async move {
+                        clayers_repo::store::RefStore::set_ref(&*s, name, h)
+                            .await
+                            .unwrap();
+                    });
+                }
+                while let Some(r) = set.join_next().await {
+                    r.unwrap();
+                }
+                let final_h = clayers_repo::store::RefStore::get_ref(&*store_arc, name)
+                    .await
+                    .unwrap()
+                    .unwrap();
+                assert!(allowed.contains(&final_h), "final value not in inputs");
+            });
+            Ok(())
+        });
+        results.push(match run_result {
+            Ok(()) => ComplianceResult {
+                name: "prop_concurrent_set_ref_final_in_inputs".into(),
+                category: "property:concurrency".into(),
+                passed: true,
+                error: None,
+            },
+            Err(e) => ComplianceResult {
+                name: "prop_concurrent_set_ref_final_in_inputs".into(),
+                category: "property:concurrency".into(),
+                passed: false,
+                error: Some(e.to_string()),
+            },
+        });
+    }
+
+    // P-A3: concurrent distinct put -> all visible.
+    {
+        let factory_ref = factory;
+        let mut runner = TestRunner::new(config.clone());
+        let strategy = 2usize..=8_usize;
+        let run_result = runner.run(&strategy, |count| {
+            let store = create_store(factory_ref).map_err(|e| {
+                proptest::test_runner::TestCaseError::fail(format!("factory error: {e}"))
+            })?;
+            let rt = multi_thread_runtime();
+            rt.block_on(async move {
+                let store_arc = std::sync::Arc::new(store);
+                let hashes: Vec<_> = (0..count)
+                    .map(|i| {
+                        clayers_xml::ContentHash::from_canonical(
+                            format!("compliance_prop_put_{i}").as_bytes(),
+                        )
+                    })
+                    .collect();
+                let mut set = tokio::task::JoinSet::new();
+                for (i, h) in hashes.iter().enumerate() {
+                    let s = std::sync::Arc::clone(&store_arc);
+                    let h = *h;
+                    set.spawn(async move {
+                        let mut tx = clayers_repo::store::ObjectStore::transaction(&*s)
+                            .await
+                            .unwrap();
+                        tx.put(
+                            h,
+                            clayers_repo::object::Object::Text(
+                                clayers_repo::object::TextObject {
+                                    content: format!("v{i}"),
+                                },
+                            ),
+                        )
+                        .await
+                        .unwrap();
+                        tx.commit().await.unwrap();
+                    });
+                }
+                while let Some(r) = set.join_next().await {
+                    r.unwrap();
+                }
+                for h in &hashes {
+                    assert!(
+                        clayers_repo::store::ObjectStore::contains(&*store_arc, h)
+                            .await
+                            .unwrap(),
+                        "object {h:?} missing"
+                    );
+                }
+            });
+            Ok(())
+        });
+        results.push(match run_result {
+            Ok(()) => ComplianceResult {
+                name: "prop_concurrent_put_distinct_all_visible".into(),
+                category: "property:concurrency".into(),
+                passed: true,
+                error: None,
+            },
+            Err(e) => ComplianceResult {
+                name: "prop_concurrent_put_distinct_all_visible".into(),
+                category: "property:concurrency".into(),
+                passed: false,
+                error: Some(e.to_string()),
+            },
+        });
+    }
+
+    // Suppress dead_code warning when compliance feature is enabled but
+    // the type isn't otherwise referenced from this scope.
+    let _ = std::marker::PhantomData::<ConcurrencyTester<crate::repo::py_store::PyStore>>;
+}
+
+// ---------------------------------------------------------------------------
 // Query tests
 // ---------------------------------------------------------------------------
 
@@ -753,6 +1055,8 @@ pub fn run_store_compliance(
     _py.detach(|| {
         run_deterministic_tests(&store_factory, &mut results);
         run_property_tests(&store_factory, &mut results);
+        run_concurrency_tests(&store_factory, &mut results);
+        run_concurrency_property_tests(&store_factory, &mut results);
         run_query_tests(&store_factory, &mut results);
     });
 
