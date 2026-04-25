@@ -132,6 +132,15 @@ pub trait RefStore: Send + Sync {
 
 /// A write transaction for batching object insertions.
 ///
+/// A transaction is in one of three states:
+/// - **open**: operations succeed, writes are staged
+/// - **errored on commit**: a `commit()` call returned `Err`. The
+///   transaction is NOT consumed: caller may retry `commit()` or
+///   call `rollback()` to discard.
+/// - **consumed**: a successful `commit()` or any `rollback()` (whether
+///   it succeeds or errors) consumes the transaction. Subsequent calls
+///   to `put`, `commit`, or `rollback` MUST return `Err`.
+///
 /// `commit` and `rollback` take `&mut self` (not `self`) so the
 /// transaction can be recovered on commit failure.
 #[async_trait]
@@ -140,14 +149,19 @@ pub trait Transaction: Send {
     ///
     /// For element objects, the inclusive hash is extracted from the
     /// `ElementObject::inclusive_hash` field and indexed automatically.
+    ///
+    /// Returns `Err` if the transaction has been consumed.
     async fn put(&mut self, hash: ContentHash, object: Object) -> Result<()>;
 
     /// Atomically commit all staged objects and update secondary indices.
     ///
-    /// On error, the transaction is NOT consumed: caller can retry or
-    /// call `rollback()`.
+    /// On `Ok`, the transaction is consumed; subsequent operations
+    /// return `Err`. On `Err`, the transaction is NOT consumed: the
+    /// caller may retry `commit()` or call `rollback()`.
     async fn commit(&mut self) -> Result<()>;
 
-    /// Discard all staged objects.
+    /// Discard all staged objects. Always consumes the transaction:
+    /// whether this returns `Ok` or `Err`, subsequent calls to `put`,
+    /// `commit`, or `rollback` return `Err`.
     async fn rollback(&mut self) -> Result<()>;
 }

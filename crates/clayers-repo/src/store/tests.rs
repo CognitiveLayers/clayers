@@ -65,6 +65,16 @@ macro_rules! store_tests {
         async fn tx_rollback_then_new_tx() { StoreTester { store: $create }.test_tx_rollback_then_new_tx().await; }
         #[tokio::test]
         async fn tx_visibility_only_after_commit() { StoreTester { store: $create }.test_tx_visibility_only_after_commit().await; }
+        #[tokio::test]
+        async fn tx_consumed_after_commit() { StoreTester { store: $create }.test_tx_consumed_after_commit().await; }
+        #[tokio::test]
+        async fn tx_consumed_after_rollback() { StoreTester { store: $create }.test_tx_consumed_after_rollback().await; }
+        #[tokio::test]
+        async fn tx_double_commit_errors() { StoreTester { store: $create }.test_tx_double_commit_errors().await; }
+        #[tokio::test]
+        async fn tx_double_rollback_errors() { StoreTester { store: $create }.test_tx_double_rollback_errors().await; }
+        #[tokio::test]
+        async fn tx_commit_after_rollback_errors() { StoreTester { store: $create }.test_tx_commit_after_rollback_errors().await; }
 
         // ── Ref name pathology (Cat C) ───────────────────────────────────
         #[tokio::test]
@@ -867,6 +877,83 @@ impl<S: ObjectStore + RefStore> StoreTester<S> {
 
         assert!(!self.store.contains(&h_drop).await.unwrap());
         assert!(self.store.contains(&h_keep).await.unwrap());
+    }
+
+    /// After a successful `commit()`, the transaction is consumed.
+    /// Subsequent `put` must return Err.
+    pub async fn test_tx_consumed_after_commit(&self) {
+        let h1 = ContentHash::from_canonical(b"tx_consumed_commit_a");
+        let h2 = ContentHash::from_canonical(b"tx_consumed_commit_b");
+
+        let mut tx = self.store.transaction().await.unwrap();
+        tx.put(h1, Self::text_obj("a")).await.unwrap();
+        tx.commit().await.unwrap();
+
+        // Tx is consumed: subsequent put must error.
+        let result = tx.put(h2, Self::text_obj("b")).await;
+        assert!(result.is_err(), "put after successful commit must error");
+
+        // The post-commit put must NOT have leaked into the store.
+        assert!(!self.store.contains(&h2).await.unwrap());
+    }
+
+    /// After `rollback()`, the transaction is consumed. Subsequent
+    /// `put` must return Err and pre-rollback puts must not leak.
+    pub async fn test_tx_consumed_after_rollback(&self) {
+        let h_pre = ContentHash::from_canonical(b"tx_consumed_rb_pre");
+        let h_post = ContentHash::from_canonical(b"tx_consumed_rb_post");
+
+        let mut tx = self.store.transaction().await.unwrap();
+        tx.put(h_pre, Self::text_obj("pre")).await.unwrap();
+        tx.rollback().await.unwrap();
+
+        let result = tx.put(h_post, Self::text_obj("post")).await;
+        assert!(result.is_err(), "put after rollback must error");
+
+        // Neither hash should be in the store.
+        assert!(!self.store.contains(&h_pre).await.unwrap());
+        assert!(!self.store.contains(&h_post).await.unwrap());
+    }
+
+    /// Calling `commit()` twice on the same transaction: the second
+    /// call must return Err.
+    pub async fn test_tx_double_commit_errors(&self) {
+        let h = ContentHash::from_canonical(b"tx_double_commit");
+
+        let mut tx = self.store.transaction().await.unwrap();
+        tx.put(h, Self::text_obj("once")).await.unwrap();
+        tx.commit().await.unwrap();
+
+        let result = tx.commit().await;
+        assert!(result.is_err(), "second commit must error");
+    }
+
+    /// Calling `rollback()` twice on the same transaction: the second
+    /// call must return Err.
+    pub async fn test_tx_double_rollback_errors(&self) {
+        let mut tx = self.store.transaction().await.unwrap();
+        tx.rollback().await.unwrap();
+
+        let result = tx.rollback().await;
+        assert!(result.is_err(), "second rollback must error");
+    }
+
+    /// Calling `commit()` after `rollback()` must return Err. Together
+    /// with `test_tx_consumed_after_rollback`, this prevents the silent
+    /// bug where rollback fails to clear pending state and a subsequent
+    /// commit accidentally persists pre-rollback writes.
+    pub async fn test_tx_commit_after_rollback_errors(&self) {
+        let h = ContentHash::from_canonical(b"tx_commit_after_rb");
+
+        let mut tx = self.store.transaction().await.unwrap();
+        tx.put(h, Self::text_obj("staged")).await.unwrap();
+        tx.rollback().await.unwrap();
+
+        let result = tx.commit().await;
+        assert!(result.is_err(), "commit after rollback must error");
+
+        // The staged write must not be in the store.
+        assert!(!self.store.contains(&h).await.unwrap());
     }
 
     /// Inside an open transaction, puts must be invisible to readers

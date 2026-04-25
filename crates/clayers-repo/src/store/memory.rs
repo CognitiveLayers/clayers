@@ -160,6 +160,7 @@ struct PendingEntry {
 pub(crate) struct MemoryTransaction {
     pending: Vec<PendingEntry>,
     inner: Arc<MemoryStoreInner>,
+    consumed: bool,
 }
 
 impl MemoryTransaction {
@@ -167,6 +168,7 @@ impl MemoryTransaction {
         Self {
             pending: Vec::new(),
             inner,
+            consumed: false,
         }
     }
 }
@@ -174,6 +176,11 @@ impl MemoryTransaction {
 #[async_trait]
 impl Transaction for MemoryTransaction {
     async fn put(&mut self, hash: ContentHash, object: Object) -> Result<()> {
+        if self.consumed {
+            return Err(crate::error::Error::Storage(
+                "transaction already consumed".into(),
+            ));
+        }
         let inclusive_hash = if let Object::Element(ElementObject { inclusive_hash, .. }) = &object {
             Some(*inclusive_hash)
         } else {
@@ -188,6 +195,11 @@ impl Transaction for MemoryTransaction {
     }
 
     async fn commit(&mut self) -> Result<()> {
+        if self.consumed {
+            return Err(crate::error::Error::Storage(
+                "transaction already consumed".into(),
+            ));
+        }
         let mut objects = self.inner.objects.write().await;
         let mut inclusive_index = self.inner.inclusive_index.write().await;
 
@@ -198,10 +210,21 @@ impl Transaction for MemoryTransaction {
             }
         }
 
+        // On successful commit, the transaction is consumed.
+        self.consumed = true;
         Ok(())
     }
 
     async fn rollback(&mut self) -> Result<()> {
+        if self.consumed {
+            return Err(crate::error::Error::Storage(
+                "transaction already consumed".into(),
+            ));
+        }
+        // Always consume on rollback (success or error). Pending is
+        // cleared for memory hygiene though `consumed` makes it
+        // unreachable from put/commit anyway.
+        self.consumed = true;
         self.pending.clear();
         Ok(())
     }

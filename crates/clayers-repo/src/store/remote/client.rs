@@ -424,6 +424,9 @@ impl<T: Transport> RemoteTransaction<T> {
 #[async_trait]
 impl<T: Transport + 'static> Transaction for RemoteTransaction<T> {
     async fn put(&mut self, hash: ContentHash, object: Object) -> Result<()> {
+        if self.finished {
+            return Err(Error::Storage("transaction already consumed".into()));
+        }
         let id = self.alloc_id();
         let resp = self
             .request(
@@ -444,6 +447,9 @@ impl<T: Transport + 'static> Transaction for RemoteTransaction<T> {
     }
 
     async fn commit(&mut self) -> Result<()> {
+        if self.finished {
+            return Err(Error::Storage("transaction already consumed".into()));
+        }
         let id = self.alloc_id();
         let resp = self
             .request(
@@ -454,15 +460,22 @@ impl<T: Transport + 'static> Transaction for RemoteTransaction<T> {
                 id,
             )
             .await?;
-        self.finished = true;
+        // Per trait contract, only successful commit consumes the tx.
+        // On Err, caller may retry or rollback.
         match resp {
-            ServerMessage::Ok { .. } => Ok(()),
+            ServerMessage::Ok { .. } => {
+                self.finished = true;
+                Ok(())
+            }
             ServerMessage::Error { message, .. } => Err(Error::Storage(message)),
             _ => Err(Error::Storage("unexpected response".into())),
         }
     }
 
     async fn rollback(&mut self) -> Result<()> {
+        if self.finished {
+            return Err(Error::Storage("transaction already consumed".into()));
+        }
         let id = self.alloc_id();
         let resp = self
             .request(
@@ -473,6 +486,7 @@ impl<T: Transport + 'static> Transaction for RemoteTransaction<T> {
                 id,
             )
             .await?;
+        // Rollback always consumes, even if it returned an error.
         self.finished = true;
         match resp {
             ServerMessage::Ok { .. } => Ok(()),

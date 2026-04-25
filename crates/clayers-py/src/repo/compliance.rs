@@ -152,6 +152,11 @@ fn run_deterministic_tests(
     det_test!(test_tx_put_idempotent_within);
     det_test!(test_tx_rollback_then_new_tx);
     det_test!(test_tx_visibility_only_after_commit);
+    det_test!(test_tx_consumed_after_commit);
+    det_test!(test_tx_consumed_after_rollback);
+    det_test!(test_tx_double_commit_errors);
+    det_test!(test_tx_double_rollback_errors);
+    det_test!(test_tx_commit_after_rollback_errors);
 
     // ── Ref name pathology (Cat C) ──────────────────────────────────
     det_test!(test_ref_unicode_name);

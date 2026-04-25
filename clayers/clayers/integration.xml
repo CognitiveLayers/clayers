@@ -1618,7 +1618,7 @@ print(count_terms(repo))</pr:codeblock>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers-py/src/repo/compliance.rs">
-      <art:range hash="sha256:4cd87fc23d27c6e03dc40b05364cf8d677bc2e98b0d54999042166d8cd749cec"
+      <art:range hash="sha256:017485ee131c1bfcb21a4e6393ee6ea788433d33f33da10f9d86ac02c1c9d832"
                  start-line="1" end-line="1217"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -1635,7 +1635,7 @@ print(count_terms(repo))</pr:codeblock>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers-repo/src/store/tests.rs">
-      <art:range hash="sha256:2ba26b60c203aabf11e8f03b39562e75eb4c68a55c2db1a48e0743958cba8856"
+      <art:range hash="sha256:8131a0e43f2a407b2bedcb86653202348fb3a34f6ed69ec00f5b791d5218a1e5"
                  start-line="1" end-line="1401"/>
     </art:artifact>
     <art:coverage>full</art:coverage>

@@ -154,6 +154,7 @@ impl ObjectStore for SqliteStore {
         Ok(Box::new(SqliteTransaction {
             pending: Vec::new(),
             conn: Arc::clone(&self.conn),
+            consumed: false,
         }))
     }
 
@@ -317,11 +318,15 @@ struct PendingEntry {
 pub struct SqliteTransaction {
     pending: Vec<PendingEntry>,
     conn: Arc<Mutex<Connection>>,
+    consumed: bool,
 }
 
 #[async_trait]
 impl Transaction for SqliteTransaction {
     async fn put(&mut self, hash: ContentHash, object: Object) -> Result<()> {
+        if self.consumed {
+            return Err(Error::Storage("transaction already consumed".into()));
+        }
         let inclusive_hash =
             if let Object::Element(ref el) = object {
                 Some(el.inclusive_hash)
@@ -338,6 +343,9 @@ impl Transaction for SqliteTransaction {
     }
 
     async fn commit(&mut self) -> Result<()> {
+        if self.consumed {
+            return Err(Error::Storage("transaction already consumed".into()));
+        }
         let conn = self.conn.lock()
             .map_err(|e| Error::Storage(e.to_string()))?;
         let tx = conn
@@ -362,10 +370,17 @@ impl Transaction for SqliteTransaction {
             }
         }
         tx.commit().map_err(|e| Error::Storage(e.to_string()))?;
+        // Successful commit consumes the transaction.
+        self.consumed = true;
         Ok(())
     }
 
     async fn rollback(&mut self) -> Result<()> {
+        if self.consumed {
+            return Err(Error::Storage("transaction already consumed".into()));
+        }
+        // Always consume on rollback.
+        self.consumed = true;
         self.pending.clear();
         Ok(())
     }
