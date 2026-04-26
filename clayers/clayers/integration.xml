@@ -463,6 +463,13 @@ repo = Repo(SqliteStore.open("my-project.db"))
     content. Checkout must run the same dirty-working-copy guard before
     creating or switching branches. These checks make branch movement
     fail-fast and preserve the user's local edits.</pr:p>
+
+    <pr:p>Export must not silently degrade when reading repository state for
+    the previous branch fails. Old-tree lookup errors are propagated so stale
+    tracked files are not left behind by treating the old tree as empty. The
+    target-path safety check uses async file-system inspection and reads when
+    running inside async repository export operations, so it does not block the
+    executor while comparing local XML against the tracked object hash.</pr:p>
   </pr:section>
 
   <pr:section id="repository-working-copy-observation">
@@ -1453,7 +1460,7 @@ print(count_terms(repo))</pr:codeblock>
   <art:mapping id="map-repository-working-copy-safety-guard">
     <art:spec-ref node="repository-working-copy-safety"
               revision="draft-1"
-              node-hash="sha256:e7307347903c9ee4a782b682e5c033ed499ddcdf4f118da8e29ca9d509d46cb3"/>
+              node-hash="sha256:a81b1120011a566e57422f7c7b5b8927a0d45ca5343278f724a2dcc951110769"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/repo/staging.rs">
@@ -1471,7 +1478,7 @@ print(count_terms(repo))</pr:codeblock>
   <art:mapping id="map-repository-working-copy-safety-branch">
     <art:spec-ref node="repository-working-copy-safety"
               revision="draft-1"
-              node-hash="sha256:e7307347903c9ee4a782b682e5c033ed499ddcdf4f118da8e29ca9d509d46cb3"/>
+              node-hash="sha256:a81b1120011a566e57422f7c7b5b8927a0d45ca5343278f724a2dcc951110769"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/repo/branch.rs">
@@ -1486,7 +1493,7 @@ print(count_terms(repo))</pr:codeblock>
   <art:mapping id="map-repository-working-copy-safety-pull">
     <art:spec-ref node="repository-working-copy-safety"
               revision="draft-1"
-              node-hash="sha256:e7307347903c9ee4a782b682e5c033ed499ddcdf4f118da8e29ca9d509d46cb3"/>
+              node-hash="sha256:a81b1120011a566e57422f7c7b5b8927a0d45ca5343278f724a2dcc951110769"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/repo/remote.rs">
@@ -1503,12 +1510,12 @@ print(count_terms(repo))</pr:codeblock>
   <art:mapping id="map-repository-working-copy-safety-export">
     <art:spec-ref node="repository-working-copy-safety"
               revision="draft-1"
-              node-hash="sha256:e7307347903c9ee4a782b682e5c033ed499ddcdf4f118da8e29ca9d509d46cb3"/>
+              node-hash="sha256:a81b1120011a566e57422f7c7b5b8927a0d45ca5343278f724a2dcc951110769"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/repo/init.rs">
-      <art:range hash="sha256:34c5e2377c177c13d2518be8f5d8058825ee79df265f3b25af4b99dee56940fa"
-                 start-line="220" end-line="319"/>
+      <art:range hash="sha256:dc35027a0e45ad5eca9e83f49cb85ba79f795dbd4dc95efb5e84e8535f8b8741"
+                 start-line="210" end-line="355"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>Working-copy export refuses to remove or overwrite dirty
@@ -1518,7 +1525,7 @@ print(count_terms(repo))</pr:codeblock>
   <art:mapping id="map-repository-working-copy-safety-tests">
     <art:spec-ref node="repository-working-copy-safety"
               revision="draft-1"
-              node-hash="sha256:e7307347903c9ee4a782b682e5c033ed499ddcdf4f118da8e29ca9d509d46cb3"/>
+              node-hash="sha256:a81b1120011a566e57422f7c7b5b8927a0d45ca5343278f724a2dcc951110769"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/tests/cli_integration.rs">

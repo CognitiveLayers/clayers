@@ -1,6 +1,7 @@
 //! `init` and `clone` command implementations.
 
 use std::collections::HashMap;
+use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, bail};
@@ -229,7 +230,7 @@ pub(crate) fn export_working_copy_with_old(
 
         // Collect old tree paths (if switching from another branch).
         let old_paths: std::collections::HashSet<String> = match &old_branch {
-            Some(old_b) => collect_tree_paths(&store, old_b).await.unwrap_or_default(),
+            Some(old_b) => collect_tree_paths(&store, old_b).await?,
             None => std::collections::HashSet::new(),
         };
 
@@ -284,25 +285,60 @@ async fn ensure_export_path_safe(
     rel_path: &str,
     effect: &str,
 ) -> Result<()> {
-    let file_path = working_dir.join(rel_path);
-    let Some(expected_hash) = tracked_hashes.get(rel_path) else {
-        if file_path.exists() {
-            bail!("cannot update working copy: untracked file would be {effect}: {rel_path}");
-        }
+    let Some((expected_hash, xml)) =
+        read_tracked_export_path(working_dir, tracked_hashes, rel_path, effect).await?
+    else {
         return Ok(());
     };
 
-    if !file_path.exists() || !file_path.is_file() {
-        bail!("cannot update working copy: unstaged deletion would be {effect}: {rel_path}");
-    }
-
-    let Ok(xml) = std::fs::read_to_string(&file_path) else {
-        bail!("cannot update working copy: unreadable tracked file would be {effect}: {rel_path}");
-    };
     match clayers_repo::import::import_xml(store, &xml).await {
-        Ok(current_hash) if &current_hash == expected_hash => Ok(()),
+        Ok(current_hash) if current_hash == expected_hash => Ok(()),
         _ => bail!("cannot update working copy: unstaged change would be {effect}: {rel_path}"),
     }
+}
+
+async fn read_tracked_export_path(
+    working_dir: &Path,
+    tracked_hashes: &HashMap<String, ContentHash>,
+    rel_path: &str,
+    effect: &str,
+) -> Result<Option<(ContentHash, String)>> {
+    let file_path = working_dir.join(rel_path);
+    let Some(expected_hash) = tracked_hashes.get(rel_path) else {
+        let exists = tokio::fs::try_exists(&file_path).await.with_context(|| {
+            format!("cannot update working copy: cannot inspect target path that would be {effect}: {rel_path}")
+        })?;
+        if exists {
+            bail!("cannot update working copy: untracked file would be {effect}: {rel_path}");
+        }
+        return Ok(None);
+    };
+
+    match tokio::fs::metadata(&file_path).await {
+        Ok(metadata) if metadata.is_file() => {}
+        Ok(_) => {
+            bail!("cannot update working copy: unstaged deletion would be {effect}: {rel_path}")
+        }
+        Err(err) if err.kind() == ErrorKind::NotFound => {
+            bail!("cannot update working copy: unstaged deletion would be {effect}: {rel_path}");
+        }
+        Err(err) => {
+            return Err(err).with_context(|| {
+                format!(
+                    "cannot update working copy: unreadable tracked file would be {effect}: {rel_path}"
+                )
+            });
+        }
+    }
+
+    let xml = tokio::fs::read_to_string(&file_path)
+        .await
+        .with_context(|| {
+            format!(
+                "cannot update working copy: unreadable tracked file would be {effect}: {rel_path}"
+            )
+        })?;
+    Ok(Some((*expected_hash, xml)))
 }
 
 pub(crate) async fn ensure_export_paths_safe(
