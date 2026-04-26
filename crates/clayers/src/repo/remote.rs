@@ -1,16 +1,21 @@
 //! `remote`, `push`, `pull`, and `list-repos` command implementations.
 
+use std::collections::HashMap;
+use std::path::Path;
+
 use anyhow::{Context, Result, bail};
 use clayers_repo::SqliteStore;
+use clayers_repo::object::Object;
 use clayers_repo::refs::HEADS_PREFIX;
 use clayers_repo::store::remote::Store;
 use clayers_repo::store::remote::{
     BearerToken, JsonCodec, RemoteStore, WsTransport, list_repositories,
 };
 use clayers_repo::sync::{FastForwardOnly, sync_refs};
+use clayers_xml::ContentHash;
 
-use super::{block_on, discover_repo, open_cli_db};
 use super::schema::get_meta;
+use super::{block_on, discover_repo, open_cli_db};
 
 /// Parsed remote URL target.
 pub enum RemoteTarget {
@@ -64,8 +69,9 @@ pub async fn open_remote(target: &RemoteTarget) -> Result<Box<dyn Store>> {
         }
         RemoteTarget::WebSocket { url, token, repo } => {
             let auth: Option<BearerToken> = token.as_ref().map(|t| BearerToken(t.clone()));
-            let auth_ref: Option<&dyn clayers_repo::store::remote::WsRequestTransformer> =
-                auth.as_ref().map(|a| a as &dyn clayers_repo::store::remote::WsRequestTransformer);
+            let auth_ref: Option<&dyn clayers_repo::store::remote::WsRequestTransformer> = auth
+                .as_ref()
+                .map(|a| a as &dyn clayers_repo::store::remote::WsRequestTransformer);
             let transport = WsTransport::connect(url, JsonCodec, auth_ref)
                 .await
                 .with_context(|| format!("failed to connect to {url}"))?;
@@ -116,7 +122,10 @@ pub fn cmd_remote(action: RemoteAction) -> Result<()> {
         }
         RemoteAction::Remove { name } => {
             let n = conn
-                .execute("DELETE FROM remotes WHERE name = ?1", rusqlite::params![name])
+                .execute(
+                    "DELETE FROM remotes WHERE name = ?1",
+                    rusqlite::params![name],
+                )
                 .context("failed to remove remote")?;
             if n == 0 {
                 bail!("remote '{name}' not found");
@@ -204,14 +213,28 @@ pub fn cmd_pull(remote_name: Option<&str>) -> Result<()> {
     let remote_url = remote.url.clone();
     let current_branch = get_meta(&conn, "current_branch")?.unwrap_or_else(|| "main".into());
 
+    super::staging::ensure_clean_working_copy(&conn, &db_path, &repo_root, "pull")?;
+    let tracked_hashes = super::staging::get_tracked_working_copy_hashes(&conn)?;
+
     println!("Pulling from {remote_url}...");
 
     let db_path_clone = db_path.clone();
+    let repo_root_clone = repo_root.clone();
+    let current_branch_clone = current_branch.clone();
 
     block_on(async move {
         let target = parse_remote_url(&remote_url, remote.token)?;
         let remote_store = open_remote(&target).await?;
         let local_store = SqliteStore::open(&db_path_clone)?;
+
+        preflight_pull_working_copy(
+            remote_store.as_ref(),
+            &local_store,
+            &repo_root_clone,
+            &tracked_hashes,
+            &current_branch_clone,
+        )
+        .await?;
 
         let count = sync_refs(
             remote_store.as_ref(),
@@ -242,6 +265,48 @@ pub fn cmd_pull(remote_name: Option<&str>) -> Result<()> {
     Ok(())
 }
 
+async fn preflight_pull_working_copy(
+    remote_store: &dyn Store,
+    local_store: &SqliteStore,
+    repo_root: &Path,
+    tracked_hashes: &HashMap<String, ContentHash>,
+    branch: &str,
+) -> Result<()> {
+    let branch_ref = clayers_repo::refs::branch_ref(branch);
+    let Some(remote_tip) = remote_store.get_ref(&branch_ref).await? else {
+        return Ok(());
+    };
+    let Some(remote_obj) = remote_store.get(&remote_tip).await? else {
+        bail!("remote branch '{branch}' points to missing commit {remote_tip}");
+    };
+    let Object::Commit(commit) = remote_obj else {
+        bail!("remote branch '{branch}' does not point to a commit");
+    };
+    let Some(tree_obj) = remote_store.get(&commit.tree).await? else {
+        bail!(
+            "remote branch '{branch}' points to missing tree {}",
+            commit.tree
+        );
+    };
+    let Object::Tree(tree) = tree_obj else {
+        bail!("remote branch '{branch}' commit does not point to a tree");
+    };
+    let target_paths: Vec<String> = tree
+        .entries
+        .iter()
+        .map(|entry| entry.path.clone())
+        .collect();
+
+    super::init::ensure_export_paths_safe(
+        local_store,
+        repo_root,
+        tracked_hashes,
+        &target_paths,
+        "overwritten",
+    )
+    .await
+}
+
 /// List repositories available on a remote server.
 ///
 /// # Errors
@@ -250,8 +315,9 @@ pub fn cmd_pull(remote_name: Option<&str>) -> Result<()> {
 pub fn cmd_list_repos(url: &str, token: Option<&str>) -> Result<()> {
     block_on(async move {
         let auth: Option<BearerToken> = token.map(|t| BearerToken(t.to_string()));
-        let auth_ref: Option<&dyn clayers_repo::store::remote::WsRequestTransformer> =
-            auth.as_ref().map(|a| a as &dyn clayers_repo::store::remote::WsRequestTransformer);
+        let auth_ref: Option<&dyn clayers_repo::store::remote::WsRequestTransformer> = auth
+            .as_ref()
+            .map(|a| a as &dyn clayers_repo::store::remote::WsRequestTransformer);
         let transport = WsTransport::connect(url, JsonCodec, auth_ref)
             .await
             .with_context(|| format!("failed to connect to {url}"))?;

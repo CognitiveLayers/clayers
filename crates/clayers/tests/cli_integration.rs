@@ -28,7 +28,11 @@ fn setup_committed_repo(xml_files: &[(&str, &str)]) -> TempDir {
     let tmp = TempDir::new().unwrap();
     let path = tmp.path();
 
-    clayers().args(["init"]).current_dir(path).assert().success();
+    clayers()
+        .args(["init"])
+        .current_dir(path)
+        .assert()
+        .success();
 
     for (name, content) in xml_files {
         std::fs::write(path.join(name), content).unwrap();
@@ -136,12 +140,11 @@ fn init_shows_untracked_xml() {
         .assert()
         .success();
 
-    let out = stdout_of(
-        clayers()
-            .args(["status"])
-            .current_dir(tmp.path()),
+    let out = stdout_of(clayers().args(["status"]).current_dir(tmp.path()));
+    assert!(
+        out.contains("doc.xml"),
+        "status should show untracked: {out}"
     );
-    assert!(out.contains("doc.xml"), "status should show untracked: {out}");
     assert!(
         out.contains("Untracked"),
         "should be in Untracked section: {out}"
@@ -187,11 +190,7 @@ fn add_multiple_files() {
         .assert()
         .success();
 
-    let out = stdout_of(
-        clayers()
-            .args(["status"])
-            .current_dir(tmp.path()),
-    );
+    let out = stdout_of(clayers().args(["status"]).current_dir(tmp.path()));
     assert!(out.contains("a.xml"), "a.xml missing from status: {out}");
     assert!(out.contains("b.xml"), "b.xml missing from status: {out}");
 }
@@ -215,11 +214,7 @@ fn add_dot_stages_all_xml() {
         .assert()
         .success();
 
-    let out = stdout_of(
-        clayers()
-            .args(["status"])
-            .current_dir(tmp.path()),
-    );
+    let out = stdout_of(clayers().args(["status"]).current_dir(tmp.path()));
     assert!(out.contains("a.xml"), "a.xml not staged: {out}");
     assert!(out.contains("b.xml"), "b.xml not staged: {out}");
 }
@@ -271,10 +266,7 @@ fn add_modified_stages_modify() {
         .success();
 
     let out = stdout_of(clayers().args(["status"]).current_dir(path));
-    assert!(
-        out.contains("modify"),
-        "should show modify action: {out}"
-    );
+    assert!(out.contains("modify"), "should show modify action: {out}");
 }
 
 // ===========================================================================
@@ -534,7 +526,15 @@ fn commit_preserves_author() {
         .assert()
         .success();
     clayers()
-        .args(["commit", "-m", "test", "--author", "Jane Doe", "--email", "jane@example.com"])
+        .args([
+            "commit",
+            "-m",
+            "test",
+            "--author",
+            "Jane Doe",
+            "--email",
+            "jane@example.com",
+        ])
         .current_dir(tmp.path())
         .assert()
         .success();
@@ -571,10 +571,7 @@ fn log_empty_repo() {
 fn log_shows_message() {
     let tmp = setup_committed_repo(&[("doc.xml", "<r/>")]);
     let out = stdout_of(clayers().args(["log"]).current_dir(tmp.path()));
-    assert!(
-        out.contains("initial"),
-        "should show commit message: {out}"
-    );
+    assert!(out.contains("initial"), "should show commit message: {out}");
 }
 
 #[test]
@@ -608,10 +605,7 @@ fn log_limit() {
     }
 
     let out = stdout_of(clayers().args(["log", "-n", "1"]).current_dir(path));
-    assert!(
-        out.contains("commit-3"),
-        "should show latest commit: {out}"
-    );
+    assert!(out.contains("commit-3"), "should show latest commit: {out}");
     assert!(
         !out.contains("commit-1"),
         "should NOT show older commits with -n 1: {out}"
@@ -686,10 +680,7 @@ fn remote_add_list_remove() {
         .success();
 
     let out = stdout_of(clayers().args(["remote", "list"]).current_dir(tmp.path()));
-    assert!(
-        !out.contains("origin"),
-        "origin should be removed: {out}"
-    );
+    assert!(!out.contains("origin"), "origin should be removed: {out}");
 }
 
 #[test]
@@ -790,10 +781,7 @@ fn checkout_switches_branch() {
         .success();
 
     let out = stdout_of(clayers().args(["status"]).current_dir(path));
-    assert!(
-        out.contains("On branch dev"),
-        "should be on dev: {out}"
-    );
+    assert!(out.contains("On branch dev"), "should be on dev: {out}");
 }
 
 #[test]
@@ -832,6 +820,94 @@ fn checkout_dirty_aborts() {
         .assert()
         .failure()
         .stderr(predicates::str::contains("staged"));
+}
+
+#[test]
+fn checkout_unstaged_tracked_edit_aborts_without_overwriting() {
+    let tmp = setup_committed_repo(&[("doc.xml", "<root>main</root>")]);
+    let path = tmp.path();
+
+    clayers()
+        .args(["checkout", "-b", "other"])
+        .current_dir(path)
+        .assert()
+        .success();
+    std::fs::write(path.join("doc.xml"), "<root>other</root>").unwrap();
+    clayers()
+        .args(["add", "doc.xml"])
+        .current_dir(path)
+        .assert()
+        .success();
+    clayers()
+        .args(["commit", "-m", "other"])
+        .envs(author_env())
+        .current_dir(path)
+        .assert()
+        .success();
+    clayers()
+        .args(["checkout", "main"])
+        .current_dir(path)
+        .assert()
+        .success();
+
+    std::fs::write(path.join("doc.xml"), "<root>local</root>").unwrap();
+
+    clayers()
+        .args(["checkout", "other"])
+        .current_dir(path)
+        .assert()
+        .failure()
+        .stderr(predicates::str::contains("unstaged"));
+
+    let content = std::fs::read_to_string(path.join("doc.xml")).unwrap();
+    assert!(
+        content.contains("local"),
+        "checkout must preserve the unstaged edit: {content}"
+    );
+}
+
+#[test]
+fn checkout_untracked_target_file_aborts_without_overwriting() {
+    let tmp = setup_committed_repo(&[("doc.xml", "<root>main</root>")]);
+    let path = tmp.path();
+
+    clayers()
+        .args(["checkout", "-b", "other"])
+        .current_dir(path)
+        .assert()
+        .success();
+    std::fs::write(path.join("new.xml"), "<new>branch</new>").unwrap();
+    clayers()
+        .args(["add", "new.xml"])
+        .current_dir(path)
+        .assert()
+        .success();
+    clayers()
+        .args(["commit", "-m", "add new"])
+        .envs(author_env())
+        .current_dir(path)
+        .assert()
+        .success();
+    clayers()
+        .args(["checkout", "main"])
+        .current_dir(path)
+        .assert()
+        .success();
+
+    std::fs::write(path.join("new.xml"), "<new>local</new>").unwrap();
+
+    clayers()
+        .args(["checkout", "other"])
+        .current_dir(path)
+        .assert()
+        .failure()
+        .stderr(predicates::str::contains("untracked"));
+
+    let content = std::fs::read_to_string(path.join("new.xml")).unwrap();
+    assert!(
+        content.contains("local"),
+        "checkout must preserve the untracked file: {content}"
+    );
 }
 
 #[test]
@@ -907,10 +983,7 @@ fn checkout_switches_file_content() {
 fn checkout_removes_files_not_in_target_branch() {
     // main has {a.xml, b.xml}. Branch "fewer" has only {a.xml}.
     // Switching to "fewer" must remove b.xml from disk.
-    let tmp = setup_committed_repo(&[
-        ("a.xml", "<a>shared</a>"),
-        ("b.xml", "<b>only-on-main</b>"),
-    ]);
+    let tmp = setup_committed_repo(&[("a.xml", "<a>shared</a>"), ("b.xml", "<b>only-on-main</b>")]);
     let path = tmp.path();
 
     // Create "fewer" branch, remove b.xml, commit.
@@ -937,10 +1010,7 @@ fn checkout_removes_files_not_in_target_branch() {
         .current_dir(path)
         .assert()
         .success();
-    assert!(
-        path.join("b.xml").exists(),
-        "b.xml should reappear on main"
-    );
+    assert!(path.join("b.xml").exists(), "b.xml should reappear on main");
     let content = std::fs::read_to_string(path.join("b.xml")).unwrap();
     assert!(
         content.contains("only-on-main"),
@@ -1021,10 +1091,7 @@ fn checkout_adds_files_only_in_target_branch() {
 fn checkout_completely_different_file_sets() {
     // main has {a.xml, b.xml}. Branch "alt" has {c.xml, d.xml}.
     // No overlap. Switching must remove old files and add new ones.
-    let tmp = setup_committed_repo(&[
-        ("a.xml", "<a>alpha</a>"),
-        ("b.xml", "<b>beta</b>"),
-    ]);
+    let tmp = setup_committed_repo(&[("a.xml", "<a>alpha</a>"), ("b.xml", "<b>beta</b>")]);
     let path = tmp.path();
 
     // Create "alt" branch, remove a+b, add c+d.
@@ -1101,10 +1168,7 @@ fn checkout_completely_different_file_sets() {
 #[test]
 fn checkout_status_clean_after_switch() {
     // After switching branches, status should be clean (no false modifications).
-    let tmp = setup_committed_repo(&[
-        ("a.xml", "<a>one</a>"),
-        ("b.xml", "<b>two</b>"),
-    ]);
+    let tmp = setup_committed_repo(&[("a.xml", "<a>one</a>"), ("b.xml", "<b>two</b>")]);
     let path = tmp.path();
 
     clayers()
@@ -1124,10 +1188,7 @@ fn checkout_status_clean_after_switch() {
 fn checkout_orphan_clears_working_directory() {
     // Orphan branch starts with an empty tree. All tracked files must be
     // removed from disk.
-    let tmp = setup_committed_repo(&[
-        ("a.xml", "<a>alpha</a>"),
-        ("b.xml", "<b>beta</b>"),
-    ]);
+    let tmp = setup_committed_repo(&[("a.xml", "<a>alpha</a>"), ("b.xml", "<b>beta</b>")]);
     let path = tmp.path();
 
     clayers()
@@ -1320,7 +1381,11 @@ fn pull_gets_new_commits() {
 
     // Set up source.
     std::fs::create_dir_all(&src).unwrap();
-    clayers().args(["init"]).current_dir(&src).assert().success();
+    clayers()
+        .args(["init"])
+        .current_dir(&src)
+        .assert()
+        .success();
     std::fs::write(src.join("doc.xml"), "<root>hello</root>").unwrap();
     clayers()
         .args(["add", "doc.xml"])
@@ -1352,7 +1417,11 @@ fn pull_gets_new_commits() {
 
     // Set up destination.
     std::fs::create_dir_all(&dst).unwrap();
-    clayers().args(["init"]).current_dir(&dst).assert().success();
+    clayers()
+        .args(["init"])
+        .current_dir(&dst)
+        .assert()
+        .success();
     clayers()
         .args(["remote", "add", "origin", bare.to_str().unwrap()])
         .current_dir(&dst)
@@ -1376,6 +1445,257 @@ fn pull_gets_new_commits() {
 }
 
 #[test]
+fn pull_staged_change_aborts_before_ref_update() {
+    let tmp = TempDir::new().unwrap();
+    let src = tmp.path().join("src");
+    let bare = tmp.path().join("bare.db");
+    let clone_dir = tmp.path().join("clone");
+
+    std::fs::create_dir_all(&src).unwrap();
+    clayers()
+        .args(["init"])
+        .current_dir(&src)
+        .assert()
+        .success();
+    std::fs::write(src.join("doc.xml"), "<root>v1</root>").unwrap();
+    clayers()
+        .args(["add", "doc.xml"])
+        .current_dir(&src)
+        .assert()
+        .success();
+    clayers()
+        .args(["commit", "-m", "v1"])
+        .envs(author_env())
+        .current_dir(&src)
+        .assert()
+        .success();
+    clayers()
+        .args(["init", "--bare", bare.to_str().unwrap()])
+        .assert()
+        .success();
+    clayers()
+        .args(["remote", "add", "origin", bare.to_str().unwrap()])
+        .current_dir(&src)
+        .assert()
+        .success();
+    clayers()
+        .args(["push", "origin"])
+        .current_dir(&src)
+        .assert()
+        .success();
+    clayers()
+        .args(["clone", bare.to_str().unwrap(), clone_dir.to_str().unwrap()])
+        .assert()
+        .success();
+
+    std::fs::write(src.join("doc.xml"), "<root>v2</root>").unwrap();
+    clayers()
+        .args(["add", "doc.xml"])
+        .current_dir(&src)
+        .assert()
+        .success();
+    clayers()
+        .args(["commit", "-m", "v2"])
+        .envs(author_env())
+        .current_dir(&src)
+        .assert()
+        .success();
+    clayers()
+        .args(["push", "origin"])
+        .current_dir(&src)
+        .assert()
+        .success();
+
+    std::fs::write(clone_dir.join("doc.xml"), "<root>local</root>").unwrap();
+    clayers()
+        .args(["add", "doc.xml"])
+        .current_dir(&clone_dir)
+        .assert()
+        .success();
+
+    clayers()
+        .args(["pull", "origin"])
+        .current_dir(&clone_dir)
+        .assert()
+        .failure()
+        .stderr(predicates::str::contains("staged"));
+
+    let content = std::fs::read_to_string(clone_dir.join("doc.xml")).unwrap();
+    assert!(
+        content.contains("local"),
+        "pull must preserve the staged edit: {content}"
+    );
+
+    let log = stdout_of(clayers().args(["log"]).current_dir(&clone_dir));
+    assert!(
+        !log.contains("v2"),
+        "rejected pull must not advance the current branch ref: {log}"
+    );
+}
+
+#[test]
+fn pull_unstaged_tracked_edit_aborts_without_overwriting() {
+    let tmp = TempDir::new().unwrap();
+    let src = tmp.path().join("src");
+    let bare = tmp.path().join("bare.db");
+    let clone_dir = tmp.path().join("clone");
+
+    std::fs::create_dir_all(&src).unwrap();
+    clayers()
+        .args(["init"])
+        .current_dir(&src)
+        .assert()
+        .success();
+    std::fs::write(src.join("doc.xml"), "<root>v1</root>").unwrap();
+    clayers()
+        .args(["add", "doc.xml"])
+        .current_dir(&src)
+        .assert()
+        .success();
+    clayers()
+        .args(["commit", "-m", "v1"])
+        .envs(author_env())
+        .current_dir(&src)
+        .assert()
+        .success();
+    clayers()
+        .args(["init", "--bare", bare.to_str().unwrap()])
+        .assert()
+        .success();
+    clayers()
+        .args(["remote", "add", "origin", bare.to_str().unwrap()])
+        .current_dir(&src)
+        .assert()
+        .success();
+    clayers()
+        .args(["push", "origin"])
+        .current_dir(&src)
+        .assert()
+        .success();
+    clayers()
+        .args(["clone", bare.to_str().unwrap(), clone_dir.to_str().unwrap()])
+        .assert()
+        .success();
+
+    std::fs::write(src.join("doc.xml"), "<root>v2</root>").unwrap();
+    clayers()
+        .args(["add", "doc.xml"])
+        .current_dir(&src)
+        .assert()
+        .success();
+    clayers()
+        .args(["commit", "-m", "v2"])
+        .envs(author_env())
+        .current_dir(&src)
+        .assert()
+        .success();
+    clayers()
+        .args(["push", "origin"])
+        .current_dir(&src)
+        .assert()
+        .success();
+
+    std::fs::write(clone_dir.join("doc.xml"), "<root>local</root>").unwrap();
+
+    clayers()
+        .args(["pull", "origin"])
+        .current_dir(&clone_dir)
+        .assert()
+        .failure()
+        .stderr(predicates::str::contains("unstaged"));
+
+    let content = std::fs::read_to_string(clone_dir.join("doc.xml")).unwrap();
+    assert!(
+        content.contains("local"),
+        "pull must preserve the unstaged edit: {content}"
+    );
+}
+
+#[test]
+fn pull_untracked_target_file_aborts_before_ref_update() {
+    let tmp = TempDir::new().unwrap();
+    let src = tmp.path().join("src");
+    let bare = tmp.path().join("bare.db");
+    let clone_dir = tmp.path().join("clone");
+
+    std::fs::create_dir_all(&src).unwrap();
+    clayers()
+        .args(["init"])
+        .current_dir(&src)
+        .assert()
+        .success();
+    std::fs::write(src.join("doc.xml"), "<root>v1</root>").unwrap();
+    clayers()
+        .args(["add", "doc.xml"])
+        .current_dir(&src)
+        .assert()
+        .success();
+    clayers()
+        .args(["commit", "-m", "v1"])
+        .envs(author_env())
+        .current_dir(&src)
+        .assert()
+        .success();
+    clayers()
+        .args(["init", "--bare", bare.to_str().unwrap()])
+        .assert()
+        .success();
+    clayers()
+        .args(["remote", "add", "origin", bare.to_str().unwrap()])
+        .current_dir(&src)
+        .assert()
+        .success();
+    clayers()
+        .args(["push", "origin"])
+        .current_dir(&src)
+        .assert()
+        .success();
+    clayers()
+        .args(["clone", bare.to_str().unwrap(), clone_dir.to_str().unwrap()])
+        .assert()
+        .success();
+
+    std::fs::write(src.join("new.xml"), "<new>remote</new>").unwrap();
+    clayers()
+        .args(["add", "new.xml"])
+        .current_dir(&src)
+        .assert()
+        .success();
+    clayers()
+        .args(["commit", "-m", "add remote file"])
+        .envs(author_env())
+        .current_dir(&src)
+        .assert()
+        .success();
+    clayers()
+        .args(["push", "origin"])
+        .current_dir(&src)
+        .assert()
+        .success();
+
+    std::fs::write(clone_dir.join("new.xml"), "<new>local</new>").unwrap();
+
+    clayers()
+        .args(["pull", "origin"])
+        .current_dir(&clone_dir)
+        .assert()
+        .failure()
+        .stderr(predicates::str::contains("untracked"));
+
+    let content = std::fs::read_to_string(clone_dir.join("new.xml")).unwrap();
+    assert!(
+        content.contains("local"),
+        "pull must preserve the untracked file: {content}"
+    );
+
+    let log = stdout_of(clayers().args(["log"]).current_dir(&clone_dir));
+    assert!(
+        !log.contains("add remote file"),
+        "rejected pull must not advance the current branch ref: {log}"
+    );
+}
+
+#[test]
 fn push_pull_roundtrip() {
     let tmp = TempDir::new().unwrap();
     let src = tmp.path().join("src");
@@ -1383,7 +1703,11 @@ fn push_pull_roundtrip() {
     let clone_dir = tmp.path().join("cloned");
 
     std::fs::create_dir_all(&src).unwrap();
-    clayers().args(["init"]).current_dir(&src).assert().success();
+    clayers()
+        .args(["init"])
+        .current_dir(&src)
+        .assert()
+        .success();
     std::fs::write(src.join("doc.xml"), "<root>data</root>").unwrap();
     clayers()
         .args(["add", "doc.xml"])
@@ -1434,7 +1758,11 @@ fn clone_creates_working_copy() {
     let cloned = tmp.path().join("cloned");
 
     std::fs::create_dir_all(&src).unwrap();
-    clayers().args(["init"]).current_dir(&src).assert().success();
+    clayers()
+        .args(["init"])
+        .current_dir(&src)
+        .assert()
+        .success();
     std::fs::write(src.join("doc.xml"), "<root>hello</root>").unwrap();
     clayers()
         .args(["add", "doc.xml"])
@@ -1480,7 +1808,11 @@ fn clone_status_is_clean() {
     let cloned = tmp.path().join("cloned");
 
     std::fs::create_dir_all(&src).unwrap();
-    clayers().args(["init"]).current_dir(&src).assert().success();
+    clayers()
+        .args(["init"])
+        .current_dir(&src)
+        .assert()
+        .success();
     std::fs::write(src.join("doc.xml"), "<root>hello</root>").unwrap();
     clayers()
         .args(["add", "doc.xml"])
@@ -1530,7 +1862,11 @@ fn clone_preserves_history() {
     let cloned = tmp.path().join("cloned");
 
     std::fs::create_dir_all(&src).unwrap();
-    clayers().args(["init"]).current_dir(&src).assert().success();
+    clayers()
+        .args(["init"])
+        .current_dir(&src)
+        .assert()
+        .success();
     std::fs::write(src.join("doc.xml"), "<r/>").unwrap();
     clayers()
         .args(["add", "doc.xml"])
@@ -1579,7 +1915,11 @@ fn clone_sets_origin() {
     let cloned = tmp.path().join("cloned");
 
     std::fs::create_dir_all(&src).unwrap();
-    clayers().args(["init"]).current_dir(&src).assert().success();
+    clayers()
+        .args(["init"])
+        .current_dir(&src)
+        .assert()
+        .success();
     std::fs::write(src.join("doc.xml"), "<r/>").unwrap();
     clayers()
         .args(["add", "."])
@@ -1774,8 +2114,14 @@ fn query_count_mode() {
             .current_dir(tmp.path()),
     );
     // Per-document counts with file headers.
-    assert!(out.contains("--- a.xml ---"), "should show a.xml header: {out}");
-    assert!(out.contains("--- b.xml ---"), "should show b.xml header: {out}");
+    assert!(
+        out.contains("--- a.xml ---"),
+        "should show a.xml header: {out}"
+    );
+    assert!(
+        out.contains("--- b.xml ---"),
+        "should show b.xml header: {out}"
+    );
     assert!(out.contains('2'), "a.xml should have 2 items: {out}");
     assert!(out.contains('1'), "b.xml should have 1 item: {out}");
 }
@@ -1814,10 +2160,7 @@ fn query_spec_fallback() {
     std::fs::create_dir_all(&spec_dir).unwrap();
 
     // Should fail gracefully (not a valid spec) but not panic.
-    let err = stderr_of(
-        clayers()
-            .args(["query", spec_dir.to_str().unwrap(), "//test"]),
-    );
+    let err = stderr_of(clayers().args(["query", spec_dir.to_str().unwrap(), "//test"]));
     assert!(
         !err.contains("panic"),
         "should not panic on spec fallback: {err}"
@@ -1836,7 +2179,11 @@ fn full_workflow() {
     let clone_dir = path.join("cloned");
 
     // 1. Init.
-    clayers().args(["init"]).current_dir(path).assert().success();
+    clayers()
+        .args(["init"])
+        .current_dir(path)
+        .assert()
+        .success();
 
     // 2. Write, add, commit.
     std::fs::write(path.join("a.xml"), "<a><child>one</child></a>").unwrap();
@@ -1947,7 +2294,11 @@ fn checkout_preserves_multi_namespace_xml() {
     // during checkout: an element whose attributes share the element's namespace.
     let tmp = TempDir::new().unwrap();
     let path = tmp.path();
-    clayers().args(["init"]).current_dir(path).assert().success();
+    clayers()
+        .args(["init"])
+        .current_dir(path)
+        .assert()
+        .success();
 
     let xml = r#"<spec:clayers xmlns:spec="urn:clayers:spec" xmlns:pr="urn:clayers:prose" spec:index="index.xml"><pr:section id="s1"><pr:title>Hello</pr:title></pr:section></spec:clayers>"#;
     std::fs::write(path.join("doc.xml"), xml).unwrap();
@@ -2001,7 +2352,10 @@ fn xml_with_comments_and_pis() {
 fn diff_no_changes_empty_output() {
     let tmp = setup_committed_repo(&[("doc.xml", "<root>hello</root>")]);
     let out = stdout_of(clayers().args(["diff"]).current_dir(tmp.path()));
-    assert!(out.trim().is_empty(), "clean repo diff should be empty: {out}");
+    assert!(
+        out.trim().is_empty(),
+        "clean repo diff should be empty: {out}"
+    );
 }
 
 #[test]
@@ -2053,10 +2407,7 @@ fn diff_between_branches() {
 
 #[test]
 fn diff_file_added_removed_between_branches() {
-    let tmp = setup_committed_repo(&[
-        ("a.xml", "<a>one</a>"),
-        ("b.xml", "<b>two</b>"),
-    ]);
+    let tmp = setup_committed_repo(&[("a.xml", "<a>one</a>"), ("b.xml", "<b>two</b>")]);
 
     clayers()
         .args(["checkout", "-b", "change"])
@@ -2081,8 +2432,15 @@ fn diff_file_added_removed_between_branches() {
         .assert()
         .success();
 
-    let out = stdout_of(clayers().args(["diff", "main", "change"]).current_dir(tmp.path()));
-    assert!(out.contains("added") || out.contains("c.xml"), "should show c.xml added: {out}");
+    let out = stdout_of(
+        clayers()
+            .args(["diff", "main", "change"])
+            .current_dir(tmp.path()),
+    );
+    assert!(
+        out.contains("added") || out.contains("c.xml"),
+        "should show c.xml added: {out}"
+    );
     assert!(
         out.contains("deleted") || out.contains("b.xml"),
         "should show b.xml removed: {out}"
@@ -2171,10 +2529,7 @@ fn diff_json_between_branches() {
 
 #[test]
 fn diff_json_added_deleted_files() {
-    let tmp = setup_committed_repo(&[
-        ("a.xml", "<a>one</a>"),
-        ("b.xml", "<b>two</b>"),
-    ]);
+    let tmp = setup_committed_repo(&[("a.xml", "<a>one</a>"), ("b.xml", "<b>two</b>")]);
 
     clayers()
         .args(["checkout", "-b", "change"])
@@ -2208,18 +2563,24 @@ fn diff_json_added_deleted_files() {
 
     let files = v["files"].as_array().unwrap();
     assert!(
-        files.iter().any(|f| f["status"] == "added" && f["path"] == "c.xml"),
+        files
+            .iter()
+            .any(|f| f["status"] == "added" && f["path"] == "c.xml"),
         "c.xml should be added: {files:?}"
     );
     assert!(
-        files.iter().any(|f| f["status"] == "deleted" && f["path"] == "b.xml"),
+        files
+            .iter()
+            .any(|f| f["status"] == "deleted" && f["path"] == "b.xml"),
         "b.xml should be deleted: {files:?}"
     );
     // Added/deleted files should not have changes field.
     for f in files {
         if f["status"] == "added" || f["status"] == "deleted" {
-            assert!(f.get("changes").is_none() || f["changes"].is_null(),
-                "added/deleted files should not have changes: {f}");
+            assert!(
+                f.get("changes").is_none() || f["changes"].is_null(),
+                "added/deleted files should not have changes: {f}"
+            );
         }
     }
 }
@@ -2344,10 +2705,7 @@ fn merge_fast_forward() {
             .envs(author_env())
             .current_dir(path),
     );
-    assert!(
-        out.contains("Fast-forward"),
-        "should fast-forward: {out}"
-    );
+    assert!(out.contains("Fast-forward"), "should fast-forward: {out}");
     // Merge output should show a full content hash.
     assert!(
         out.contains("sha256:"),
@@ -2366,10 +2724,7 @@ fn merge_fast_forward() {
 fn merge_non_overlapping_auto() {
     // main changes a.xml, feature changes b.xml. Should auto-merge.
     let tmp = setup_divergent_branches(
-        &[
-            ("a.xml", "<a>base</a>"),
-            ("b.xml", "<b>base</b>"),
-        ],
+        &[("a.xml", "<a>base</a>"), ("b.xml", "<b>base</b>")],
         &[("a.xml", "<a>main-edit</a>")],
         &[("b.xml", "<b>feature-edit</b>")],
     );
@@ -2390,10 +2745,7 @@ fn merge_non_overlapping_auto() {
         out.contains("sha256:"),
         "merge output should show full content hash, got: {out}"
     );
-    assert!(
-        !out.contains("CONFLICT"),
-        "should not conflict: {out}"
-    );
+    assert!(!out.contains("CONFLICT"), "should not conflict: {out}");
 
     // Both changes should be present.
     let a = std::fs::read_to_string(path.join("a.xml")).unwrap();
@@ -2402,11 +2754,7 @@ fn merge_non_overlapping_auto() {
     assert!(b.contains("feature-edit"), "b.xml: {b}");
 
     // Merge commit should have two parents (verify via log).
-    let log = stdout_of(
-        clayers()
-            .args(["log", "-n", "1"])
-            .current_dir(path),
-    );
+    let log = stdout_of(clayers().args(["log", "-n", "1"]).current_dir(path));
     assert!(
         log.contains("Merge branch"),
         "commit message should mention merge: {log}"
@@ -2438,10 +2786,7 @@ fn merge_conflict_creates_sidecar_divergence() {
         !output.status.success(),
         "should exit non-zero on conflicts. stdout: {out}, stderr: {err}"
     );
-    assert!(
-        out.contains("CONFLICT"),
-        "should report conflict: {out}"
-    );
+    assert!(out.contains("CONFLICT"), "should report conflict: {out}");
     assert!(
         out.contains(".clayers/divergence/"),
         "should show divergence path: {out}"
@@ -2464,10 +2809,13 @@ fn merge_conflict_creates_sidecar_divergence() {
         .unwrap()
         .filter_map(Result::ok)
         .collect();
-    assert_eq!(div_files.len(), 1, "should have exactly one divergence file");
+    assert_eq!(
+        div_files.len(),
+        1,
+        "should have exactly one divergence file"
+    );
 
-    let div_content =
-        std::fs::read_to_string(div_files[0].path()).unwrap();
+    let div_content = std::fs::read_to_string(div_files[0].path()).unwrap();
     assert!(
         div_content.contains("divergence"),
         "divergence file should contain divergence element: {div_content}"
@@ -2541,10 +2889,7 @@ fn merge_up_to_date() {
             .envs(author_env())
             .current_dir(path),
     );
-    assert!(
-        out.contains("up to date"),
-        "should be up to date: {out}"
-    );
+    assert!(out.contains("up to date"), "should be up to date: {out}");
 }
 
 #[test]
@@ -2657,18 +3002,9 @@ fn merge_commit_visible_in_log() {
 fn merge_multiple_conflicts() {
     // Both branches change two different files. Both should conflict.
     let tmp = setup_divergent_branches(
-        &[
-            ("a.xml", "<a>base</a>"),
-            ("b.xml", "<b>base</b>"),
-        ],
-        &[
-            ("a.xml", "<a>main-a</a>"),
-            ("b.xml", "<b>main-b</b>"),
-        ],
-        &[
-            ("a.xml", "<a>feat-a</a>"),
-            ("b.xml", "<b>feat-b</b>"),
-        ],
+        &[("a.xml", "<a>base</a>"), ("b.xml", "<b>base</b>")],
+        &[("a.xml", "<a>main-a</a>"), ("b.xml", "<b>main-b</b>")],
+        &[("a.xml", "<a>feat-a</a>"), ("b.xml", "<b>feat-b</b>")],
     );
     let path = tmp.path();
 
@@ -2874,10 +3210,7 @@ fn merge_auto_element_level_non_overlapping() {
 #[test]
 fn merge_file_deleted_on_feature_unchanged_on_main() {
     // Feature deletes b.xml. Main doesn't touch it. After merge, b.xml should be gone.
-    let tmp = setup_committed_repo(&[
-        ("a.xml", "<a>shared</a>"),
-        ("b.xml", "<b>to-delete</b>"),
-    ]);
+    let tmp = setup_committed_repo(&[("a.xml", "<a>shared</a>"), ("b.xml", "<b>to-delete</b>")]);
     let path = tmp.path();
 
     // Create feature, remove b.xml.

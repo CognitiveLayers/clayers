@@ -3,12 +3,12 @@
 use std::path::Path;
 
 use anyhow::{Context, Result, bail};
+use clayers_repo::refs::get_branch;
 use clayers_repo::{ObjectStore, RefStore, SqliteStore};
 use clayers_xml::ContentHash;
-use clayers_repo::refs::get_branch;
 
-use super::{block_on, discover_repo, open_cli_db};
 use super::schema::{get_meta, set_meta};
+use super::{block_on, discover_repo, open_cli_db};
 
 /// List, create, or delete branches.
 ///
@@ -34,7 +34,9 @@ pub fn cmd_branch(name: Option<&str>, delete: Option<&str>) -> Result<()> {
         block_on(async move {
             let store = SqliteStore::open(&db_path)?;
             let repo = clayers_repo::Repo::init(store);
-            repo.delete_branch(&del_owned).await.with_context(|| format!("failed to delete branch '{del_owned}'"))?;
+            repo.delete_branch(&del_owned)
+                .await
+                .with_context(|| format!("failed to delete branch '{del_owned}'"))?;
             Ok(())
         })?;
         println!("Deleted branch '{del}'");
@@ -78,7 +80,7 @@ pub fn cmd_branch(name: Option<&str>, delete: Option<&str>) -> Result<()> {
 
 /// Switch to a different branch (optionally creating it with `-b`).
 ///
-/// Checks for a dirty staging area before switching.
+/// Checks for staged and unstaged tracked changes before switching.
 ///
 /// # Errors
 ///
@@ -88,30 +90,19 @@ pub fn cmd_checkout(branch: &str, create: bool, orphan: bool) -> Result<()> {
     let (repo_root, db_path) = discover_repo(&cwd)?;
     let conn = open_cli_db(&db_path)?;
 
-    // Check for uncommitted staged changes.
-    let staged_count: i64 = conn
-        .query_row("SELECT COUNT(*) FROM staging", [], |row| row.get(0))
-        .context("failed to check staging")?;
-    if staged_count > 0 {
-        bail!(
-            "cannot checkout: you have {staged_count} staged change(s). \
-             Commit or revert them first."
-        );
-    }
-
     let current = get_meta(&conn, "current_branch")?.unwrap_or_else(|| "main".into());
     if branch == current && !create && !orphan {
         println!("Already on '{branch}'");
         return Ok(());
     }
 
+    super::staging::ensure_clean_working_copy(&conn, &db_path, &repo_root, "checkout")?;
+
     if orphan {
         // Orphan branch: switch to a new branch with no history.
         // Remove all tracked files from disk, clear working_copy table.
         // The next commit on this branch will be a root commit (no parents).
-        super::init::export_working_copy_with_old(
-            &db_path, &repo_root, branch, Some(&current),
-        )?;
+        super::init::export_working_copy_with_old(&db_path, &repo_root, branch, Some(&current))?;
 
         // Clear working_copy (orphan has no tree yet).
         conn.execute("DELETE FROM working_copy", [])
@@ -135,12 +126,14 @@ pub fn cmd_checkout(branch: &str, create: bool, orphan: bool) -> Result<()> {
 
         if create {
             // Get current HEAD hash.
-            let tip = get_branch(&store, &current).await
+            let tip = get_branch(&store, &current)
+                .await
                 .map_err(|e| anyhow::anyhow!(e))?;
             match tip {
                 Some(h) => {
                     let repo = clayers_repo::Repo::init(store);
-                    repo.create_branch(&branch_owned, h).await
+                    repo.create_branch(&branch_owned, h)
+                        .await
                         .with_context(|| format!("failed to create branch '{branch_owned}'"))?;
                 }
                 None => {
@@ -162,7 +155,10 @@ pub fn cmd_checkout(branch: &str, create: bool, orphan: bool) -> Result<()> {
 
     // Export tree to disk, removing files from old branch not in new branch.
     super::init::export_working_copy_with_old(
-        &db_path, &repo_root, branch, Some(&current_for_export),
+        &db_path,
+        &repo_root,
+        branch,
+        Some(&current_for_export),
     )?;
 
     // Update current_branch.
@@ -223,14 +219,23 @@ pub fn refresh_working_copy_table(
 
     let entries: Vec<(String, ContentHash)> = block_on(async move {
         let store = SqliteStore::open(&db_path)?;
-        let Some(tip) = get_branch(&store, &branch).await? else { return Ok(vec![]) };
-        let Some(obj) = store.get(&tip).await? else { return Ok(vec![]) };
+        let Some(tip) = get_branch(&store, &branch).await? else {
+            return Ok(vec![]);
+        };
+        let Some(obj) = store.get(&tip).await? else {
+            return Ok(vec![]);
+        };
         let tree_hash = match obj {
             clayers_repo::object::Object::Commit(c) => c.tree,
             _ => return Ok(vec![]),
         };
-        let Some(clayers_repo::object::Object::Tree(tree_obj)) = store.get(&tree_hash).await? else { return Ok(vec![]) };
-        Ok(tree_obj.entries.iter()
+        let Some(clayers_repo::object::Object::Tree(tree_obj)) = store.get(&tree_hash).await?
+        else {
+            return Ok(vec![]);
+        };
+        Ok(tree_obj
+            .entries
+            .iter()
             .map(|e| (e.path.clone(), e.document))
             .collect::<Vec<_>>())
     })?;
@@ -246,4 +251,3 @@ pub fn refresh_working_copy_table(
     }
     Ok(())
 }
-

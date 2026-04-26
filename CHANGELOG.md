@@ -32,6 +32,12 @@ fixes and additions.
   round-trips without the text node being replaced by a duplicate
   comment. Text leaves keep the legacy raw-payload hash domain, so
   existing text-only repository objects do not require migration.
+- **Checkout and pull now protect local working-copy edits.**
+  CLI branch/pull updates fail before rewriting files when tracked
+  files have staged or unstaged local changes, and the export path
+  refuses to overwrite untracked files at target paths. Pull preflights
+  those target paths before syncing refs, so rejected pulls do not
+  advance the current branch.
 
 ## [0.2.1] - 2026-04-18
 

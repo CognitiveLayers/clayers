@@ -436,6 +436,35 @@ repo = Repo(SqliteStore.open("my-project.db"))
     same, not when two XML node kinds happen to share payload bytes.</pr:p>
   </pr:section>
 
+  <pr:section id="repository-working-copy-safety">
+    <pr:title>Repository Working Copy Safety</pr:title>
+    <pr:shortdesc>Checkout and pull refuse to overwrite local working-copy
+    edits.</pr:shortdesc>
+
+    <pr:p>The CLI repository commands keep a <pr:code>working_copy</pr:code>
+    table that records the document hash last written for each tracked file.
+    Any operation that rewrites the working tree from repository objects, such
+    as checkout or pull, must compare tracked files on disk with those recorded
+    hashes before removing or overwriting files. Staged changes, unstaged
+    tracked modifications, and unstaged tracked deletions are local work and
+    must cause the command to fail before the working tree is rewritten.</pr:p>
+
+    <pr:p>The export step must also protect untracked files at paths that the
+    target tree would write or remove. If a path exists on disk but is not
+    recorded as a clean tracked file in <pr:code>working_copy</pr:code>, the
+    export must fail instead of replacing it with repository content. Clone and
+    first pull into an empty directory can still write new files because no
+    existing local file is being replaced.</pr:p>
+
+    <pr:p>Pull must run the dirty-working-copy guard before synchronizing
+    remote refs, then preflight the remote current-branch tree against local
+    target paths before calling ref synchronization. A rejected pull therefore
+    does not advance local branch refs while leaving the disk on the old
+    content. Checkout must run the same dirty-working-copy guard before
+    creating or switching branches. These checks make branch movement
+    fail-fast and preserve the user's local edits.</pr:p>
+  </pr:section>
+
   <pr:section id="python-error-hierarchy">
     <pr:title>Error Hierarchy</pr:title>
     <pr:shortdesc>How Rust errors map to Python exceptions.</pr:shortdesc>
@@ -536,6 +565,11 @@ print(count_terms(repo))</pr:codeblock>
     content-addressed repository DAG.</org:purpose>
   </org:concept>
 
+  <org:concept ref="repository-working-copy-safety">
+    <org:purpose>Understanding safety checks that prevent checkout and pull
+    from overwriting local working-copy edits.</org:purpose>
+  </org:concept>
+
   <org:concept ref="python-error-hierarchy">
     <org:purpose>Understanding how Rust errors propagate as typed Python
     exceptions.</org:purpose>
@@ -631,6 +665,17 @@ print(count_terms(repo))</pr:codeblock>
   <rel:relation type="depends-on" from="repository-leaf-hashing" to="py-content-hash">
     <rel:note>Repository leaf identities are represented as ContentHash
     values in the public API.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="python-repo-api" to="repository-working-copy-safety">
+    <rel:note>Repository branch and remote operations exposed by the CLI must
+    preserve local working-copy edits while moving repository refs and
+    trees.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="repository-working-copy-safety" to="py-content-hash">
+    <rel:note>Working-copy safety compares on-disk XML imports against
+    recorded ContentHash values before allowing destructive writes.</rel:note>
   </rel:relation>
 
   <rel:relation type="refines" from="python-module-structure" to="python-integration">
@@ -1240,6 +1285,19 @@ print(count_terms(repo))</pr:codeblock>
     the store.
   </llm:node>
 
+  <llm:node ref="repository-working-copy-safety">
+    Checkout, orphan checkout, and pull are destructive working-tree update
+    operations: they remove files from the previous tree and write files from
+    the target tree. They must fail before changing the working tree when the
+    repository has staged changes, unstaged tracked modifications, or unstaged
+    tracked deletions. The export path also refuses to overwrite or remove an
+    existing untracked file at a path owned by the target operation. Dirty
+    detection uses the CLI working_copy table's stored document hashes and
+    re-imports on-disk XML to compare current content against those hashes.
+    Pull performs the guard before remote ref synchronization so a rejected
+    pull does not advance refs while leaving the disk unchanged.
+  </llm:node>
+
   <llm:node ref="python-error-hierarchy">
     Describes the exception hierarchy using py:exception elements.
     ClayersError (base, extends Exception) with XmlError, SpecError,
@@ -1347,6 +1405,88 @@ print(count_terms(repo))</pr:codeblock>
     <art:coverage>full</art:coverage>
     <art:note>Regression coverage for equal text/comment payloads in mixed
     content round-trips.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-repository-working-copy-safety-guard">
+    <art:spec-ref node="repository-working-copy-safety"
+              revision="draft-1"
+              node-hash="sha256:e7307347903c9ee4a782b682e5c033ed499ddcdf4f118da8e29ca9d509d46cb3"/>
+    <art:artifact repo="repo-clayers"
+              repo-revision="HEAD"
+              path="crates/clayers/src/repo/staging.rs">
+      <art:range hash="sha256:9178d2575f61fc696f91c22db50415df8dc19f69e01341381448a60223c44c09"
+                 start-line="242" end-line="286"/>
+      <art:range hash="sha256:6680d04bb9b0ffa98ddf711e2669f8ab3d6442505642168c2b4b263c850f0167"
+                 start-line="321" end-line="392"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Dirty working-copy guard that checks staged changes and
+    unstaged tracked modifications/deletions against stored document
+    hashes.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-repository-working-copy-safety-branch">
+    <art:spec-ref node="repository-working-copy-safety"
+              revision="draft-1"
+              node-hash="sha256:e7307347903c9ee4a782b682e5c033ed499ddcdf4f118da8e29ca9d509d46cb3"/>
+    <art:artifact repo="repo-clayers"
+              repo-revision="HEAD"
+              path="crates/clayers/src/repo/branch.rs">
+      <art:range hash="sha256:503aa8c22ea5e511ee617d3fa4f6db413f4363b5f05c54e1b2a3d7b5d7efbf91"
+                 start-line="93" end-line="99"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Checkout invokes the dirty working-copy guard before branch
+    creation or switching.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-repository-working-copy-safety-pull">
+    <art:spec-ref node="repository-working-copy-safety"
+              revision="draft-1"
+              node-hash="sha256:e7307347903c9ee4a782b682e5c033ed499ddcdf4f118da8e29ca9d509d46cb3"/>
+    <art:artifact repo="repo-clayers"
+              repo-revision="HEAD"
+              path="crates/clayers/src/repo/remote.rs">
+      <art:range hash="sha256:56eeda3774113d2055278c06826bd85447a9ba5ccd2e926721de44fa5adc7115"
+                 start-line="208" end-line="248"/>
+      <art:range hash="sha256:e45e6ca7d55386bb9d855bc2fbe68860a8644373abac1c16ea99be1baa7911c6"
+                 start-line="268" end-line="308"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Pull invokes dirty and target-tree working-copy guards before
+    remote ref synchronization.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-repository-working-copy-safety-export">
+    <art:spec-ref node="repository-working-copy-safety"
+              revision="draft-1"
+              node-hash="sha256:e7307347903c9ee4a782b682e5c033ed499ddcdf4f118da8e29ca9d509d46cb3"/>
+    <art:artifact repo="repo-clayers"
+              repo-revision="HEAD"
+              path="crates/clayers/src/repo/init.rs">
+      <art:range hash="sha256:34c5e2377c177c13d2518be8f5d8058825ee79df265f3b25af4b99dee56940fa"
+                 start-line="220" end-line="319"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Working-copy export refuses to remove or overwrite dirty
+    tracked files and untracked files at target paths.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-repository-working-copy-safety-tests">
+    <art:spec-ref node="repository-working-copy-safety"
+              revision="draft-1"
+              node-hash="sha256:e7307347903c9ee4a782b682e5c033ed499ddcdf4f118da8e29ca9d509d46cb3"/>
+    <art:artifact repo="repo-clayers"
+              repo-revision="HEAD"
+              path="crates/clayers/tests/cli_integration.rs">
+      <art:range hash="sha256:2da7ddc3fa1d855ce19e152a8b1a77e24fbe20106732513c69362a8ce78b8ad6"
+                 start-line="825" end-line="911"/>
+      <art:range hash="sha256:378cc6153635bc658216957c5671c3fd85222de3a2d51cc337a5d14c4114dde6"
+                 start-line="1448" end-line="1696"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Regression tests proving checkout and pull fail without
+    overwriting staged or unstaged tracked edits, or untracked target files.</art:note>
   </art:mapping>
 
   <art:mapping id="map-term-knowledge-model">

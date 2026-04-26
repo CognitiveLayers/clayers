@@ -6,8 +6,8 @@ use anyhow::{Context, Result, bail};
 use clayers_repo::SqliteStore;
 use clayers_xml::ContentHash;
 
-use super::{block_on, discover_repo, open_cli_db};
 use super::schema::get_meta;
+use super::{block_on, discover_repo, open_cli_db};
 
 /// Stage files for the next commit.
 ///
@@ -54,8 +54,7 @@ pub fn cmd_add(files: &[PathBuf]) -> Result<()> {
             };
 
             // Determine action: add vs modify.
-            let action = get_working_copy_hash(&conn, &rel_path)?
-                .map_or("add", |_| "modify");
+            let action = get_working_copy_hash(&conn, &rel_path)?.map_or("add", |_| "modify");
 
             let hash_bytes = doc_hash.0.as_slice();
             conn.execute(
@@ -157,7 +156,8 @@ pub fn cmd_status() -> Result<()> {
 
     // Scan directory for XML files.
     let xml_files = collect_xml_files(&repo_root)?;
-    let staged_paths: std::collections::HashSet<_> = staged.iter().map(|(p, _)| p.clone()).collect();
+    let staged_paths: std::collections::HashSet<_> =
+        staged.iter().map(|(p, _)| p.clone()).collect();
 
     // Collect file paths that need hash comparison, then do them all in one block_on.
     let mut to_check: Vec<(String, Vec<u8>, std::path::PathBuf)> = Vec::new();
@@ -190,8 +190,7 @@ pub fn cmd_status() -> Result<()> {
     if !to_check.is_empty() {
         let db_path_clone = db_path.clone();
         let check_results: Vec<(String, bool)> = block_on(async move {
-            let store = SqliteStore::open(&db_path_clone)
-                .map_err(|e| anyhow::anyhow!("{e}"))?;
+            let store = SqliteStore::open(&db_path_clone).map_err(|e| anyhow::anyhow!("{e}"))?;
             let mut results = Vec::new();
             for (rel_path, stored_bytes, abs_path) in &to_check {
                 let Ok(xml) = std::fs::read_to_string(abs_path) else {
@@ -239,14 +238,58 @@ pub fn cmd_status() -> Result<()> {
     Ok(())
 }
 
+/// Fail if tracked local work would be overwritten by a repository operation.
+///
+/// This checks staged changes plus unstaged modifications/deletions of tracked
+/// files recorded in the CLI `working_copy` table. Untracked obstruction checks
+/// live in the export path because they depend on the target tree paths.
+pub fn ensure_clean_working_copy(
+    conn: &rusqlite::Connection,
+    db_path: &Path,
+    repo_root: &Path,
+    operation: &str,
+) -> Result<()> {
+    let staged_count: i64 = conn
+        .query_row("SELECT COUNT(*) FROM staging", [], |row| row.get(0))
+        .context("failed to check staging")?;
+    if staged_count > 0 {
+        bail!(
+            "cannot {operation}: you have {staged_count} staged change(s). \
+             Commit or revert them first."
+        );
+    }
+
+    let dirty = unstaged_tracked_changes(conn, db_path, repo_root)?;
+    if !dirty.is_empty() {
+        bail!(
+            "cannot {operation}: you have unstaged change(s): {}. \
+             Commit, stage, or revert them first.",
+            dirty.join(", ")
+        );
+    }
+
+    Ok(())
+}
+
+/// Get tracked working-copy file hashes.
+pub fn get_tracked_working_copy_hashes(
+    conn: &rusqlite::Connection,
+) -> Result<std::collections::HashMap<String, ContentHash>> {
+    let working_copy = get_all_working_copy(conn)?;
+    let mut result = std::collections::HashMap::new();
+    for (path, hash) in working_copy {
+        if let Some(hash_bytes) = hash {
+            result.insert(path, content_hash_from_bytes(&hash_bytes));
+        }
+    }
+    Ok(result)
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-fn get_working_copy_hash(
-    conn: &rusqlite::Connection,
-    file_path: &str,
-) -> Result<Option<Vec<u8>>> {
+fn get_working_copy_hash(conn: &rusqlite::Connection, file_path: &str) -> Result<Option<Vec<u8>>> {
     let result = conn.query_row(
         "SELECT doc_hash FROM working_copy WHERE file_path = ?1",
         rusqlite::params![file_path],
@@ -264,7 +307,9 @@ fn get_staged_entries(conn: &rusqlite::Connection) -> Result<Vec<(String, String
         .prepare("SELECT file_path, action FROM staging ORDER BY file_path")
         .context("failed to query staging")?;
     let rows = stmt
-        .query_map([], |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)))
+        .query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })
         .context("failed to iterate staging")?;
     let mut result = Vec::new();
     for row in rows {
@@ -281,10 +326,7 @@ fn get_all_working_copy(
         .context("failed to query working_copy")?;
     let rows = stmt
         .query_map([], |row| {
-            Ok((
-                row.get::<_, String>(0)?,
-                row.get::<_, Option<Vec<u8>>>(1)?,
-            ))
+            Ok((row.get::<_, String>(0)?, row.get::<_, Option<Vec<u8>>>(1)?))
         })
         .context("failed to iterate working_copy")?;
     let mut map = std::collections::HashMap::new();
@@ -295,6 +337,60 @@ fn get_all_working_copy(
     Ok(map)
 }
 
+fn content_hash_from_bytes(hash_bytes: &[u8]) -> ContentHash {
+    let mut arr = [0u8; 32];
+    arr.copy_from_slice(&hash_bytes[..32.min(hash_bytes.len())]);
+    ContentHash(arr)
+}
+
+fn unstaged_tracked_changes(
+    conn: &rusqlite::Connection,
+    db_path: &Path,
+    repo_root: &Path,
+) -> Result<Vec<String>> {
+    let working_copy = get_all_working_copy(conn)?;
+    let mut dirty = Vec::new();
+    let mut to_check = Vec::new();
+
+    for (rel_path, stored_hash) in working_copy {
+        let Some(stored_hash) = stored_hash else {
+            dirty.push(rel_path);
+            continue;
+        };
+        let abs_path = repo_root.join(&rel_path);
+        if !abs_path.exists() || !abs_path.is_file() {
+            dirty.push(rel_path);
+            continue;
+        }
+        to_check.push((rel_path, content_hash_from_bytes(&stored_hash), abs_path));
+    }
+
+    if to_check.is_empty() {
+        return Ok(dirty);
+    }
+
+    let db_path = db_path.to_path_buf();
+    let changed: Vec<String> = block_on(async move {
+        let store = SqliteStore::open(&db_path)?;
+        let mut changed = Vec::new();
+        for (rel_path, stored_hash, abs_path) in to_check {
+            let Ok(xml) = std::fs::read_to_string(&abs_path) else {
+                changed.push(rel_path);
+                continue;
+            };
+            match clayers_repo::import::import_xml(&store, &xml).await {
+                Ok(current_hash) if current_hash == stored_hash => {}
+                _ => changed.push(rel_path),
+            }
+        }
+        Ok(changed)
+    })?;
+
+    dirty.extend(changed);
+    dirty.sort();
+    Ok(dirty)
+}
+
 pub fn collect_xml_files(root: &Path) -> Result<Vec<PathBuf>> {
     let mut files = Vec::new();
     collect_xml_recursive(root, root, &mut files)?;
@@ -302,11 +398,7 @@ pub fn collect_xml_files(root: &Path) -> Result<Vec<PathBuf>> {
 }
 
 #[allow(clippy::only_used_in_recursion)]
-fn collect_xml_recursive(
-    root: &Path,
-    dir: &Path,
-    files: &mut Vec<PathBuf>,
-) -> Result<()> {
+fn collect_xml_recursive(root: &Path, dir: &Path, files: &mut Vec<PathBuf>) -> Result<()> {
     let entries = std::fs::read_dir(dir).context("failed to read directory")?;
     for entry in entries {
         let entry = entry.context("failed to read dir entry")?;
@@ -418,10 +510,7 @@ pub fn get_all_working_copy_hashes(
         .context("failed to query working_copy")?;
     let rows = stmt
         .query_map([], |row| {
-            Ok((
-                row.get::<_, String>(0)?,
-                row.get::<_, Vec<u8>>(1)?,
-            ))
+            Ok((row.get::<_, String>(0)?, row.get::<_, Vec<u8>>(1)?))
         })
         .context("failed to iterate working_copy")?;
     let mut result = Vec::new();

@@ -1,11 +1,13 @@
 //! `init` and `clone` command implementations.
 
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, bail};
 use clayers_repo::SqliteStore;
 use clayers_repo::refs::HEADS_PREFIX;
 use clayers_repo::sync::{FastForwardOnly, sync_refs};
+use clayers_xml::ContentHash;
 
 use super::remote::{RemoteTarget, open_remote, parse_remote_url};
 use super::schema::init_cli_schema;
@@ -60,7 +62,8 @@ pub fn cmd_init_bare(db_path: &Path) -> Result<()> {
 
     // Create parent directory if needed.
     if let Some(parent) = db_path.parent()
-        && !parent.exists() {
+        && !parent.exists()
+    {
         std::fs::create_dir_all(parent)
             .with_context(|| format!("failed to create directory {}", parent.display()))?;
     }
@@ -74,7 +77,10 @@ pub fn cmd_init_bare(db_path: &Path) -> Result<()> {
     let conn = open_cli_db(db_path)?;
     init_cli_schema(&conn, true)?;
 
-    println!("Initialized bare clayers repository at {}", db_path.display());
+    println!(
+        "Initialized bare clayers repository at {}",
+        db_path.display()
+    );
     Ok(())
 }
 
@@ -200,11 +206,7 @@ fn find_default_branch(db_path: &Path) -> Result<Option<String>> {
 ///
 /// Removes files from the old tree that aren't in the new tree,
 /// and writes/overwrites files from the new tree (like `git checkout`).
-pub(crate) fn export_working_copy(
-    db_path: &Path,
-    working_dir: &Path,
-    branch: &str,
-) -> Result<()> {
+pub(crate) fn export_working_copy(db_path: &Path, working_dir: &Path, branch: &str) -> Result<()> {
     export_working_copy_with_old(db_path, working_dir, branch, None)
 }
 
@@ -215,6 +217,8 @@ pub(crate) fn export_working_copy_with_old(
     branch: &str,
     old_branch: Option<&str>,
 ) -> Result<()> {
+    let conn = open_cli_db(db_path)?;
+    let tracked_hashes = super::staging::get_tracked_working_copy_hashes(&conn)?;
     let branch = branch.to_string();
     let old_branch = old_branch.map(String::from);
     let db_path = db_path.to_path_buf();
@@ -249,6 +253,8 @@ pub(crate) fn export_working_copy_with_old(
         // Remove files from old tree that aren't in new tree.
         for old_path in &old_paths {
             if !new_paths.contains(old_path) {
+                ensure_export_path_safe(&store, &working_dir, &tracked_hashes, old_path, "removed")
+                    .await?;
                 let file_path = working_dir.join(old_path);
                 if file_path.exists() {
                     std::fs::remove_file(&file_path).ok();
@@ -258,6 +264,8 @@ pub(crate) fn export_working_copy_with_old(
 
         // Write new tree files.
         for (path, xml) in &files {
+            ensure_export_path_safe(&store, &working_dir, &tracked_hashes, path, "overwritten")
+                .await?;
             let file_path = working_dir.join(path);
             if let Some(parent) = file_path.parent() {
                 std::fs::create_dir_all(parent)?;
@@ -267,4 +275,45 @@ pub(crate) fn export_working_copy_with_old(
 
         Ok(())
     })
+}
+
+async fn ensure_export_path_safe(
+    store: &SqliteStore,
+    working_dir: &Path,
+    tracked_hashes: &HashMap<String, ContentHash>,
+    rel_path: &str,
+    effect: &str,
+) -> Result<()> {
+    let file_path = working_dir.join(rel_path);
+    let Some(expected_hash) = tracked_hashes.get(rel_path) else {
+        if file_path.exists() {
+            bail!("cannot update working copy: untracked file would be {effect}: {rel_path}");
+        }
+        return Ok(());
+    };
+
+    if !file_path.exists() || !file_path.is_file() {
+        bail!("cannot update working copy: unstaged deletion would be {effect}: {rel_path}");
+    }
+
+    let Ok(xml) = std::fs::read_to_string(&file_path) else {
+        bail!("cannot update working copy: unreadable tracked file would be {effect}: {rel_path}");
+    };
+    match clayers_repo::import::import_xml(store, &xml).await {
+        Ok(current_hash) if &current_hash == expected_hash => Ok(()),
+        _ => bail!("cannot update working copy: unstaged change would be {effect}: {rel_path}"),
+    }
+}
+
+pub(crate) async fn ensure_export_paths_safe(
+    store: &SqliteStore,
+    working_dir: &Path,
+    tracked_hashes: &HashMap<String, ContentHash>,
+    paths: &[String],
+    effect: &str,
+) -> Result<()> {
+    for path in paths {
+        ensure_export_path_safe(store, working_dir, tracked_hashes, path, effect).await?;
+    }
+    Ok(())
 }

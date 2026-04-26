@@ -612,8 +612,8 @@
     <art:artifact repo="repo-clayers"
               repo-revision="1934036"
               path="crates/clayers/src/repo/remote.rs">
-      <art:range hash="sha256:91d0664ef64068c73640c6d0c4cc7c535202fd2040b4e6217581f985d7af131d"
-                 start-line="15" end-line="76"/>
+      <art:range hash="sha256:3f32c8602b16d871b51e376f3c5094182ea6ad73d847b34ba4fb6471a39bf5be"
+                 start-line="20" end-line="82"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>RemoteTarget enum, parse_remote_url, open_remote functions.</art:note>
@@ -734,8 +734,8 @@
     <art:artifact repo="repo-clayers"
               repo-revision="9191483"
               path="crates/clayers/src/repo/remote.rs">
-      <art:range hash="sha256:91d0664ef64068c73640c6d0c4cc7c535202fd2040b4e6217581f985d7af131d"
-                 start-line="15" end-line="76"/>
+      <art:range hash="sha256:3f32c8602b16d871b51e376f3c5094182ea6ad73d847b34ba4fb6471a39bf5be"
+                 start-line="20" end-line="82"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>RemoteTarget enum with Local/WebSocket variants,
