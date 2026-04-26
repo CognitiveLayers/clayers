@@ -371,6 +371,29 @@ fn status_manual_deletion_shows_unstaged_deleted() {
     );
 }
 
+#[test]
+fn status_shows_manual_deletion_and_untracked_addition() {
+    let tmp = setup_committed_repo(&[("a.xml", "<root>a</root>")]);
+    let path = tmp.path();
+
+    std::fs::remove_file(path.join("a.xml")).unwrap();
+    std::fs::write(path.join("b.xml"), "<root>b</root>").unwrap();
+
+    let out = stdout_of(clayers().args(["status"]).current_dir(path));
+    assert!(
+        out.contains("deleted") && out.contains("a.xml"),
+        "manual tracked deletion should be visible in status: {out}"
+    );
+    assert!(
+        out.contains("Untracked files") && out.contains("b.xml"),
+        "untracked XML addition should be visible in status: {out}"
+    );
+    assert!(
+        !out.contains("working tree clean"),
+        "mixed local changes must not be reported clean: {out}"
+    );
+}
+
 // ===========================================================================
 // commit
 // ===========================================================================
@@ -2413,6 +2436,21 @@ fn diff_working_copy_shows_untracked_addition() {
         .assert()
         .success()
         .stdout(predicates::str::contains("added: new.xml"));
+}
+
+#[test]
+fn diff_working_copy_shows_manual_deletion_and_untracked_addition() {
+    let tmp = setup_committed_repo(&[("a.xml", "<root><item>a</item></root>")]);
+    std::fs::remove_file(tmp.path().join("a.xml")).unwrap();
+    std::fs::write(tmp.path().join("b.xml"), "<root><item>b</item></root>").unwrap();
+
+    clayers()
+        .args(["diff"])
+        .current_dir(tmp.path())
+        .assert()
+        .success()
+        .stdout(predicates::str::contains("deleted: a.xml"))
+        .stdout(predicates::str::contains("added: b.xml"));
 }
 
 #[test]

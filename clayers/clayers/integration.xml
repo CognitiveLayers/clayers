@@ -490,7 +490,9 @@ repo = Repo(SqliteStore.open("my-project.db"))
     current HEAD: tracked deletions as deleted files, tracked content changes
     as modified files with structural XML differences when available, and
     untracked XML files as added files. Clean output is reserved for the case
-    where no tracked path changed and no untracked XML file exists.</pr:p>
+    where no tracked path changed and no untracked XML file exists. A single
+    invocation may report multiple working-copy states at once, such as a
+    manually deleted tracked file and a newly added untracked XML file.</pr:p>
   </pr:section>
 
   <pr:section id="python-error-hierarchy">
@@ -1529,9 +1531,9 @@ print(count_terms(repo))</pr:codeblock>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/tests/cli_integration.rs">
-      <art:range hash="sha256:2da7ddc3fa1d855ce19e152a8b1a77e24fbe20106732513c69362a8ce78b8ad6"
+      <art:range hash="sha256:375e1d8c76b362c4decefc66a38992083a5d3992e6634dc13baf5d286803041b"
                  start-line="843" end-line="929"/>
-      <art:range hash="sha256:378cc6153635bc658216957c5671c3fd85222de3a2d51cc337a5d14c4114dde6"
+      <art:range hash="sha256:c8f3fa3a5fc94fe843add8d2e23caa9f39a6afef775c30b3e56e5799b0592d62"
                  start-line="1466" end-line="1714"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -1542,7 +1544,7 @@ print(count_terms(repo))</pr:codeblock>
   <art:mapping id="map-repository-working-copy-observation-status">
     <art:spec-ref node="repository-working-copy-observation"
               revision="draft-1"
-              node-hash="sha256:131af01bbd801a81f343835627f7a214f2a5c028909a161e013ead734c4370d1"/>
+              node-hash="sha256:6d34aff915d18c15385d792335b3943123038281a84f4c57eea64b3da76e6e5b"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/repo/staging.rs">
@@ -1557,7 +1559,7 @@ print(count_terms(repo))</pr:codeblock>
   <art:mapping id="map-repository-working-copy-observation-diff">
     <art:spec-ref node="repository-working-copy-observation"
               revision="draft-1"
-              node-hash="sha256:131af01bbd801a81f343835627f7a214f2a5c028909a161e013ead734c4370d1"/>
+              node-hash="sha256:6d34aff915d18c15385d792335b3943123038281a84f4c57eea64b3da76e6e5b"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/repo/diff.rs">
@@ -1572,14 +1574,14 @@ print(count_terms(repo))</pr:codeblock>
   <art:mapping id="map-repository-working-copy-observation-tests">
     <art:spec-ref node="repository-working-copy-observation"
               revision="draft-1"
-              node-hash="sha256:131af01bbd801a81f343835627f7a214f2a5c028909a161e013ead734c4370d1"/>
+              node-hash="sha256:6d34aff915d18c15385d792335b3943123038281a84f4c57eea64b3da76e6e5b"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/tests/cli_integration.rs">
-      <art:range hash="sha256:c840bf121df4bda99e1cfcb376be1a2f54d62b148e89f4b3e525cb67aec6e221"
-                 start-line="356" end-line="372"/>
-      <art:range hash="sha256:c75f4acaf9a2c2ed05841542a9ae49a1ab781db31a4ab4bcde0bf18bced8189b"
-                 start-line="2392" end-line="2560"/>
+      <art:range hash="sha256:e4e270a70910d34273b7eb0b6e9c49cc35cd75eea91d99d6275ebad8c449ae45"
+                 start-line="356" end-line="395"/>
+      <art:range hash="sha256:7c0d280afccaecc8e38cdf7e5d5ed09f1f0f784be9d1e630d003825b6ee204dc"
+                 start-line="2392" end-line="2598"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>Regression tests proving manual tracked deletions and
