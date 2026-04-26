@@ -403,6 +403,39 @@ repo = Repo(SqliteStore.open("my-project.db"))
 # All commits, branches, tags persist to disk</pr:codeblock>
   </pr:section>
 
+  <pr:section id="repository-leaf-hashing">
+    <pr:title>Repository Leaf Hashing</pr:title>
+    <pr:shortdesc>Non-text leaf node hashes use separate domains so distinct
+    node types cannot alias text payloads.</pr:shortdesc>
+
+    <pr:p>The repository import pipeline decomposes XML into a content-addressed
+    Merkle DAG. Text, comment, and processing-instruction leaves are stored as
+    distinct object variants, so their identity hashes must not alias across
+    node kinds when payload bytes match. Text leaves keep the legacy raw-payload
+    hash domain for repository compatibility; comment and processing-instruction
+    leaves use explicit non-text domains. A text node with content
+    <pr:code>x</pr:code> and a comment node with content <pr:code>x</pr:code>
+    therefore have different hashes and must round-trip through import,
+    storage, and export without either leaf replacing the other.</pr:p>
+
+    <pr:p>The non-text leaf encoding is a byte sequence that starts with the
+    ASCII prefix <pr:code>clayers-repo:leaf:v1\0</pr:code>, followed by the
+    kind tag (<pr:code>comment</pr:code> or <pr:code>pi</pr:code>), a NUL
+    separator, and then each payload part as an unsigned 64-bit big-endian
+    length followed by that part's bytes. Comment leaves have one payload part:
+    the comment text. Processing-instruction leaves have two payload parts:
+    target and data, with missing data encoded as the empty byte string.
+    Length-prefixing means adjacent parts cannot be reinterpreted as a
+    different target/data split.</pr:p>
+
+    <pr:p>Non-text leaf domain separation preserves the Merkle invariant that
+    a hash identifies exactly one object identity while avoiding a broad
+    migration for existing text-heavy repositories. It also keeps transaction
+    stores safe to implement idempotent insert or replace semantics: replacing
+    an object at the same hash is valid only when the object identity is the
+    same, not when two XML node kinds happen to share payload bytes.</pr:p>
+  </pr:section>
+
   <pr:section id="python-error-hierarchy">
     <pr:title>Error Hierarchy</pr:title>
     <pr:shortdesc>How Rust errors map to Python exceptions.</pr:shortdesc>
@@ -498,6 +531,11 @@ print(count_terms(repo))</pr:codeblock>
     dispatch design.</org:purpose>
   </org:reference>
 
+  <org:concept ref="repository-leaf-hashing">
+    <org:purpose>Understanding object identity for leaf nodes in the
+    content-addressed repository DAG.</org:purpose>
+  </org:concept>
+
   <org:concept ref="python-error-hierarchy">
     <org:purpose>Understanding how Rust errors propagate as typed Python
     exceptions.</org:purpose>
@@ -583,6 +621,16 @@ print(count_terms(repo))</pr:codeblock>
   <rel:relation type="refines" from="python-repo-api" to="python-integration">
     <rel:note>The Repo API is the other main class in the Python
     integration, wrapping VCS operations.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="python-repo-api" to="repository-leaf-hashing">
+    <rel:note>Repo.import_xml and Repo.export_xml rely on stable,
+    kind-separated leaf identities in the underlying repository DAG.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="repository-leaf-hashing" to="py-content-hash">
+    <rel:note>Repository leaf identities are represented as ContentHash
+    values in the public API.</rel:note>
   </rel:relation>
 
   <rel:relation type="refines" from="python-module-structure" to="python-integration">
@@ -1176,6 +1224,22 @@ print(count_terms(repo))</pr:codeblock>
     same signatures; switching is import-path only.
   </llm:node>
 
+  <llm:node ref="repository-leaf-hashing">
+    Repository leaf objects avoid cross-kind hash aliasing. Text leaves
+    retain the legacy raw-payload hash domain for compatibility, while
+    comment and processing-instruction leaves hash tagged non-text byte
+    domains. The non-text encoding is prefix "clayers-repo:leaf:v1\0",
+    kind tag, NUL separator, then each payload part as u64 big-endian
+    length plus bytes. Comments encode one part (content); PIs encode
+    two parts (target and data, with missing data as empty). Equal payload
+    strings in different XML node kinds therefore do not collide, and
+    length-prefixing prevents ambiguous PI target/data splits. Import
+    uses these hash helpers when constructing leaf objects; export
+    regression tests verify that mixed content such as text "x" plus
+    comment "x" round-trips without one object replacing the other in
+    the store.
+  </llm:node>
+
   <llm:node ref="python-error-hierarchy">
     Describes the exception hierarchy using py:exception elements.
     ClayersError (base, extends Exception) with XmlError, SpecError,
@@ -1236,6 +1300,53 @@ print(count_terms(repo))</pr:codeblock>
     <art:coverage>full</art:coverage>
     <art:note>Rust module root organizing repo submodules (sync, async,
     inner, objects) that implement the Python Repository API.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-repository-leaf-hashing-hash">
+    <art:spec-ref node="repository-leaf-hashing"
+              revision="draft-1"
+              node-hash="sha256:3587a3db70f3ae4bd76410e17ba0b857db8651d19c93ef714278c6a6caf7dd9a"/>
+    <art:artifact repo="repo-clayers"
+              repo-revision="HEAD"
+              path="crates/clayers-repo/src/hash.rs">
+      <art:range hash="sha256:6f902418fec95d816c76bad890e81bf3a3e829af5742dc5bdb1a987dedaed47e"
+                 start-line="38" end-line="74"/>
+      <art:range hash="sha256:3a4e5aec7dcaefee948b3ebff61c009e5ab523281fb7e91724f6ea535bddf7d1"
+                 start-line="89" end-line="120"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Typed leaf hash helpers for text, comment, and processing
+    instruction leaves.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-repository-leaf-hashing-import">
+    <art:spec-ref node="repository-leaf-hashing"
+              revision="draft-1"
+              node-hash="sha256:3587a3db70f3ae4bd76410e17ba0b857db8651d19c93ef714278c6a6caf7dd9a"/>
+    <art:artifact repo="repo-clayers"
+              repo-revision="HEAD"
+              path="crates/clayers-repo/src/import.rs">
+      <art:range hash="sha256:9805ff7ac41556cf7701cddae38ebe67f348d4b7b3a2c8a29ea715bef5f85971"
+                 start-line="85" end-line="115"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Import usage for kind-separated leaf hashes when constructing
+    text, comment, and processing-instruction objects.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-repository-leaf-hashing-export-test">
+    <art:spec-ref node="repository-leaf-hashing"
+              revision="draft-1"
+              node-hash="sha256:3587a3db70f3ae4bd76410e17ba0b857db8651d19c93ef714278c6a6caf7dd9a"/>
+    <art:artifact repo="repo-clayers"
+              repo-revision="HEAD"
+              path="crates/clayers-repo/src/export.rs">
+      <art:range hash="sha256:a27563b3054aed0b3b00d3ea6dbc76f0eb1db468c15a5bd916ba67eb6ec78aef"
+                 start-line="365" end-line="377"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Regression coverage for equal text/comment payloads in mixed
+    content round-trips.</art:note>
   </art:mapping>
 
   <art:mapping id="map-term-knowledge-model">

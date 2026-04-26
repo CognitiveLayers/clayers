@@ -35,25 +35,43 @@ pub fn hash_exclusive(xml: &str) -> Result<ContentHash> {
     Ok(ContentHash::from_canonical(&bytes))
 }
 
-/// Hash raw text bytes (for `TextObject` and `CommentObject`).
+fn hash_leaf(kind: &[u8], parts: &[&[u8]]) -> ContentHash {
+    let mut bytes = Vec::new();
+    bytes.extend_from_slice(b"clayers-repo:leaf:v1\0");
+    bytes.extend_from_slice(kind);
+    bytes.push(0);
+    for part in parts {
+        bytes.extend_from_slice(&(part.len() as u64).to_be_bytes());
+        bytes.extend_from_slice(part);
+    }
+    ContentHash::from_canonical(&bytes)
+}
+
+/// Hash raw text bytes.
 ///
-/// Both identity and inclusive hashes are the same for text content.
+/// Text uses the original raw-payload hash domain for repository
+/// compatibility. Other leaf node kinds use separate domains so they cannot
+/// alias text with the same payload bytes.
 #[must_use]
 pub fn hash_text(text: &str) -> ContentHash {
     ContentHash::from_canonical(text.as_bytes())
 }
 
+/// Hash a comment node with a node-kind domain separator.
+#[must_use]
+pub fn hash_comment(comment: &str) -> ContentHash {
+    hash_leaf(b"comment", &[comment.as_bytes()])
+}
+
 /// Hash a processing instruction.
 ///
-/// PIs have no namespace context, so Exclusive and Inclusive hashes are
-/// identical. We hash the canonical serialized form.
+/// Processing instructions have no namespace context, so Exclusive and
+/// Inclusive hashes are identical. The target and data are hashed in a typed
+/// leaf domain so they cannot alias with text or comments.
 #[must_use]
 pub fn hash_pi(target: &str, data: Option<&str>) -> ContentHash {
-    let serialized = match data {
-        Some(d) if !d.is_empty() => format!("<?{target} {d}?>"),
-        _ => format!("<?{target}?>"),
-    };
-    ContentHash::from_canonical(serialized.as_bytes())
+    let data = data.unwrap_or("");
+    hash_leaf(b"pi", &[target.as_bytes(), data.as_bytes()])
 }
 
 #[cfg(test)]
@@ -68,8 +86,38 @@ mod tests {
     }
 
     #[test]
+    fn text_hash_uses_legacy_raw_payload_domain() {
+        assert_eq!(hash_text("hello"), ContentHash::from_canonical(b"hello"));
+    }
+
+    #[test]
     fn different_text_different_hash() {
         assert_ne!(hash_text("hello"), hash_text("world"));
+    }
+
+    #[test]
+    fn text_and_comment_same_payload_do_not_collide() {
+        assert_ne!(hash_text("x"), hash_comment("x"));
+    }
+
+    #[test]
+    fn pi_and_text_same_serialized_payload_do_not_collide() {
+        assert_ne!(hash_pi("x", None), hash_text("<?x?>"));
+    }
+
+    #[test]
+    fn comment_and_pi_same_payload_do_not_collide() {
+        assert_ne!(hash_comment("x"), hash_pi("x", None));
+    }
+
+    #[test]
+    fn pi_target_data_boundaries_are_length_delimited() {
+        assert_ne!(hash_pi("ab", Some("c")), hash_pi("a", Some("bc")));
+    }
+
+    #[test]
+    fn pi_missing_data_matches_empty_data() {
+        assert_eq!(hash_pi("target", None), hash_pi("target", Some("")));
     }
 
     #[test]

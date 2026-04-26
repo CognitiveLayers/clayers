@@ -24,6 +24,15 @@ fixes and additions.
   existing C14N content hash. Bundled on by default; opt out with
   `--no-default-features` for a minimal binary.
 
+### Fixed
+
+- **Repository leaf hashing no longer aliases text with comments/PIs.**
+  `clayers-repo` now hashes comment and processing-instruction leaves
+  in explicit non-text domains, so XML like `<root>x<!--x--></root>`
+  round-trips without the text node being replaced by a duplicate
+  comment. Text leaves keep the legacy raw-payload hash domain, so
+  existing text-only repository objects do not require migration.
+
 ## [0.2.1] - 2026-04-18
 
 ### Added

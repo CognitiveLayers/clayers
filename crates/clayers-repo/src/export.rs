@@ -362,6 +362,20 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn preserve_text_and_comment_with_same_content() {
+        let xml = "<root>x<!--x--></root>";
+        assert_hash_idempotent(xml).await;
+
+        let store = MemoryStore::new();
+        let h = import_xml(&store, xml).await.unwrap();
+        let exported = export_xml(&store, h).await.unwrap();
+        assert!(
+            exported.contains(">x<!--x--></root>"),
+            "text and comment with same content must both survive: {exported}"
+        );
+    }
+
+    #[tokio::test]
     async fn preserve_whitespace() {
         assert_hash_idempotent("<root>\n  <child>text</child>\n</root>").await;
     }

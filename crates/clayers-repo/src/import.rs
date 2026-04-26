@@ -96,7 +96,7 @@ fn collect_node(
     // Comment node
     if let Some(comment) = xot.comment_str(node) {
         let comment = comment.to_string();
-        let h = hash::hash_text(&comment);
+        let h = hash::hash_comment(&comment);
         objects.push(CollectedObject {
             hash: h,
             object: Object::Comment(CommentObject { content: comment }),
