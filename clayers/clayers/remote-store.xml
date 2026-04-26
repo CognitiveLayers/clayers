@@ -30,9 +30,10 @@
     <trm:name>Transport</trm:name>
     <trm:definition>A bidirectional message channel between a remote store
     client and server. Transports send ClientMessage values and receive
-    ServerMessage values. The abstraction is not request-response: server-initiated
-    notifications arrive through the same receive path with no matching
-    request. Concrete transports include WebSocket.</trm:definition>
+    ServerMessage values, and explicitly close any owned IO resources when
+    the client is dropped. The abstraction is not request-response:
+    server-initiated notifications arrive through the same receive path with
+    no matching request. Concrete transports include WebSocket.</trm:definition>
   </trm:term>
 
   <trm:term id="term-protocol-message">
@@ -70,10 +71,12 @@
 
   <trm:term id="term-ref-updated">
     <trm:name>RefUpdated Notification</trm:name>
-    <trm:definition>A server-initiated message broadcast to all connected
-    clients except the originator when a ref mutation (SetRef, DeleteRef,
-    CasRef) succeeds. Carries the repository name, ref name, old value,
-    and new value. Enables live synchronization between clients.</trm:definition>
+    <trm:definition>A server-initiated message broadcast to connected
+    clients subscribed to the changed repository, excluding the originator,
+    when a ref mutation (SetRef, DeleteRef, CasRef) succeeds. Carries the
+    repository name, ref name, old value, and new value. Enables live
+    synchronization between interested clients without leaking repository
+    activity to unrelated connections.</trm:definition>
   </trm:term>
 
   <!-- ================================================================== -->
@@ -139,13 +142,17 @@
     multiple repositories.</pr:p>
 
     <pr:p>Transaction state is tracked per-connection: a map from TxId to
-    the underlying Transaction plus the owning ConnectionId. On disconnect,
-    the server rolls back all transactions belonging to that connection.</pr:p>
+    the underlying Transaction plus the owning ConnectionId. Only the owning
+    connection may use the TxId. On disconnect, the server rolls back all
+    transactions belonging to that connection.</pr:p>
 
     <pr:p>For ref mutations, the server reads the current ref value before
-    applying the change, then broadcasts a RefUpdated notification to all
-    other connected clients. The originating connection receives only the
-    normal reply (RefSet, RefDeleted, or CasResult).</pr:p>
+    applying the change, then broadcasts a RefUpdated notification to
+    connections that previously resolved the same repository through a
+    successful repo-scoped request. Failed repository lookups,
+    ListRepositories, and transaction-id-only operations do not create a
+    subscription. The originating connection receives only the normal reply
+    (RefSet, RefDeleted, or CasResult).</pr:p>
   </pr:section>
 
   <pr:section id="websocket-transport">
@@ -156,8 +163,9 @@
     <pr:p>The WebSocket transport uses internal channels to decouple from
     the tokio runtime that created the TCP socket. Background tasks handle
     actual WebSocket reads and writes; the Transport send/recv methods
-    operate on mpsc channels. This design allows the transport to be used
-    from any thread or runtime.</pr:p>
+    operate on mpsc channels. Dropping the transport aborts those background
+    IO tasks so the underlying socket is released promptly. This design
+    allows the transport to be used from any thread or runtime.</pr:p>
 
     <pr:p>Authentication is configurable via two traits: WsRequestTransformer
     (client-side, modifies the HTTP upgrade request) and WsRequestValidator
@@ -246,7 +254,7 @@
     <art:artifact repo="repo-clayers"
               repo-revision="1934036"
               path="crates/clayers-repo/src/store/remote/mod.rs">
-      <art:range hash="sha256:1e9afed84b8feaf78edfd936dca3813ae56f91c747d1ecd36aa2deaff6100848"
+      <art:range hash="sha256:e7f185bc8b9350b9fb04a567ece1fc3ecf2d24b4d3f7543fce4af05fdcd3dc5a"
                  start-line="23" end-line="186"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -257,15 +265,15 @@
   <art:mapping id="map-term-transport">
     <art:spec-ref node="term-transport"
               revision="draft-1"
-              node-hash="sha256:5488c98ba98f40e9b5559438645ef9cddbea31d231023258e4aa911241e12880"/>
+              node-hash="sha256:94aefcf35fbba266467321211f822455b6bb4742f80be841052fc6b99fc8774a"/>
     <art:artifact repo="repo-clayers"
               repo-revision="1934036"
               path="crates/clayers-repo/src/store/remote/transport.rs">
-      <art:range hash="sha256:e7c0593dbdd5ca2d97d4b9783b34744e6b77efdfcdd1b415309c88747223f075"
+      <art:range hash="sha256:28bf98ba377d9d108c0f447280b669203ceef93b703f724184625a0776f28c37"
                  start-line="13" end-line="20"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
-    <art:note>Transport trait with send() and recv() methods.</art:note>
+    <art:note>Transport trait with send(), recv(), and close() methods.</art:note>
   </art:mapping>
 
   <art:mapping id="map-term-codec">
@@ -289,7 +297,7 @@
     <art:artifact repo="repo-clayers"
               repo-revision="1934036"
               path="crates/clayers-repo/src/store/remote/client.rs">
-      <art:range hash="sha256:a7b44e35ed776a9f1c7c4422686bfb12029a65d6d82313235970c6eaa454ebe8"
+      <art:range hash="sha256:179f80d95beb502bd026a1310040379aafd299ad2cdb77e840558d38333f6a20"
                  start-line="1" end-line="522"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -301,11 +309,11 @@
   <art:mapping id="map-remote-store-server">
     <art:spec-ref node="remote-store-server"
               revision="draft-1"
-              node-hash="sha256:f0f0381045c795972881a5adb4eefeeb0d1ea0fa46481c719ed232ad2460b948"/>
+              node-hash="sha256:2429a7c4b124de24a43ec13d6f6a14c53c383c6b2f795f39359e7bb586574432"/>
     <art:artifact repo="repo-clayers"
               repo-revision="1934036"
               path="crates/clayers-repo/src/store/remote/server.rs">
-      <art:range hash="sha256:43fa0fa9a0f581f34fe4739fdf24f29a5b2b23a522c05633be1c7a6f7a0ce2fa"
+      <art:range hash="sha256:29cf6518216460e6b35c8635455d47ed428395add8e8dfd28d6ffb3761a684cf"
                  start-line="1" end-line="431"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -320,7 +328,7 @@
     <art:artifact repo="repo-clayers"
               repo-revision="1934036"
               path="crates/clayers-repo/src/store/remote/server.rs">
-      <art:range hash="sha256:87f84c1f075b8ec6c353f71362017d3c747f1566eb55542c6eb16648809ab159"
+      <art:range hash="sha256:a1d9a4663ef29cbcfb6b0fdb0538888a6be5f079f6a2a52a49a79b0f5dfffb89"
                  start-line="20" end-line="61"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -334,7 +342,7 @@
     <art:artifact repo="repo-clayers"
               repo-revision="1934036"
               path="crates/clayers-repo/src/store/remote/transport.rs">
-      <art:range hash="sha256:f7cc561e422a7855db2ce73b250a07e8870655bfaf95a2b82c9ac9a8c71ad5c8"
+      <art:range hash="sha256:ec2a47f110d64707555e43f29ef7f6f39d60910e74e1d16ac315955ce7e7a7ec"
                  start-line="23" end-line="29"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -344,11 +352,11 @@
   <art:mapping id="map-websocket-transport">
     <art:spec-ref node="websocket-transport"
               revision="draft-1"
-              node-hash="sha256:2c03dccb17df9d88343dad3508eddb453c98de26763fda1b40b87893919ddbae"/>
+              node-hash="sha256:c7d02c5398afcae71018eae2ea00fb51d9b1cbe6ed6d3fccd619bafecc40020f"/>
     <art:artifact repo="repo-clayers"
               repo-revision="1934036"
               path="crates/clayers-repo/src/store/remote/websocket.rs">
-      <art:range hash="sha256:432f44d27af36e1b1e1be71a8480775074fb9be08e46350cd2fd989273d86c94"
+      <art:range hash="sha256:2bb84e066fab76a0121d324ed12be31af7e841cc3739800c3ff77a3aa7bd1fbb"
                  start-line="1" end-line="318"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -383,15 +391,17 @@
     Server&lt;P: RepositoryProvider&gt; dispatches ClientMessages to store
     backends. Each message carries a repo name resolved via the provider.
     Transactions are tracked per-connection; abandoned ones roll back on
-    disconnect. Ref mutations broadcast RefUpdated to other connections.
+    disconnect. Ref mutations broadcast RefUpdated to subscribed non-origin
+    connections for the changed repository.
     The handle() method returns Vec&lt;ServerMessage&gt; for batched sending.
   </llm:node>
 
   <llm:node ref="websocket-transport">
     WsTransport uses internal mpsc channels to decouple from the creating
     runtime. Background tasks handle actual WS IO; send() and recv() are
-    channel operations. Authentication via WsRequestTransformer (client)
-    and WsRequestValidator (server). BearerToken implements both.
+    channel operations. Drop aborts the background IO tasks. Authentication
+    via WsRequestTransformer (client) and WsRequestValidator (server).
+    BearerToken implements both.
     serve_ws() binds TCP, accepts connections, spawns per-connection
     handlers with read/write task pairs merged via tokio::select.
   </llm:node>
@@ -405,15 +415,16 @@
 
   <llm:node ref="term-transport">
     Bidirectional message channel: send(ClientMessage), recv() -&gt;
-    ServerMessage. Not request-response; server-initiated messages
-    (RefUpdated) arrive through recv() with no matching request.
+    ServerMessage, and close() to release any transport-owned IO resources.
+    Not request-response; server-initiated messages (RefUpdated) arrive
+    through recv() with no matching request.
   </llm:node>
 
   <llm:node ref="term-protocol-message">
     ClientMessage and ServerMessage enums. Client messages carry MessageId
-    + repo + operation. Server replies echo the MessageId. Notifications
-    (RefUpdated, TransactionTerminated) have no MessageId. Serialized
-    via a Codec for transport.
+    + repo + operation or a server-assigned TxId for transaction operations.
+    Server replies echo the MessageId. RefUpdated notifications have no
+    MessageId. Serialized via a Codec for transport.
   </llm:node>
 
   <llm:node ref="term-codec">
@@ -435,9 +446,10 @@
   </llm:node>
 
   <llm:node ref="term-ref-updated">
-    Server-initiated notification sent to all connected clients except
-    the originator when a ref mutation succeeds. Carries repo, ref name,
-    old value, new value. Enables live sync between clients.
+    Server-initiated notification sent to subscribed clients except the
+    originator when a ref mutation succeeds. A connection subscribes after
+    successfully resolving the repo in a repo-scoped request. Carries repo,
+    ref name, old value, new value. Enables live sync between interested clients.
   </llm:node>
 
   <!-- ================================================================== -->
@@ -614,7 +626,7 @@
     <art:artifact repo="repo-clayers"
               repo-revision="1934036"
               path="crates/clayers-repo/src/store/remote/websocket.rs">
-      <art:range hash="sha256:46dce53e50ee3b06468c95737348373d62964fc154786eff65891343f32b4ad9"
+      <art:range hash="sha256:02448ede5d3fe4c2007579f013b51ccb3de3da44547755f01730b7a8e35092c7"
                  start-line="320" end-line="367"/>
     </art:artifact>
     <art:coverage>partial</art:coverage>
@@ -676,7 +688,7 @@
     <art:artifact repo="repo-clayers"
               repo-revision="9191483"
               path="crates/clayers-repo/src/store/remote/client.rs">
-      <art:range hash="sha256:a7b44e35ed776a9f1c7c4422686bfb12029a65d6d82313235970c6eaa454ebe8"
+      <art:range hash="sha256:179f80d95beb502bd026a1310040379aafd299ad2cdb77e840558d38333f6a20"
                  start-line="1" end-line="522"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -691,7 +703,7 @@
     <art:artifact repo="repo-clayers"
               repo-revision="9191483"
               path="crates/clayers-repo/src/store/remote/mod.rs">
-      <art:range hash="sha256:1e9afed84b8feaf78edfd936dca3813ae56f91c747d1ecd36aa2deaff6100848"
+      <art:range hash="sha256:e7f185bc8b9350b9fb04a567ece1fc3ecf2d24b4d3f7543fce4af05fdcd3dc5a"
                  start-line="23" end-line="186"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
@@ -702,11 +714,11 @@
   <art:mapping id="map-term-ref-updated">
     <art:spec-ref node="term-ref-updated"
               revision="draft-1"
-              node-hash="sha256:1d47591fca2eaf1ddfb06cb28e75b4bd12993706831e04bff19e9377151cdde7"/>
+              node-hash="sha256:80e5d57f7da49fd5ae6c8ac151b8fc4093f49d449a85f55b678c3703f989e078"/>
     <art:artifact repo="repo-clayers"
               repo-revision="9191483"
               path="crates/clayers-repo/src/store/remote/server.rs">
-      <art:range hash="sha256:50fa71763c2ea0a453b130e18c7fc26a5959a93c531dfcbd0d5287a728a51556"
+      <art:range hash="sha256:766a501b0f4078558ffba9a780523931d18a427cfc9601dfb2f9ab6ab6029a9e"
                  start-line="403" end-line="423"/>
     </art:artifact>
     <art:coverage>partial</art:coverage>

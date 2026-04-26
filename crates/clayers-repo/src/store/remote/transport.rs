@@ -17,6 +17,8 @@ pub trait Transport: Send + Sync {
     async fn send(&self, msg: ClientMessage) -> Result<()>;
     /// Receive a server message.
     async fn recv(&self) -> Result<ServerMessage>;
+    /// Close the transport and release any background IO resources.
+    fn close(&self);
 }
 
 /// Combined store trait for use as a trait object.

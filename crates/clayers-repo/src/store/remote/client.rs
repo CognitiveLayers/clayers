@@ -14,7 +14,7 @@ use super::transport::Transport;
 use super::{ClientMessage, MessageId, ServerMessage, TxId};
 use crate::error::{Error, Result};
 use crate::object::Object;
-use crate::query::{QueryMode, QueryResult, QueryStore, NamespaceMap, default_query_document};
+use crate::query::{NamespaceMap, QueryMode, QueryResult, QueryStore, default_query_document};
 use crate::store::{ObjectStore, RefStore, Transaction};
 
 /// A store that delegates to a remote server via a [`Transport`].
@@ -54,7 +54,7 @@ impl<T: Transport + 'static> RemoteStore<T> {
                         break;
                     };
 
-                    // Server-initiated notifications (RefUpdated, TransactionTerminated)
+                    // Server-initiated notifications (RefUpdated)
                     let Some(id) = msg.id() else {
                         // Receiver dropped = nobody listening; ok to discard.
                         drop(notify_tx.send(msg));
@@ -120,7 +120,8 @@ impl<T: Transport + 'static> RemoteStore<T> {
             pending.insert(id, tx);
         }
         self.transport.send(msg).await?;
-        rx.await.map_err(|_| Error::Storage("connection closed".into()))
+        rx.await
+            .map_err(|_| Error::Storage("connection closed".into()))
     }
 
     /// Receive the next server-initiated notification (e.g., `RefUpdated`).
@@ -137,7 +138,9 @@ impl<T: Transport + 'static> RemoteStore<T> {
     /// Returns an error if the request fails or the connection is closed.
     pub async fn list_repositories(&self) -> Result<Vec<String>> {
         let id = self.alloc_id();
-        let resp = self.request(ClientMessage::ListRepositories { id }, id).await?;
+        let resp = self
+            .request(ClientMessage::ListRepositories { id }, id)
+            .await?;
         match resp {
             ServerMessage::RepositoryList { repos, .. } => Ok(repos),
             ServerMessage::Error { message, .. } => Err(Error::Storage(message)),
@@ -148,6 +151,7 @@ impl<T: Transport + 'static> RemoteStore<T> {
 
 impl<T: Transport> Drop for RemoteStore<T> {
     fn drop(&mut self) {
+        self.transport.close();
         self.reader_abort.abort();
     }
 }
@@ -204,15 +208,13 @@ impl<T: Transport + 'static> ObjectStore for RemoteStore<T> {
             )
             .await?;
         match resp {
-            ServerMessage::TransactionCreated { tx_id, .. } => {
-                Ok(Box::new(RemoteTransaction {
-                    tx_id,
-                    transport: Arc::clone(&self.transport),
-                    pending: Arc::clone(&self.pending),
-                    next_id: Arc::clone(&self.next_id),
-                    finished: false,
-                }))
-            }
+            ServerMessage::TransactionCreated { tx_id, .. } => Ok(Box::new(RemoteTransaction {
+                tx_id,
+                transport: Arc::clone(&self.transport),
+                pending: Arc::clone(&self.pending),
+                next_id: Arc::clone(&self.next_id),
+                finished: false,
+            })),
             ServerMessage::Error { message, .. } => Err(Error::Storage(message)),
             _ => Err(Error::Storage("unexpected response".into())),
         }
@@ -240,10 +242,7 @@ impl<T: Transport + 'static> ObjectStore for RemoteStore<T> {
         }
     }
 
-    fn subtree<'a>(
-        &'a self,
-        root: &ContentHash,
-    ) -> BoxStream<'a, Result<(ContentHash, Object)>> {
+    fn subtree<'a>(&'a self, root: &ContentHash) -> BoxStream<'a, Result<(ContentHash, Object)>> {
         let root = *root;
         let id = self.alloc_id();
         let transport = Arc::clone(&self.transport);
@@ -553,8 +552,7 @@ mod tests {
     use tokio::sync::{Mutex, Notify};
 
     use super::{
-        ClientMessage, MessageId, RemoteStore, ServerMessage, Transport, TxId,
-        list_repositories,
+        ClientMessage, MessageId, RemoteStore, ServerMessage, Transport, TxId, list_repositories,
     };
     use crate::error::{Error, Result};
     use crate::object::{Object, TextObject};
@@ -599,7 +597,7 @@ mod tests {
             | ServerMessage::Ok { id, .. }
             | ServerMessage::TransactionCreated { id, .. }
             | ServerMessage::Error { id, .. } => *id = new_id,
-            ServerMessage::RefUpdated { .. } | ServerMessage::TransactionTerminated { .. } => {}
+            ServerMessage::RefUpdated { .. } => {}
         }
         m
     }
@@ -660,12 +658,17 @@ mod tests {
                 self.notify.notified().await;
             }
         }
+
+        fn close(&self) {}
     }
 
     fn err_responder(message: &'static str) -> Responder {
         let m = message.to_string();
         Box::new(move |_msg| {
-            vec![ServerMessage::Error { id: 0, message: m.clone() }]
+            vec![ServerMessage::Error {
+                id: 0,
+                message: m.clone(),
+            }]
         })
     }
 
@@ -681,6 +684,10 @@ mod tests {
         }
         async fn recv(&self) -> Result<ServerMessage> {
             self.0.recv().await
+        }
+
+        fn close(&self) {
+            self.0.close();
         }
     }
 
@@ -707,13 +714,19 @@ mod tests {
         }));
         let store = RemoteStore::new(transport, "ignored");
         let listed = store.list_repositories().await.unwrap();
-        assert_eq!(listed, vec!["alpha".to_string(), "beta".into(), "gamma".into()]);
+        assert_eq!(
+            listed,
+            vec!["alpha".to_string(), "beta".into(), "gamma".into()]
+        );
     }
 
     #[tokio::test]
     async fn list_repositories_empty_list_returned_as_empty() {
         let transport = MockTransport::new(Box::new(|_msg| {
-            vec![ServerMessage::RepositoryList { id: 0, repos: vec![] }]
+            vec![ServerMessage::RepositoryList {
+                id: 0,
+                repos: vec![],
+            }]
         }));
         let store = RemoteStore::new(transport, "ignored");
         let listed = store.list_repositories().await.unwrap();
@@ -723,7 +736,10 @@ mod tests {
     #[tokio::test]
     async fn list_repositories_does_not_invent_names() {
         let transport = MockTransport::new(Box::new(|_msg| {
-            vec![ServerMessage::RepositoryList { id: 0, repos: vec!["only".into()] }]
+            vec![ServerMessage::RepositoryList {
+                id: 0,
+                repos: vec!["only".into()],
+            }]
         }));
         let store = RemoteStore::new(transport, "ignored");
         let listed = store.list_repositories().await.unwrap();
@@ -827,7 +843,10 @@ mod tests {
             let n = counter_for_responder.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
             match (n, msg) {
                 (0, ClientMessage::BeginTransaction { .. }) => {
-                    vec![ServerMessage::TransactionCreated { id: 0, tx_id: TxId(101) }]
+                    vec![ServerMessage::TransactionCreated {
+                        id: 0,
+                        tx_id: TxId(101),
+                    }]
                 }
                 _ => vec![ServerMessage::Error {
                     id: 0,
@@ -862,11 +881,7 @@ mod tests {
         let transport = MockTransport::new(err_responder("cas failed"));
         let store = RemoteStore::new(transport, "myrepo");
         let result = store
-            .cas_ref(
-                "refs/heads/main",
-                None,
-                ContentHash::from_canonical(b"v1"),
-            )
+            .cas_ref("refs/heads/main", None, ContentHash::from_canonical(b"v1"))
             .await;
         assert_storage_err_contains(result, "cas failed");
     }
@@ -881,9 +896,15 @@ mod tests {
             let n = counter_for_responder.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
             match (n, msg) {
                 (0, ClientMessage::BeginTransaction { .. }) => {
-                    vec![ServerMessage::TransactionCreated { id: 0, tx_id: TxId(99) }]
+                    vec![ServerMessage::TransactionCreated {
+                        id: 0,
+                        tx_id: TxId(99),
+                    }]
                 }
-                _ => vec![ServerMessage::Error { id: 0, message: "put failed".into() }],
+                _ => vec![ServerMessage::Error {
+                    id: 0,
+                    message: "put failed".into(),
+                }],
             }
         }));
         let store = RemoteStore::new(transport, "myrepo");
@@ -891,7 +912,9 @@ mod tests {
         let result = tx
             .put(
                 ContentHash::from_canonical(b"x"),
-                Object::Text(TextObject { content: "hi".into() }),
+                Object::Text(TextObject {
+                    content: "hi".into(),
+                }),
             )
             .await;
         assert_storage_err_contains(result, "put failed");
@@ -903,7 +926,10 @@ mod tests {
     async fn tx_drop_without_finish_sends_rollback() {
         let transport_arc = Arc::new(MockTransport::new(Box::new(|msg| match msg {
             ClientMessage::BeginTransaction { .. } => {
-                vec![ServerMessage::TransactionCreated { id: 0, tx_id: TxId(7) }]
+                vec![ServerMessage::TransactionCreated {
+                    id: 0,
+                    tx_id: TxId(7),
+                }]
             }
             // For any subsequent request (e.g., rollback from drop),
             // respond with Ok so the spawned task doesn't hang.
@@ -919,9 +945,9 @@ mod tests {
         tokio::time::sleep(std::time::Duration::from_millis(50)).await;
 
         let sent = transport_arc.drain_sent().await;
-        let saw_rollback = sent.iter().any(|m| {
-            matches!(m, ClientMessage::TxRollback { tx_id, .. } if tx_id.0 == 7)
-        });
+        let saw_rollback = sent
+            .iter()
+            .any(|m| matches!(m, ClientMessage::TxRollback { tx_id, .. } if tx_id.0 == 7));
         assert!(
             saw_rollback,
             "drop on unfinished tx must send TxRollback; saw: {sent:?}",
@@ -932,7 +958,10 @@ mod tests {
     async fn tx_drop_after_commit_does_not_send_rollback() {
         let transport_arc = Arc::new(MockTransport::new(Box::new(|msg| match msg {
             ClientMessage::BeginTransaction { .. } => {
-                vec![ServerMessage::TransactionCreated { id: 0, tx_id: TxId(8) }]
+                vec![ServerMessage::TransactionCreated {
+                    id: 0,
+                    tx_id: TxId(8),
+                }]
             }
             _ => vec![ServerMessage::Ok { id: 0 }],
         })));
@@ -960,7 +989,10 @@ mod tests {
     async fn tx_drop_after_rollback_does_not_send_rollback() {
         let transport_arc = Arc::new(MockTransport::new(Box::new(|msg| match msg {
             ClientMessage::BeginTransaction { .. } => {
-                vec![ServerMessage::TransactionCreated { id: 0, tx_id: TxId(9) }]
+                vec![ServerMessage::TransactionCreated {
+                    id: 0,
+                    tx_id: TxId(9),
+                }]
             }
             _ => vec![ServerMessage::Ok { id: 0 }],
         })));

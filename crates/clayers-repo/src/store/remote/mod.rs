@@ -179,10 +179,6 @@ pub enum ServerMessage {
         old: Option<ContentHash>,
         new: Option<ContentHash>,
     },
-    TransactionTerminated {
-        tx_id: TxId,
-        reason: String,
-    },
 }
 
 impl ServerMessage {
@@ -204,7 +200,7 @@ impl ServerMessage {
             | Self::Ok { id, .. }
             | Self::TransactionCreated { id, .. }
             | Self::Error { id, .. } => Some(*id),
-            Self::RefUpdated { .. } | Self::TransactionTerminated { .. } => None,
+            Self::RefUpdated { .. } => None,
         }
     }
 

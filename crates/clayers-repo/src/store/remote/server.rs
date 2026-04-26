@@ -1,7 +1,9 @@
 //! Server-side handler that dispatches client messages to store backends.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
+use std::sync::Mutex as StdMutex;
+use std::sync::RwLock as StdRwLock;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use std::pin::pin;
@@ -73,12 +75,25 @@ struct TxState {
     repo: String,
 }
 
+struct ConnState {
+    sender: ConnectionSender,
+    subscribed_repos: StdMutex<HashSet<String>>,
+}
+
 /// Server that dispatches client messages to stores via a [`RepositoryProvider`].
 pub struct Server<P: RepositoryProvider> {
     provider: Arc<P>,
     transactions: Arc<Mutex<HashMap<TxId, TxState>>>,
     next_tx_id: AtomicU64,
-    connections: Arc<Mutex<HashMap<ConnectionId, ConnectionSender>>>,
+    /// Map of connections. Each entry is an Arc so we can snapshot the
+    /// values for broadcasts without holding the top-level lock during
+    /// per-connection work.
+    connections: Arc<Mutex<HashMap<ConnectionId, Arc<ConnState>>>>,
+    /// Repository subscriptions keyed by repository name. A connection only
+    /// receives notifications (e.g., `RefUpdated`) for repos it has
+    /// successfully resolved, preventing cross-tenant information
+    /// leakage without scanning every connection on each broadcast.
+    subscribers: Arc<StdRwLock<HashMap<String, HashSet<ConnectionId>>>>,
     next_conn_id: AtomicU64,
 }
 
@@ -91,6 +106,7 @@ impl<P: RepositoryProvider + 'static> Server<P> {
             transactions: Arc::new(Mutex::new(HashMap::new())),
             next_tx_id: AtomicU64::new(1),
             connections: Arc::new(Mutex::new(HashMap::new())),
+            subscribers: Arc::new(StdRwLock::new(HashMap::new())),
             next_conn_id: AtomicU64::new(1),
         }
     }
@@ -98,16 +114,46 @@ impl<P: RepositoryProvider + 'static> Server<P> {
     /// Register a new connection and return its ID and a receiver for notifications.
     pub async fn register_connection(
         &self,
-    ) -> (ConnectionId, tokio::sync::mpsc::UnboundedReceiver<ServerMessage>) {
+    ) -> (
+        ConnectionId,
+        tokio::sync::mpsc::UnboundedReceiver<ServerMessage>,
+    ) {
         let id = self.next_conn_id.fetch_add(1, Ordering::Relaxed);
         let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
-        self.connections.lock().await.insert(id, tx);
+        let state = Arc::new(ConnState {
+            sender: tx,
+            subscribed_repos: StdMutex::new(HashSet::new()),
+        });
+        self.connections.lock().await.insert(id, state);
         (id, rx)
     }
 
     /// Unregister a connection and roll back its open transactions.
     pub async fn disconnect(&self, conn_id: ConnectionId) {
-        self.connections.lock().await.remove(&conn_id);
+        let state = self.connections.lock().await.remove(&conn_id);
+        if let Some(state) = state {
+            let repos = match state.subscribed_repos.lock() {
+                Ok(subscribed_repos) => subscribed_repos.clone(),
+                Err(poisoned) => poisoned.into_inner().clone(),
+            };
+            {
+                let mut subscribers = match self.subscribers.write() {
+                    Ok(subscribers) => subscribers,
+                    Err(poisoned) => poisoned.into_inner(),
+                };
+                for repo in repos {
+                    let remove_repo = if let Some(ids) = subscribers.get_mut(&repo) {
+                        ids.remove(&conn_id);
+                        ids.is_empty()
+                    } else {
+                        false
+                    };
+                    if remove_repo {
+                        subscribers.remove(&repo);
+                    }
+                }
+            }
+        }
 
         let mut txns = self.transactions.lock().await;
         let to_rollback: Vec<TxId> = txns
@@ -123,6 +169,36 @@ impl<P: RepositoryProvider + 'static> Server<P> {
         }
     }
 
+    /// Record that a connection has successfully resolved a repo. Idempotent.
+    /// Subsequent `RefUpdated` notifications for that repo will be
+    /// delivered to this connection.
+    async fn subscribe(&self, conn_id: ConnectionId, repo: &str) {
+        let state = self.connections.lock().await.get(&conn_id).cloned();
+        let Some(state) = state else {
+            return;
+        };
+
+        let inserted = {
+            let mut subscribed_repos = match state.subscribed_repos.lock() {
+                Ok(subscribed_repos) => subscribed_repos,
+                Err(poisoned) => poisoned.into_inner(),
+            };
+            subscribed_repos.insert(repo.to_string())
+        };
+        if !inserted {
+            return;
+        }
+
+        let mut subscribers = match self.subscribers.write() {
+            Ok(subscribers) => subscribers,
+            Err(poisoned) => poisoned.into_inner(),
+        };
+        subscribers
+            .entry(repo.to_string())
+            .or_default()
+            .insert(conn_id);
+    }
+
     /// Handle a single client message, returning the response(s) to send back.
     #[allow(clippy::too_many_lines)]
     pub async fn handle(&self, conn_id: ConnectionId, msg: ClientMessage) -> Vec<ServerMessage> {
@@ -132,13 +208,16 @@ impl<P: RepositoryProvider + 'static> Server<P> {
                 Err(e) => vec![err(id, &e)],
             },
             ClientMessage::Get { id, repo, hash } => {
-                self.with_store(id, &repo, |store| async move {
-                    store.get(&hash).await.map(|object| ServerMessage::Object { id, object })
+                self.with_store(conn_id, id, &repo, |store| async move {
+                    store
+                        .get(&hash)
+                        .await
+                        .map(|object| ServerMessage::Object { id, object })
                 })
                 .await
             }
             ClientMessage::Contains { id, repo, hash } => {
-                self.with_store(id, &repo, |store| async move {
+                self.with_store(conn_id, id, &repo, |store| async move {
                     store
                         .contains(&hash)
                         .await
@@ -151,7 +230,7 @@ impl<P: RepositoryProvider + 'static> Server<P> {
                 repo,
                 inclusive_hash,
             } => {
-                self.with_store(id, &repo, |store| async move {
+                self.with_store(conn_id, id, &repo, |store| async move {
                     store
                         .get_by_inclusive_hash(&inclusive_hash)
                         .await
@@ -160,10 +239,10 @@ impl<P: RepositoryProvider + 'static> Server<P> {
                 .await
             }
             ClientMessage::Subtree { id, repo, root } => {
-                self.handle_subtree(id, &repo, root).await
+                self.handle_subtree(conn_id, id, &repo, root).await
             }
             ClientMessage::GetRef { id, repo, name } => {
-                self.with_store(id, &repo, |store| async move {
+                self.with_store(conn_id, id, &repo, |store| async move {
                     store
                         .get_ref(&name)
                         .await
@@ -181,7 +260,7 @@ impl<P: RepositoryProvider + 'static> Server<P> {
                 self.handle_delete_ref(conn_id, id, &repo, &name).await
             }
             ClientMessage::ListRefs { id, repo, prefix } => {
-                self.with_store(id, &repo, |store| async move {
+                self.with_store(conn_id, id, &repo, |store| async move {
                     store
                         .list_refs(&prefix)
                         .await
@@ -272,9 +351,25 @@ impl<P: RepositoryProvider + 'static> Server<P> {
         }
     }
 
+    async fn resolve_store(
+        &self,
+        conn_id: ConnectionId,
+        id: super::MessageId,
+        repo: &str,
+    ) -> std::result::Result<Arc<dyn Store>, ServerMessage> {
+        match self.provider.get(repo).await {
+            Ok(store) => {
+                self.subscribe(conn_id, repo).await;
+                Ok(store)
+            }
+            Err(e) => Err(err(id, &e)),
+        }
+    }
+
     // Helper: run a closure with a store, returning vec of one message
     async fn with_store<F, Fut>(
         &self,
+        conn_id: ConnectionId,
         id: super::MessageId,
         repo: &str,
         f: F,
@@ -283,24 +378,25 @@ impl<P: RepositoryProvider + 'static> Server<P> {
         F: FnOnce(Arc<dyn Store>) -> Fut,
         Fut: std::future::Future<Output = Result<ServerMessage>>,
     {
-        match self.provider.get(repo).await {
+        match self.resolve_store(conn_id, id, repo).await {
             Ok(store) => match f(store).await {
                 Ok(msg) => vec![msg],
                 Err(e) => vec![err(id, &e)],
             },
-            Err(e) => vec![err(id, &e)],
+            Err(msg) => vec![msg],
         }
     }
 
     async fn handle_subtree(
         &self,
+        conn_id: ConnectionId,
         id: super::MessageId,
         repo: &str,
         root: clayers_xml::ContentHash,
     ) -> Vec<ServerMessage> {
-        let store = match self.provider.get(repo).await {
-            Ok(s) => s,
-            Err(e) => return vec![err(id, &e)],
+        let store = match self.resolve_store(conn_id, id, repo).await {
+            Ok(store) => store,
+            Err(msg) => return vec![msg],
         };
         let mut msgs = Vec::new();
         let mut stream = pin!(store.subtree(&root));
@@ -327,9 +423,9 @@ impl<P: RepositoryProvider + 'static> Server<P> {
         name: &str,
         hash: clayers_xml::ContentHash,
     ) -> Vec<ServerMessage> {
-        let store = match self.provider.get(repo).await {
-            Ok(s) => s,
-            Err(e) => return vec![err(id, &e)],
+        let store = match self.resolve_store(conn_id, id, repo).await {
+            Ok(store) => store,
+            Err(msg) => return vec![msg],
         };
         let old = store.get_ref(name).await.ok().flatten();
         match store.set_ref(name, hash).await {
@@ -349,9 +445,9 @@ impl<P: RepositoryProvider + 'static> Server<P> {
         repo: &str,
         name: &str,
     ) -> Vec<ServerMessage> {
-        let store = match self.provider.get(repo).await {
-            Ok(s) => s,
-            Err(e) => return vec![err(id, &e)],
+        let store = match self.resolve_store(conn_id, id, repo).await {
+            Ok(store) => store,
+            Err(msg) => return vec![msg],
         };
         let old = store.get_ref(name).await.ok().flatten();
         match store.delete_ref(name).await {
@@ -373,9 +469,9 @@ impl<P: RepositoryProvider + 'static> Server<P> {
         expected: Option<clayers_xml::ContentHash>,
         new: clayers_xml::ContentHash,
     ) -> Vec<ServerMessage> {
-        let store = match self.provider.get(repo).await {
-            Ok(s) => s,
-            Err(e) => return vec![err(id, &e)],
+        let store = match self.resolve_store(conn_id, id, repo).await {
+            Ok(store) => store,
+            Err(msg) => return vec![msg],
         };
         let old = store.get_ref(name).await.ok().flatten();
         match store.cas_ref(name, expected, new).await {
@@ -396,9 +492,9 @@ impl<P: RepositoryProvider + 'static> Server<P> {
         id: super::MessageId,
         repo: &str,
     ) -> Vec<ServerMessage> {
-        let store = match self.provider.get(repo).await {
-            Ok(s) => s,
-            Err(e) => return vec![err(id, &e)],
+        let store = match self.resolve_store(conn_id, id, repo).await {
+            Ok(store) => store,
+            Err(msg) => return vec![msg],
         };
         match store.transaction().await {
             Ok(tx) => {
@@ -425,11 +521,24 @@ impl<P: RepositoryProvider + 'static> Server<P> {
         old: Option<clayers_xml::ContentHash>,
         new: Option<clayers_xml::ContentHash>,
     ) {
+        let subscriber_ids: Vec<_> = {
+            let subscribers = match self.subscribers.read() {
+                Ok(subscribers) => subscribers,
+                Err(poisoned) => poisoned.into_inner(),
+            };
+            let Some(ids) = subscribers.get(repo) else {
+                return;
+            };
+            ids.iter().copied().filter(|id| *id != origin).collect()
+        };
+        if subscriber_ids.is_empty() {
+            return;
+        }
+
         let conns = self.connections.lock().await;
-        for (&id, tx) in conns.iter() {
-            if id != origin {
-                // Receiver dropped = client disconnected; safe to discard.
-                drop(tx.send(ServerMessage::RefUpdated {
+        for id in subscriber_ids {
+            if let Some(state) = conns.get(&id) {
+                drop(state.sender.send(ServerMessage::RefUpdated {
                     repo: repo.to_string(),
                     name: name.to_string(),
                     old,
@@ -460,7 +569,10 @@ mod tests {
     fn provider_with(names: &[&str]) -> StaticRepositories {
         let mut map: HashMap<String, Arc<dyn Store>> = HashMap::new();
         for name in names {
-            map.insert((*name).to_string(), Arc::new(MemoryStore::new()) as Arc<dyn Store>);
+            map.insert(
+                (*name).to_string(),
+                Arc::new(MemoryStore::new()) as Arc<dyn Store>,
+            );
         }
         StaticRepositories::new(map)
     }
@@ -531,7 +643,10 @@ mod tests {
         let resp = server
             .handle(
                 conn_id,
-                ClientMessage::BeginTransaction { id: 1, repo: repo.into() },
+                ClientMessage::BeginTransaction {
+                    id: 1,
+                    repo: repo.into(),
+                },
             )
             .await;
         match resp.as_slice() {
@@ -558,9 +673,9 @@ mod tests {
                     id: 42,
                     tx_id,
                     hash: ContentHash::from_canonical(b"foreign_put"),
-                    object: crate::object::Object::Text(
-                        crate::object::TextObject { content: "hi".into() },
-                    ),
+                    object: crate::object::Object::Text(crate::object::TextObject {
+                        content: "hi".into(),
+                    }),
                 },
             )
             .await;
@@ -633,6 +748,208 @@ mod tests {
         );
     }
 
+    /// Connections are subscribed to a repo only after touching it.
+    /// A connection that has never named a repo must NOT receive
+    /// `RefUpdated` notifications for that repo.
+    #[tokio::test]
+    async fn ref_updated_not_broadcast_to_unsubscribed_connection() {
+        let provider = provider_with(&["alpha", "beta"]);
+        let server = Server::new(provider);
+
+        // Connection A subscribes to alpha; connection B subscribes to beta.
+        let (conn_a, mut rx_a) = server.register_connection().await;
+        let (conn_b, mut rx_b) = server.register_connection().await;
+
+        // A touches alpha (e.g., reads a ref).
+        let _ = server
+            .handle(
+                conn_a,
+                ClientMessage::GetRef {
+                    id: 1,
+                    repo: "alpha".into(),
+                    name: "refs/heads/main".into(),
+                },
+            )
+            .await;
+        // B touches beta.
+        let _ = server
+            .handle(
+                conn_b,
+                ClientMessage::GetRef {
+                    id: 2,
+                    repo: "beta".into(),
+                    name: "refs/heads/main".into(),
+                },
+            )
+            .await;
+
+        // A sets a ref on alpha. B is on beta and should NOT see this.
+        let _ = server
+            .handle(
+                conn_a,
+                ClientMessage::SetRef {
+                    id: 3,
+                    repo: "alpha".into(),
+                    name: "refs/heads/main".into(),
+                    hash: ContentHash::from_canonical(b"alpha_v1"),
+                },
+            )
+            .await;
+
+        // Give the broadcast a moment to fan out (it shouldn't, but
+        // we want to be sure if it did, we'd see it).
+        tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+
+        // B's channel must be empty.
+        match rx_b.try_recv() {
+            Err(tokio::sync::mpsc::error::TryRecvError::Empty) => {}
+            other => panic!("B should not have received any notification, got {other:?}"),
+        }
+
+        // A is the origin and never receives its own broadcast.
+        match rx_a.try_recv() {
+            Err(tokio::sync::mpsc::error::TryRecvError::Empty) => {}
+            other => panic!("A should not have received its own broadcast, got {other:?}"),
+        }
+    }
+
+    /// A failed lookup must not subscribe the connection to the requested
+    /// repo name. Otherwise a client could ask for a nonexistent repo and
+    /// later receive notifications if that repo appears.
+    #[tokio::test]
+    async fn failed_repo_lookup_does_not_subscribe_connection() {
+        let provider = provider_with(&["alpha"]);
+        let server = Server::new(provider);
+
+        let (conn, _rx) = server.register_connection().await;
+        let resp = server
+            .handle(
+                conn,
+                ClientMessage::GetRef {
+                    id: 1,
+                    repo: "missing".into(),
+                    name: "refs/heads/main".into(),
+                },
+            )
+            .await;
+
+        assert!(
+            matches!(resp.as_slice(), [ServerMessage::Error { .. }]),
+            "missing repo lookup should fail, got {resp:?}",
+        );
+
+        let subscribers = match server.subscribers.read() {
+            Ok(subscribers) => subscribers,
+            Err(poisoned) => poisoned.into_inner(),
+        };
+        assert!(
+            !subscribers
+                .get("missing")
+                .is_some_and(|ids| ids.contains(&conn)),
+            "failed lookup must not subscribe the connection",
+        );
+    }
+
+    /// A connection subscribed to a repo DOES receive notifications when
+    /// another connection mutates that repo. This is the positive path
+    /// for the subscription filter.
+    #[tokio::test]
+    async fn ref_updated_broadcast_to_subscribed_connection() {
+        let provider = provider_with(&["shared"]);
+        let server = Server::new(provider);
+
+        let (conn_a, _rx_a) = server.register_connection().await;
+        let (conn_b, mut rx_b) = server.register_connection().await;
+
+        // Both connections touch the shared repo.
+        let _ = server
+            .handle(
+                conn_a,
+                ClientMessage::GetRef {
+                    id: 1,
+                    repo: "shared".into(),
+                    name: "refs/heads/main".into(),
+                },
+            )
+            .await;
+        let _ = server
+            .handle(
+                conn_b,
+                ClientMessage::GetRef {
+                    id: 2,
+                    repo: "shared".into(),
+                    name: "refs/heads/main".into(),
+                },
+            )
+            .await;
+
+        // A mutates the repo.
+        let hash = ContentHash::from_canonical(b"shared_v1");
+        let _ = server
+            .handle(
+                conn_a,
+                ClientMessage::SetRef {
+                    id: 3,
+                    repo: "shared".into(),
+                    name: "refs/heads/main".into(),
+                    hash,
+                },
+            )
+            .await;
+
+        // B receives a notification for the shared repo.
+        let notif = tokio::time::timeout(std::time::Duration::from_millis(200), rx_b.recv())
+            .await
+            .expect("B should receive a notification within timeout")
+            .expect("channel closed");
+
+        match notif {
+            ServerMessage::RefUpdated {
+                repo, name, new, ..
+            } => {
+                assert_eq!(repo, "shared");
+                assert_eq!(name, "refs/heads/main");
+                assert_eq!(new, Some(hash));
+            }
+            other => panic!("expected RefUpdated, got {other:?}"),
+        }
+    }
+
+    /// Disconnecting a connection clears its subscription set so that
+    /// subsequent broadcasts cannot reference it.
+    #[tokio::test]
+    async fn disconnect_clears_subscriptions() {
+        let provider = provider_with(&["alpha"]);
+        let server = Server::new(provider);
+
+        let (conn_a, _rx_a) = server.register_connection().await;
+        let _ = server
+            .handle(
+                conn_a,
+                ClientMessage::GetRef {
+                    id: 1,
+                    repo: "alpha".into(),
+                    name: "refs/heads/main".into(),
+                },
+            )
+            .await;
+
+        // Disconnect A.
+        server.disconnect(conn_a).await;
+
+        // Connection state for A is gone.
+        let conns = server.connections.lock().await;
+        assert!(!conns.contains_key(&conn_a));
+        drop(conns);
+
+        // Subscriber index for A is gone too.
+        let subscribers = match server.subscribers.read() {
+            Ok(subscribers) => subscribers,
+            Err(poisoned) => poisoned.into_inner(),
+        };
+        assert!(!subscribers.values().any(|ids| ids.contains(&conn_a)));
+    }
+
     /// Owner's own TxPut, TxCommit, and TxRollback succeed (positive
     /// control: ensures the connection_id check doesn't reject legitimate
     /// requests).
@@ -651,9 +968,9 @@ mod tests {
                     id: 1,
                     tx_id,
                     hash: ContentHash::from_canonical(b"owner_put"),
-                    object: crate::object::Object::Text(
-                        crate::object::TextObject { content: "ok".into() },
-                    ),
+                    object: crate::object::Object::Text(crate::object::TextObject {
+                        content: "ok".into(),
+                    }),
                 },
             )
             .await;
@@ -670,7 +987,13 @@ mod tests {
         // Tx 2: rollback
         let tx_id_2 = begin_tx(&server, conn, "myrepo").await;
         let rollback_resp = server
-            .handle(conn, ClientMessage::TxRollback { id: 3, tx_id: tx_id_2 })
+            .handle(
+                conn,
+                ClientMessage::TxRollback {
+                    id: 3,
+                    tx_id: tx_id_2,
+                },
+            )
             .await;
         assert!(
             matches!(rollback_resp.as_slice(), [ServerMessage::Ok { .. }]),
