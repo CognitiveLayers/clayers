@@ -465,6 +465,27 @@ repo = Repo(SqliteStore.open("my-project.db"))
     fail-fast and preserve the user's local edits.</pr:p>
   </pr:section>
 
+  <pr:section id="repository-working-copy-observation">
+    <pr:title>Repository Working Copy Observation</pr:title>
+    <pr:shortdesc>Status and working-copy diff report every local XML file
+    state relative to the tracked working copy.</pr:shortdesc>
+
+    <pr:p>The CLI repository status and no-argument diff commands observe the
+    on-disk working copy against the <pr:code>working_copy</pr:code> table.
+    They must consider both sides of that comparison: tracked paths recorded
+    in the table and XML files currently present on disk. A tracked path that
+    is missing from disk is a local deletion, even if it was deleted manually
+    rather than through <pr:code>clayers rm</pr:code>.</pr:p>
+
+    <pr:p>Status reports unstaged tracked deletions alongside unstaged tracked
+    modifications, and reports XML files that exist on disk but are not tracked
+    as untracked. No-argument diff reports working-copy changes relative to the
+    current HEAD: tracked deletions as deleted files, tracked content changes
+    as modified files with structural XML differences when available, and
+    untracked XML files as added files. Clean output is reserved for the case
+    where no tracked path changed and no untracked XML file exists.</pr:p>
+  </pr:section>
+
   <pr:section id="python-error-hierarchy">
     <pr:title>Error Hierarchy</pr:title>
     <pr:shortdesc>How Rust errors map to Python exceptions.</pr:shortdesc>
@@ -568,6 +589,11 @@ print(count_terms(repo))</pr:codeblock>
   <org:concept ref="repository-working-copy-safety">
     <org:purpose>Understanding safety checks that prevent checkout and pull
     from overwriting local working-copy edits.</org:purpose>
+  </org:concept>
+
+  <org:concept ref="repository-working-copy-observation">
+    <org:purpose>Understanding how status and working-copy diff classify
+    tracked deletions, tracked modifications, and untracked XML files.</org:purpose>
   </org:concept>
 
   <org:concept ref="python-error-hierarchy">
@@ -676,6 +702,11 @@ print(count_terms(repo))</pr:codeblock>
   <rel:relation type="depends-on" from="repository-working-copy-safety" to="py-content-hash">
     <rel:note>Working-copy safety compares on-disk XML imports against
     recorded ContentHash values before allowing destructive writes.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="repository-working-copy-observation" to="repository-working-copy-safety">
+    <rel:note>Status, diff, and destructive-operation guards share the same
+    tracked working-copy model and classification of local file changes.</rel:note>
   </rel:relation>
 
   <rel:relation type="refines" from="python-module-structure" to="python-integration">
@@ -1298,6 +1329,18 @@ print(count_terms(repo))</pr:codeblock>
     pull does not advance refs while leaving the disk unchanged.
   </llm:node>
 
+  <llm:node ref="repository-working-copy-observation">
+    Status and no-argument diff compare the working_copy table with XML files
+    on disk. They must not only scan files that still exist: tracked paths from
+    working_copy are authoritative for detecting manual deletions. Status
+    groups manual tracked deletions with other unstaged changes and keeps
+    untracked XML files in the untracked section. Working-copy diff emits
+    deleted entries for missing tracked files, modified entries for tracked
+    files whose current import hash differs from the recorded hash, and added
+    entries for untracked XML files. Added and deleted file entries do not need
+    element-level XML diffs.
+  </llm:node>
+
   <llm:node ref="python-error-hierarchy">
     Describes the exception hierarchy using py:exception elements.
     ClayersError (base, extends Exception) with XmlError, SpecError,
@@ -1414,10 +1457,10 @@ print(count_terms(repo))</pr:codeblock>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/repo/staging.rs">
-      <art:range hash="sha256:9178d2575f61fc696f91c22db50415df8dc19f69e01341381448a60223c44c09"
-                 start-line="242" end-line="286"/>
+      <art:range hash="sha256:ad02bb3c794a29a0bf9bc4b650d0828a8da4f62d504efe4a95f83768422ab85f"
+                 start-line="260" end-line="300"/>
       <art:range hash="sha256:6680d04bb9b0ffa98ddf711e2669f8ab3d6442505642168c2b4b263c850f0167"
-                 start-line="321" end-line="392"/>
+                 start-line="335" end-line="406"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>Dirty working-copy guard that checks staged changes and
@@ -1480,13 +1523,60 @@ print(count_terms(repo))</pr:codeblock>
               repo-revision="HEAD"
               path="crates/clayers/tests/cli_integration.rs">
       <art:range hash="sha256:2da7ddc3fa1d855ce19e152a8b1a77e24fbe20106732513c69362a8ce78b8ad6"
-                 start-line="825" end-line="911"/>
+                 start-line="843" end-line="929"/>
       <art:range hash="sha256:378cc6153635bc658216957c5671c3fd85222de3a2d51cc337a5d14c4114dde6"
-                 start-line="1448" end-line="1696"/>
+                 start-line="1466" end-line="1714"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>Regression tests proving checkout and pull fail without
     overwriting staged or unstaged tracked edits, or untracked target files.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-repository-working-copy-observation-status">
+    <art:spec-ref node="repository-working-copy-observation"
+              revision="draft-1"
+              node-hash="sha256:131af01bbd801a81f343835627f7a214f2a5c028909a161e013ead734c4370d1"/>
+    <art:artifact repo="repo-clayers"
+              repo-revision="HEAD"
+              path="crates/clayers/src/repo/staging.rs">
+      <art:range hash="sha256:6f6ae7bc2290aaa0cd8c692fb7d08a1a7bfd6443bef3dfddb42ba2c14ac76ae7"
+                 start-line="134" end-line="253"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Status compares tracked working-copy paths with on-disk XML
+    paths to report modified, deleted, and untracked local files.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-repository-working-copy-observation-diff">
+    <art:spec-ref node="repository-working-copy-observation"
+              revision="draft-1"
+              node-hash="sha256:131af01bbd801a81f343835627f7a214f2a5c028909a161e013ead734c4370d1"/>
+    <art:artifact repo="repo-clayers"
+              repo-revision="HEAD"
+              path="crates/clayers/src/repo/diff.rs">
+      <art:range hash="sha256:b9ff7ee544d1239e363ff24d46d8d82465aaab3735e9fe3299c79ac1b00b3e9b"
+                 start-line="81" end-line="162"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Working-copy diff compares tracked paths and on-disk XML paths
+    to emit deleted, modified, and added file entries.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-repository-working-copy-observation-tests">
+    <art:spec-ref node="repository-working-copy-observation"
+              revision="draft-1"
+              node-hash="sha256:131af01bbd801a81f343835627f7a214f2a5c028909a161e013ead734c4370d1"/>
+    <art:artifact repo="repo-clayers"
+              repo-revision="HEAD"
+              path="crates/clayers/tests/cli_integration.rs">
+      <art:range hash="sha256:c840bf121df4bda99e1cfcb376be1a2f54d62b148e89f4b3e525cb67aec6e221"
+                 start-line="356" end-line="372"/>
+      <art:range hash="sha256:c75f4acaf9a2c2ed05841542a9ae49a1ab781db31a4ab4bcde0bf18bced8189b"
+                 start-line="2392" end-line="2560"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Regression tests proving manual tracked deletions and
+    untracked XML additions appear in status and working-copy diff output.</art:note>
   </art:mapping>
 
   <art:mapping id="map-term-knowledge-model">

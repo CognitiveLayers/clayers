@@ -353,6 +353,24 @@ fn status_unstaged_modified() {
     );
 }
 
+#[test]
+fn status_manual_deletion_shows_unstaged_deleted() {
+    let tmp = setup_committed_repo(&[("doc.xml", "<root>v1</root>")]);
+    let path = tmp.path();
+
+    std::fs::remove_file(path.join("doc.xml")).unwrap();
+
+    let out = stdout_of(clayers().args(["status"]).current_dir(path));
+    assert!(
+        out.contains("deleted") && out.contains("doc.xml"),
+        "manual tracked deletion should be visible in status: {out}"
+    );
+    assert!(
+        !out.contains("working tree clean"),
+        "deleted tracked file must not be reported clean: {out}"
+    );
+}
+
 // ===========================================================================
 // commit
 // ===========================================================================
@@ -2372,6 +2390,32 @@ fn diff_working_copy_shows_modified() {
 }
 
 #[test]
+fn diff_working_copy_shows_manual_deletion() {
+    let tmp = setup_committed_repo(&[("doc.xml", "<root><item>old</item></root>")]);
+    std::fs::remove_file(tmp.path().join("doc.xml")).unwrap();
+
+    clayers()
+        .args(["diff"])
+        .current_dir(tmp.path())
+        .assert()
+        .success()
+        .stdout(predicates::str::contains("deleted: doc.xml"));
+}
+
+#[test]
+fn diff_working_copy_shows_untracked_addition() {
+    let tmp = setup_committed_repo(&[("doc.xml", "<root><item>old</item></root>")]);
+    std::fs::write(tmp.path().join("new.xml"), "<new/>").unwrap();
+
+    clayers()
+        .args(["diff"])
+        .current_dir(tmp.path())
+        .assert()
+        .success()
+        .stdout(predicates::str::contains("added: new.xml"));
+}
+
+#[test]
 fn diff_between_branches() {
     let tmp = setup_committed_repo(&[("doc.xml", "<root><item>v1</item></root>")]);
 
@@ -2477,6 +2521,42 @@ fn diff_json_working_copy_modified() {
     assert_eq!(changes[0]["old"], "old");
     assert_eq!(changes[0]["new"], "new");
     assert_eq!(changes[0]["path"], "/root/item");
+}
+
+#[test]
+fn diff_json_working_copy_shows_manual_deletion() {
+    let tmp = setup_committed_repo(&[("doc.xml", "<root><item>old</item></root>")]);
+    std::fs::remove_file(tmp.path().join("doc.xml")).unwrap();
+
+    let out = stdout_of(clayers().args(["diff", "--json"]).current_dir(tmp.path()));
+    let v: serde_json::Value = serde_json::from_str(&out).expect("valid JSON");
+
+    let files = v["files"].as_array().unwrap();
+    assert_eq!(files.len(), 1);
+    assert_eq!(files[0]["status"], "deleted");
+    assert_eq!(files[0]["path"], "doc.xml");
+    assert!(
+        files[0].get("changes").is_none() || files[0]["changes"].is_null(),
+        "deleted file should not have element-level changes: {files:?}"
+    );
+}
+
+#[test]
+fn diff_json_working_copy_shows_untracked_addition() {
+    let tmp = setup_committed_repo(&[("doc.xml", "<root><item>old</item></root>")]);
+    std::fs::write(tmp.path().join("new.xml"), "<new/>").unwrap();
+
+    let out = stdout_of(clayers().args(["diff", "--json"]).current_dir(tmp.path()));
+    let v: serde_json::Value = serde_json::from_str(&out).expect("valid JSON");
+
+    let files = v["files"].as_array().unwrap();
+    assert_eq!(files.len(), 1);
+    assert_eq!(files[0]["status"], "added");
+    assert_eq!(files[0]["path"], "new.xml");
+    assert!(
+        files[0].get("changes").is_none() || files[0]["changes"].is_null(),
+        "added file should not have element-level changes: {files:?}"
+    );
 }
 
 #[test]

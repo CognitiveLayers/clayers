@@ -1,6 +1,6 @@
 //! CLI `diff` command: compare working copy, branches, or commits.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
 use anyhow::{Context, Result, bail};
@@ -47,9 +47,7 @@ pub fn cmd_diff(rev_a: Option<&str>, rev_b: Option<&str>, json: bool) -> Result<
 
     let file_diffs = match (rev_a, rev_b) {
         (None, None) => diff_working_copy(&repo_root, &db_path, &branch)?,
-        (Some(rev), None) => {
-            diff_revspecs(&db_path, &format!("refs/heads/{branch}"), rev)?
-        }
+        (Some(rev), None) => diff_revspecs(&db_path, &format!("refs/heads/{branch}"), rev)?,
         (Some(a), Some(b)) => diff_revspecs(&db_path, a, b)?,
         (None, Some(_)) => bail!("unexpected: rev_b without rev_a"),
     };
@@ -80,19 +78,10 @@ pub fn cmd_diff(rev_a: Option<&str>, rev_b: Option<&str>, json: bool) -> Result<
 }
 
 /// Diff the on-disk working copy against HEAD.
-fn diff_working_copy(
-    repo_root: &Path,
-    db_path: &Path,
-    _branch: &str,
-) -> Result<Vec<FileDiff>> {
+fn diff_working_copy(repo_root: &Path, db_path: &Path, _branch: &str) -> Result<Vec<FileDiff>> {
     let conn = open_cli_db(db_path)?;
 
     let working_copy = get_all_working_copy(&conn)?;
-
-    if working_copy.is_empty() {
-        // No commits yet – nothing to diff.
-        return Ok(Vec::new());
-    }
 
     // Collect on-disk XML files.
     let xml_files = super::staging::collect_xml_files(repo_root)?;
@@ -107,52 +96,67 @@ fn diff_working_copy(
             .with_context(|| format!("failed to read {}", abs_path.display()))?;
         on_disk.insert(rel_path, content);
     }
+    let tracked_paths: HashSet<String> =
+        working_copy.iter().map(|(path, _)| path.clone()).collect();
+    let added_paths: Vec<String> = on_disk
+        .keys()
+        .filter(|path| !tracked_paths.contains(*path))
+        .cloned()
+        .collect();
 
-    // Find modified files: returns (path, committed_xml, disk_xml) triples.
+    // Find working-copy file changes.
     let db_path_clone = db_path.to_path_buf();
-    let modified_files: Vec<(String, String, String)> = block_on(async move {
-        let store = clayers_repo::SqliteStore::open(&db_path_clone)
-            .map_err(|e| anyhow::anyhow!("{e}"))?;
-        let mut modified = Vec::new();
+    let mut result: Vec<FileDiff> = block_on(async move {
+        let store =
+            clayers_repo::SqliteStore::open(&db_path_clone).map_err(|e| anyhow::anyhow!("{e}"))?;
+        let mut file_diffs = Vec::new();
 
         for (rel_path, stored_hash_bytes) in &working_copy {
-            if let Some(disk_xml) = on_disk.get(rel_path) {
-                let current_hash =
-                    clayers_repo::import::import_xml(&store, disk_xml).await.ok();
-                let stored_arr: [u8; 32] = stored_hash_bytes[..32.min(stored_hash_bytes.len())]
-                    .try_into()
-                    .unwrap_or([0u8; 32]);
-                let stored_hash = clayers_xml::ContentHash(stored_arr);
+            let Some(disk_xml) = on_disk.get(rel_path) else {
+                file_diffs.push(FileDiff {
+                    status: "deleted".into(),
+                    path: rel_path.clone(),
+                    changes: None,
+                });
+                continue;
+            };
 
-                if let Some(ch) = current_hash
-                    && ch != stored_hash
-                    && let Ok(committed_xml) =
-                        clayers_repo::export::export_xml(&store, stored_hash).await
-                {
-                    modified.push((
-                        rel_path.clone(),
-                        committed_xml,
-                        disk_xml.clone(),
-                    ));
+            let current_hash = clayers_repo::import::import_xml(&store, disk_xml)
+                .await
+                .ok();
+            let stored_arr: [u8; 32] = stored_hash_bytes[..32.min(stored_hash_bytes.len())]
+                .try_into()
+                .unwrap_or([0u8; 32]);
+            let stored_hash = clayers_xml::ContentHash(stored_arr);
+
+            if current_hash != Some(stored_hash) {
+                let xml_diff = match clayers_repo::export::export_xml(&store, stored_hash).await {
+                    Ok(committed_xml) => clayers_xml::diff_xml(&committed_xml, disk_xml).ok(),
+                    Err(_) => None,
+                };
+                let has_changes = xml_diff.as_ref().is_some_and(|d| !d.is_empty());
+                if has_changes || xml_diff.is_none() {
+                    file_diffs.push(FileDiff {
+                        status: "modified".into(),
+                        path: rel_path.clone(),
+                        changes: xml_diff,
+                    });
                 }
             }
         }
 
-        Ok(modified)
-    })?;
-
-    let mut result = Vec::new();
-    for (path, committed_xml, disk_xml) in &modified_files {
-        let xml_diff = clayers_xml::diff_xml(committed_xml, disk_xml).ok();
-        let has_changes = xml_diff.as_ref().is_some_and(|d| !d.is_empty());
-        if has_changes {
-            result.push(FileDiff {
-                status: "modified".into(),
-                path: path.clone(),
-                changes: xml_diff,
+        for path in added_paths {
+            file_diffs.push(FileDiff {
+                status: "added".into(),
+                path,
+                changes: None,
             });
         }
-    }
+
+        Ok(file_diffs)
+    })?;
+
+    result.sort_by(|a, b| a.path.cmp(&b.path).then_with(|| a.status.cmp(&b.status)));
 
     Ok(result)
 }
@@ -164,8 +168,8 @@ fn diff_revspecs(db_path: &Path, rev_a: &str, rev_b: &str) -> Result<Vec<FileDif
     let rev_b = rev_b.to_string();
 
     block_on(async move {
-        let store = clayers_repo::SqliteStore::open(&db_path)
-            .map_err(|e| anyhow::anyhow!("{e}"))?;
+        let store =
+            clayers_repo::SqliteStore::open(&db_path).map_err(|e| anyhow::anyhow!("{e}"))?;
 
         let (_, tree_a) = clayers_repo::query::resolve_to_tree(&store, &store, &rev_a)
             .await
@@ -198,15 +202,14 @@ fn diff_revspecs(db_path: &Path, rev_a: &str, rev_b: &str) -> Result<Vec<FileDif
                     old_doc,
                     new_doc,
                 } => {
-                    let xml_diff =
-                        if let (Ok(xa), Ok(xb)) = (
-                            clayers_repo::export::export_xml(&store, *old_doc).await,
-                            clayers_repo::export::export_xml(&store, *new_doc).await,
-                        ) {
-                            clayers_xml::diff_xml(&xa, &xb).ok()
-                        } else {
-                            None
-                        };
+                    let xml_diff = if let (Ok(xa), Ok(xb)) = (
+                        clayers_repo::export::export_xml(&store, *old_doc).await,
+                        clayers_repo::export::export_xml(&store, *new_doc).await,
+                    ) {
+                        clayers_xml::diff_xml(&xa, &xb).ok()
+                    } else {
+                        None
+                    };
                     result.push(FileDiff {
                         status: "modified".into(),
                         path: path.clone(),

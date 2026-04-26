@@ -38,6 +38,10 @@ fixes and additions.
   refuses to overwrite untracked files at target paths. Pull preflights
   those target paths before syncing refs, so rejected pulls do not
   advance the current branch.
+- **Status and working-copy diff now report manual file-state changes.**
+  Manually deleted tracked XML files appear as deleted in status and
+  no-argument diff, while untracked XML files appear as added in
+  no-argument diff and JSON diff output.
 
 ## [0.2.1] - 2026-04-18
 

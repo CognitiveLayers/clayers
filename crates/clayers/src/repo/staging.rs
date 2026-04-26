@@ -151,13 +151,14 @@ pub fn cmd_status() -> Result<()> {
 
     // Working copy vs filesystem: compare hashes to detect real modifications.
     let working_copy = get_all_working_copy(&conn)?;
-    let mut unstaged_modified = Vec::new();
+    let mut unstaged_changes = Vec::new();
     let mut untracked = Vec::new();
 
     // Scan directory for XML files.
     let xml_files = collect_xml_files(&repo_root)?;
     let staged_paths: std::collections::HashSet<_> =
         staged.iter().map(|(p, _)| p.clone()).collect();
+    let mut disk_paths = std::collections::HashSet::new();
 
     // Collect file paths that need hash comparison, then do them all in one block_on.
     let mut to_check: Vec<(String, Vec<u8>, std::path::PathBuf)> = Vec::new();
@@ -169,6 +170,7 @@ pub fn cmd_status() -> Result<()> {
             .unwrap()
             .to_string_lossy()
             .replace('\\', "/");
+        disk_paths.insert(rel_path.clone());
 
         if staged_paths.contains(&rel_path) {
             continue; // already staged
@@ -185,7 +187,16 @@ pub fn cmd_status() -> Result<()> {
         }
     }
 
-    unstaged_modified.extend(no_hash_modified);
+    for (rel_path, stored_hash) in &working_copy {
+        if staged_paths.contains(rel_path) || disk_paths.contains(rel_path) {
+            continue;
+        }
+        if stored_hash.is_some() {
+            unstaged_changes.push(("deleted", rel_path.clone()));
+        }
+    }
+
+    unstaged_changes.extend(no_hash_modified.into_iter().map(|path| ("modified", path)));
 
     if !to_check.is_empty() {
         let db_path_clone = db_path.clone();
@@ -211,15 +222,18 @@ pub fn cmd_status() -> Result<()> {
 
         for (rel_path, is_modified) in check_results {
             if is_modified {
-                unstaged_modified.push(rel_path);
+                unstaged_changes.push(("modified", rel_path));
             }
         }
     }
 
-    if !unstaged_modified.is_empty() {
+    unstaged_changes.sort();
+    untracked.sort();
+
+    if !unstaged_changes.is_empty() {
         println!("\nChanges not staged for commit:");
-        for p in &unstaged_modified {
-            println!("  modified: {p}");
+        for (action, path) in &unstaged_changes {
+            println!("  {action}: {path}");
         }
     }
 
@@ -231,7 +245,7 @@ pub fn cmd_status() -> Result<()> {
         println!("\n(use \"clayers add <file>...\" to stage)");
     }
 
-    if staged.is_empty() && unstaged_modified.is_empty() && untracked.is_empty() {
+    if staged.is_empty() && unstaged_changes.is_empty() && untracked.is_empty() {
         println!("nothing to commit, working tree clean");
     }
 
