@@ -44,7 +44,27 @@
         <xsl:apply-templates select="ancestor::cmb:spec//org:concept[@ref = $sid]" mode="badge"/>
         <xsl:apply-templates select="ancestor::cmb:spec//org:task[@ref = $sid]" mode="badge"/>
         <xsl:apply-templates select="ancestor::cmb:spec//org:reference[@ref = $sid]" mode="badge"/>
+        <xsl:if test="@id">
+          <button class="xml-source-button"
+                  type="button"
+                  data-xml-source="{@id}"
+                  data-xml-title="{normalize-space(pr:title)}"
+                  aria-label="View XML source"
+                  title="View XML source">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m16 18 6-6-6-6"/>
+              <path d="m8 6-6 6 6 6"/>
+            </svg>
+          </button>
+        </xsl:if>
       </xsl:element>
+
+      <xsl:if test="@id">
+        <template id="xml-source-{@id}" class="xml-source-template">
+          <xsl:value-of select="serialize(., map{'method':'xml', 'indent':true(), 'omit-xml-declaration':true()})"/>
+        </template>
+      </xsl:if>
 
       <xsl:if test="pr:shortdesc">
         <p class="shortdesc"><xsl:apply-templates select="pr:shortdesc/node()"/></p>

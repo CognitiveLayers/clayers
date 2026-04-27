@@ -301,7 +301,7 @@
     <art:artifact repo="repo-clayers"
               repo-revision="abb4044"
               path="schemas/doc/prose.xslt">
-      <art:range hash="sha256:0f28d0ff9a27420479cb409d67df56b91bffeb310932987e7e6395ade784229c"/>
+      <art:range hash="sha256:a15f1b38bbc73c90120e492b133edf1957e7d01e091e6635403c0e2bf5b6b155"/>
     </art:artifact>
     <art:coverage>partial</art:coverage>
     <art:note>Documentation renderer resolves pr:media content references to
@@ -330,7 +330,7 @@
     <art:artifact repo="repo-clayers"
               repo-revision="abb4044"
               path="schemas/doc/main.xslt">
-      <art:range hash="sha256:7cf74f3dc58d51935e6632cc514802a9bb16b8c555b1bb48aab187e2f9bc2801"/>
+      <art:range hash="sha256:4dd94b95dee1e6039bd848aa728d1e751ff01105db40cc63e18c6947438c4997"/>
     </art:artifact>
     <art:coverage>partial</art:coverage>
     <art:note>Main documentation stylesheet imports diagnostic and deliberation

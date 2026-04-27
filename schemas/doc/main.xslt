@@ -464,6 +464,176 @@ h2 { font-size: 1.75rem; border-bottom: 1px solid hsl(var(--border)); padding-bo
 h3 { font-size: 1.375rem; }
 h4 { font-size: 1.125rem; }
 
+.xml-source-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  margin-left: 0.35rem;
+  padding: 0;
+  vertical-align: text-bottom;
+  border: 1px solid hsl(var(--border));
+  border-radius: calc(var(--radius) - 3px);
+  background: hsl(var(--background));
+  color: hsl(var(--muted-foreground));
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.xml-source-button:hover {
+  background: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+  border-color: hsl(var(--ring));
+}
+.xml-source-button svg { width: 0.95rem; height: 0.95rem; }
+
+body.xml-modal-open { overflow: hidden; }
+.xml-source-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+}
+.xml-source-modal.open { display: flex; }
+.xml-source-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / 0.42);
+}
+.xml-source-window {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  width: min(1120px, calc(100vw - 2.5rem));
+  max-height: min(82vh, 900px);
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  background: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+  box-shadow: 0 24px 70px rgb(0 0 0 / 0.28);
+  overflow: hidden;
+}
+.xml-source-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 0.9rem;
+  border-bottom: 1px solid hsl(var(--border));
+  background: hsl(var(--muted));
+}
+.xml-source-title {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.xml-source-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid hsl(var(--border));
+  border-radius: calc(var(--radius) - 3px);
+  background: hsl(var(--background));
+  color: hsl(var(--muted-foreground));
+  cursor: pointer;
+}
+.xml-source-action:hover { color: hsl(var(--foreground)); background: hsl(var(--accent)); }
+.xml-source-action svg { width: 1rem; height: 1rem; }
+.xml-source-browser {
+  flex: 1;
+  max-height: calc(min(82vh, 900px) - 3.6rem);
+  overflow: auto;
+  background: hsl(var(--background));
+  padding: 0.85rem 1rem 1rem;
+  font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
+.xml-source-node { min-width: 0; }
+.xml-source-line {
+  display: flex;
+  align-items: baseline;
+  gap: 0.15rem;
+  min-width: 0;
+  min-height: 1.35rem;
+  white-space: pre;
+}
+.xml-source-text-line {
+  max-width: 92ch;
+  white-space: normal;
+}
+.xml-source-text-line .xml-source-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.xml-source-attr-line {
+  max-width: 92ch;
+  padding-left: 1.4rem;
+  white-space: normal;
+}
+.xml-source-attr-line .xml-source-attr-value {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.xml-source-toggle,
+.xml-source-spacer {
+  flex: 0 0 1.25rem;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+.xml-source-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid hsl(var(--border));
+  border-radius: calc(var(--radius) - 4px);
+  background: hsl(var(--card));
+  color: hsl(var(--muted-foreground));
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+}
+.xml-source-toggle:hover {
+  color: hsl(var(--foreground));
+  background: hsl(var(--accent));
+}
+.xml-source-children { margin-left: 1.5rem; }
+.xml-source-node.collapsed > .xml-source-children,
+.xml-source-node.collapsed > .xml-source-close { display: none; }
+.xml-source-punct { color: hsl(var(--muted-foreground)); }
+.xml-source-name { color: hsl(var(--primary)); font-weight: 600; }
+.xml-source-attr-name { color: #b45309; }
+.dark .xml-source-attr-name { color: #fbbf24; }
+.xml-source-attr-value { color: #047857; }
+.dark .xml-source-attr-value { color: #34d399; }
+.xml-source-text { color: hsl(var(--foreground)); }
+.xml-source-comment { color: hsl(var(--muted-foreground)); font-style: italic; }
+.xml-source-error {
+  margin: 0 0 0.75rem;
+  color: hsl(var(--destructive));
+  font-weight: 600;
+}
+.xml-source-raw {
+  margin: 0;
+  white-space: pre;
+}
+@media (max-width: 768px) {
+  .xml-source-modal { padding: 0.75rem; }
+  .xml-source-window { width: 100%; max-height: 88vh; }
+}
+
 .shortdesc {
   color: hsl(var(--muted-foreground));
   font-style: italic;
@@ -1331,6 +1501,22 @@ h6:hover .heading-anchor { opacity: 1; }
           </xsl:if>
         </nav>
 
+        <div id="xml-source-modal" class="xml-source-modal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="xml-source-title">
+          <div class="xml-source-backdrop" data-xml-close="true"></div>
+          <div class="xml-source-window">
+            <div class="xml-source-header">
+              <div id="xml-source-title" class="xml-source-title">XML source</div>
+              <button id="xml-source-copy" class="xml-source-action" type="button" title="Copy XML" aria-label="Copy XML">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+              </button>
+              <button class="xml-source-action" type="button" data-xml-close="true" title="Close" aria-label="Close XML source">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              </button>
+            </div>
+            <div id="xml-source-browser" class="xml-source-browser"></div>
+          </div>
+        </div>
+
         <div class="content-wrapper">
         <main>
           <div id="breadcrumbs" class="breadcrumbs"></div>
@@ -1463,6 +1649,267 @@ function syncHljsTheme(theme) {
   }
 }
 
+function closeXmlSource() {
+  var modal = document.getElementById('xml-source-modal');
+  if (!modal) return;
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('xml-modal-open');
+}
+
+function copyTextFallback(text) {
+  var area = document.createElement('textarea');
+  area.value = text;
+  area.setAttribute('readonly', 'readonly');
+  area.style.position = 'fixed';
+  area.style.left = '-9999px';
+  document.body.appendChild(area);
+  area.select();
+  try { document.execCommand('copy'); } catch(e) {}
+  document.body.removeChild(area);
+}
+
+function xmlPart(className, text) {
+  var span = document.createElement('span');
+  span.className = className;
+  span.textContent = text;
+  return span;
+}
+
+function xmlVisibleChildren(node) {
+  return Array.prototype.filter.call(node.childNodes || [], function(child) {
+    return child.nodeType !== 3 || child.nodeValue.trim();
+  });
+}
+
+function appendXmlName(line, node) {
+  var lt = String.fromCharCode(60);
+  line.appendChild(xmlPart('xml-source-punct', lt));
+  line.appendChild(xmlPart('xml-source-name', node.nodeName));
+}
+
+function appendXmlAttribute(line, attr) {
+  line.appendChild(xmlPart('xml-source-text', ' '));
+  line.appendChild(xmlPart('xml-source-attr-name', attr.name));
+  line.appendChild(xmlPart('xml-source-punct', '="'));
+  line.appendChild(xmlPart('xml-source-attr-value', attr.value));
+  line.appendChild(xmlPart('xml-source-punct', '"'));
+}
+
+function appendXmlOpen(line, node, selfClosing) {
+  var gt = String.fromCharCode(62);
+  appendXmlName(line, node);
+  Array.prototype.forEach.call(node.attributes || [], function(attr) {
+    appendXmlAttribute(line, attr);
+  });
+  line.appendChild(xmlPart('xml-source-punct', selfClosing ? '/' + gt : gt));
+}
+
+function xmlAttributeWidth(node) {
+  return Array.prototype.reduce.call(node.attributes || [], function(total, attr) {
+    return total + attr.name.length + attr.value.length + 4;
+  }, node.nodeName.length + 2);
+}
+
+function xmlShouldWrapAttributes(node) {
+  var attrs = node.attributes || [];
+  return attrs.length > 3 || xmlAttributeWidth(node) > 96;
+}
+
+function renderXmlLine() {
+  var line = document.createElement('div');
+  line.className = 'xml-source-line';
+  return line;
+}
+
+function xmlTextValue(node) {
+  var text = node.nodeValue || '';
+  var parentName = node.parentNode ? node.parentNode.localName || node.parentNode.nodeName : '';
+  if (parentName === 'codeblock' || parentName === 'synopsis') return text.trim();
+  return text.replace(/\s+/g, ' ').trim();
+}
+
+function renderXmlNode(node) {
+  var lt = String.fromCharCode(60);
+  var gt = String.fromCharCode(62);
+
+  if (node.nodeType === 1) {
+    var wrapper = document.createElement('div');
+    wrapper.className = 'xml-source-node';
+    var children = xmlVisibleChildren(node);
+    var hasChildren = children.length > 0;
+    var line = renderXmlLine();
+
+    if (hasChildren) {
+      var toggle = document.createElement('button');
+      toggle.className = 'xml-source-toggle';
+      toggle.type = 'button';
+      toggle.textContent = '-';
+      toggle.setAttribute('aria-label', 'Collapse ' + node.nodeName);
+      line.appendChild(toggle);
+      toggle.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var collapsed = wrapper.classList.toggle('collapsed');
+        toggle.textContent = collapsed ? '+' : '-';
+        toggle.setAttribute('aria-label', (collapsed ? 'Expand ' : 'Collapse ') + node.nodeName);
+      });
+    } else {
+      var spacer = document.createElement('span');
+      spacer.className = 'xml-source-spacer';
+      line.appendChild(spacer);
+    }
+
+    appendXmlOpen(line, node, !hasChildren);
+    wrapper.appendChild(line);
+
+    if (node.attributes &amp;&amp; node.attributes.length &amp;&amp; xmlShouldWrapAttributes(node)) {
+      line.innerHTML = '';
+      if (hasChildren) {
+        var multilineToggle = document.createElement('button');
+        multilineToggle.className = 'xml-source-toggle';
+        multilineToggle.type = 'button';
+        multilineToggle.textContent = '-';
+        multilineToggle.setAttribute('aria-label', 'Collapse ' + node.nodeName);
+        line.appendChild(multilineToggle);
+        toggle = multilineToggle;
+        toggle.addEventListener('click', function(e) {
+          e.stopPropagation();
+          var collapsed = wrapper.classList.toggle('collapsed');
+          toggle.textContent = collapsed ? '+' : '-';
+          toggle.setAttribute('aria-label', (collapsed ? 'Expand ' : 'Collapse ') + node.nodeName);
+        });
+      } else {
+        var multilineSpacer = document.createElement('span');
+        multilineSpacer.className = 'xml-source-spacer';
+        line.appendChild(multilineSpacer);
+      }
+      appendXmlName(line, node);
+      Array.prototype.forEach.call(node.attributes, function(attr) {
+        var attrLine = renderXmlLine();
+        attrLine.classList.add('xml-source-attr-line');
+        var attrSpacer = document.createElement('span');
+        attrSpacer.className = 'xml-source-spacer';
+        attrLine.appendChild(attrSpacer);
+        appendXmlAttribute(attrLine, attr);
+        wrapper.appendChild(attrLine);
+      });
+      var endLine = renderXmlLine();
+      endLine.classList.add('xml-source-attr-line');
+      var endSpacer = document.createElement('span');
+      endSpacer.className = 'xml-source-spacer';
+      endLine.appendChild(endSpacer);
+      endLine.appendChild(xmlPart('xml-source-punct', (hasChildren ? '' : '/') + gt));
+      wrapper.appendChild(endLine);
+    }
+
+    if (hasChildren) {
+      var childBox = document.createElement('div');
+      childBox.className = 'xml-source-children';
+      children.forEach(function(child) {
+        var rendered = renderXmlNode(child);
+        if (rendered) childBox.appendChild(rendered);
+      });
+      wrapper.appendChild(childBox);
+
+      var closeLine = renderXmlLine();
+      var closeSpacer = document.createElement('span');
+      closeSpacer.className = 'xml-source-spacer';
+      closeLine.appendChild(closeSpacer);
+      closeLine.appendChild(xmlPart('xml-source-punct', lt + '/'));
+      closeLine.appendChild(xmlPart('xml-source-name', node.nodeName));
+      closeLine.appendChild(xmlPart('xml-source-punct', gt));
+      closeLine.classList.add('xml-source-close');
+      wrapper.appendChild(closeLine);
+    }
+
+    return wrapper;
+  }
+
+  if (node.nodeType === 3) {
+    var text = xmlTextValue(node);
+    if (!text) return null;
+    var textLine = renderXmlLine();
+    textLine.classList.add('xml-source-text-line');
+    var textSpacer = document.createElement('span');
+    textSpacer.className = 'xml-source-spacer';
+    textLine.appendChild(textSpacer);
+    textLine.appendChild(xmlPart('xml-source-text', text));
+    return textLine;
+  }
+
+  if (node.nodeType === 4) {
+    var cdataLine = renderXmlLine();
+    var cdataSpacer = document.createElement('span');
+    cdataSpacer.className = 'xml-source-spacer';
+    cdataLine.appendChild(cdataSpacer);
+    cdataLine.appendChild(xmlPart('xml-source-text', lt + '![CDATA[' + node.nodeValue + ']]' + gt));
+    return cdataLine;
+  }
+
+  if (node.nodeType === 8) {
+    var commentLine = renderXmlLine();
+    var commentSpacer = document.createElement('span');
+    commentSpacer.className = 'xml-source-spacer';
+    commentLine.appendChild(commentSpacer);
+    commentLine.appendChild(xmlPart('xml-source-comment', lt + '!--' + node.nodeValue + '--' + gt));
+    return commentLine;
+  }
+
+  if (node.nodeType === 7) {
+    var piLine = renderXmlLine();
+    var piSpacer = document.createElement('span');
+    piSpacer.className = 'xml-source-spacer';
+    piLine.appendChild(piSpacer);
+    piLine.appendChild(xmlPart('xml-source-comment', lt + '?' + node.nodeName + ' ' + node.nodeValue + '?' + gt));
+    return piLine;
+  }
+
+  return null;
+}
+
+function renderXmlBrowser(container, source) {
+  container.innerHTML = '';
+  if (!source) {
+    container.appendChild(xmlPart('xml-source-error', 'No XML source is available for this section.'));
+    return;
+  }
+
+  var parser = new DOMParser();
+  var doc = parser.parseFromString(source, 'application/xml');
+  var parserError = doc.getElementsByTagName('parsererror')[0];
+  if (parserError || !doc.documentElement) {
+    var error = document.createElement('div');
+    error.className = 'xml-source-error';
+    error.textContent = 'XML parse error; showing raw source.';
+    container.appendChild(error);
+    var raw = document.createElement('pre');
+    raw.className = 'xml-source-raw';
+    raw.textContent = source;
+    container.appendChild(raw);
+    return;
+  }
+
+  container.appendChild(renderXmlNode(doc.documentElement));
+}
+
+function openXmlSource(id, title) {
+  var template = document.getElementById('xml-source-' + id);
+  var modal = document.getElementById('xml-source-modal');
+  var browser = document.getElementById('xml-source-browser');
+  var heading = document.getElementById('xml-source-title');
+  if (!template || !modal || !browser || !heading) return;
+  heading.textContent = (title || id || 'Node') + ' XML';
+  var source = template.content ? template.content.textContent : template.textContent;
+  source = (source || '').trim();
+  modal.setAttribute('data-xml-source-text', source);
+  renderXmlBrowser(browser, source);
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('xml-modal-open');
+  var close = modal.querySelector('[data-xml-close="true"][type="button"]');
+  if (close) close.focus();
+}
+
 function updateBreadcrumbs(pageId) {
   var bc = document.getElementById('breadcrumbs');
   if (!bc) return;
@@ -1559,6 +2006,21 @@ window.addEventListener('popstate', function(e) {
 
   // Intercept all internal anchor clicks (sidebar + content)
   document.addEventListener('click', function(e) {
+    var xmlButton = e.target.closest('[data-xml-source]');
+    if (xmlButton) {
+      e.preventDefault();
+      e.stopPropagation();
+      openXmlSource(xmlButton.getAttribute('data-xml-source'), xmlButton.getAttribute('data-xml-title'));
+      return;
+    }
+
+    var xmlClose = e.target.closest('[data-xml-close]');
+    if (xmlClose) {
+      e.preventDefault();
+      closeXmlSource();
+      return;
+    }
+
     var link = e.target.closest('a[href^="#"]');
     if (!link) return;
     var id = link.getAttribute('href').substring(1);
@@ -1597,6 +2059,7 @@ window.addEventListener('popstate', function(e) {
   document.querySelectorAll('[id]').forEach(function(el) {
     var id = el.getAttribute('id');
     if (!id || id === 'sidebar' || id === 'search' || id === 'search-results') return;
+    if (id.indexOf('xml-source-') === 0) return;
     var label = '', type = '', content = '';
     var h = el.matches('h1,h2,h3,h4,h5,h6') ? el : el.querySelector('h1,h2,h3,h4,h5,h6');
     if (h) {
@@ -1750,11 +2213,26 @@ window.addEventListener('popstate', function(e) {
 
   // Keyboard shortcuts: / to focus search, Escape to blur
   document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' &amp;&amp; document.getElementById('xml-source-modal')?.classList.contains('open')) {
+      e.preventDefault();
+      closeXmlSource();
+      return;
+    }
     // Don't trigger shortcuts when typing in input
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
     if (e.key === '/') {
       e.preventDefault();
       searchInput.focus();
+    }
+  });
+
+  document.getElementById('xml-source-copy')?.addEventListener('click', function() {
+    var modal = document.getElementById('xml-source-modal');
+    var text = modal ? modal.getAttribute('data-xml-source-text') || '' : '';
+    if (navigator.clipboard &amp;&amp; navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).catch(function() { copyTextFallback(text); });
+    } else {
+      copyTextFallback(text);
     }
   });
 

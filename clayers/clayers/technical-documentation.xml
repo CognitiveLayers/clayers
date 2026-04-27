@@ -102,6 +102,19 @@
     choice sets become option cards, and related links become navigable link
     lists.</pr:p>
 
+    <pr:p>Each rendered section should also expose its underlying XML through
+    a compact source button. The renderer stores serialized section XML in an
+    inert HTML template and reads the template content when the popup opens.
+    Activating the button opens a scrollable XML browser with collapsible
+    element structure, highlighted names, attributes, and text, and a copy
+    action for the original source. The browser view normalizes whitespace in
+    text nodes for readability, wraps long text values within a readable
+    measure, and wraps long attribute lists across multiple rows. This keeps
+    prose-heavy nodes and namespace-heavy root elements readable without
+    forcing excessively wide modal content. It preserves the exact serialized
+    XML for copying. This makes the generated HTML useful as both
+    documentation and an inspection surface for the source specification.</pr:p>
+
     <pr:p>The combined-document postprocessor should synthesize
     <pr:code>rel:relation type="references"</pr:code> edges from
     <pr:code>pr:xref</pr:code> and related-link entries. This makes prose
@@ -235,7 +248,8 @@
     <pln:item id="plan-technical-documentation-prose-xslt">
       <pln:title>Add XSLT support</pln:title>
       <pln:description>Render the new prose elements in documentation HTML and
-      synthesize reference relations from prose cross-references.</pln:description>
+      synthesize reference relations from prose cross-references. Include an
+      XML source browser for rendered sections.</pln:description>
       <pln:acceptance>
         <pln:criterion>Documentation generation succeeds with the expanded
         prose vocabulary; witness command: cargo run -p clayers -- doc
@@ -351,7 +365,10 @@
   <llm:node ref="technical-documentation-xslt-processing">
     Specifies XSLT processing for expanded prose: render the new authoring
     structures into HTML and synthesize rel:relation type="references" from
-    prose xrefs, related links, and content-backed media.
+    prose xrefs, related links, and content-backed media. Rendered sections
+    expose a source button that opens a scrollable XML browser for inspecting
+    the underlying spec node as a collapsible tree with highlighted element
+    names, attributes, and text plus raw-source copy support.
   </llm:node>
 
   <llm:node ref="prose-technical-documentation-example">
@@ -390,7 +407,7 @@
   <art:mapping id="map-technical-documentation-xslt-processing-postprocess">
     <art:spec-ref node="technical-documentation-xslt-processing"
               revision="draft-1"
-              node-hash="sha256:410282825786111e0f2aa3644970f6dc119211b235017582f4d5b15d7a928bfd"/>
+              node-hash="sha256:0c5b3adcc11a7fbf96aad90d30c6b2951498404b0a3fb9e14cd363611ca00b4a"/>
     <art:artifact repo="repo-clayers"
               repo-revision="abb4044"
               path="schemas/postprocess.xslt">
@@ -405,11 +422,11 @@
   <art:mapping id="map-technical-documentation-xslt-processing-doc-prose">
     <art:spec-ref node="technical-documentation-xslt-processing"
               revision="draft-1"
-              node-hash="sha256:410282825786111e0f2aa3644970f6dc119211b235017582f4d5b15d7a928bfd"/>
+              node-hash="sha256:0c5b3adcc11a7fbf96aad90d30c6b2951498404b0a3fb9e14cd363611ca00b4a"/>
     <art:artifact repo="repo-clayers"
               repo-revision="abb4044"
               path="schemas/doc/prose.xslt">
-      <art:range hash="sha256:8f9b984e57d1436eb777fccc89555763071f02316a589f7e571cf57c05034acc" start-line="147" end-line="490"/>
+      <art:range hash="sha256:77c622626589d3ebbbf9294a40a1219227a6124fae03ab07f37079e2eb0eb3b8" start-line="147" end-line="490"/>
     </art:artifact>
     <art:coverage>partial</art:coverage>
     <art:note>Documentation rendering templates for definition lists, task
@@ -420,15 +437,49 @@
   <art:mapping id="map-technical-documentation-xslt-processing-doc-css">
     <art:spec-ref node="technical-documentation-xslt-processing"
               revision="draft-1"
-              node-hash="sha256:410282825786111e0f2aa3644970f6dc119211b235017582f4d5b15d7a928bfd"/>
+              node-hash="sha256:0c5b3adcc11a7fbf96aad90d30c6b2951498404b0a3fb9e14cd363611ca00b4a"/>
     <art:artifact repo="repo-clayers"
               repo-revision="abb4044"
               path="schemas/doc/main.xslt">
-      <art:range hash="sha256:e98641a312a8655932e3658a6f47c2607adb21c12782bb38fb8c14033c05a06e" start-line="554" end-line="637"/>
+      <art:range hash="sha256:5d5e07229ff72561ca3d90d3d6e0f53f03cb4f6c667ba65bdee83d53bcaf6d33" start-line="728" end-line="811"/>
     </art:artifact>
     <art:coverage>partial</art:coverage>
     <art:note>Documentation CSS for the rendered technical-documentation
     blocks and inline keyboard styling.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-technical-documentation-xml-source-popup-main">
+    <art:spec-ref node="technical-documentation-xslt-processing"
+              revision="draft-1"
+              node-hash="sha256:0c5b3adcc11a7fbf96aad90d30c6b2951498404b0a3fb9e14cd363611ca00b4a"/>
+    <art:artifact repo="repo-clayers"
+              repo-revision="8704d65"
+              path="schemas/doc/main.xslt">
+      <art:range hash="sha256:d170035e41424e0451add7e70e40af70283b0f5fee562630263c6f3ac894266a" start-line="467" end-line="635"/>
+      <art:range hash="sha256:9f10f27b43c4fe4a23698bbacdada0590cf8159fbdcf9b3afa8344641e768885" start-line="1504" end-line="1518"/>
+      <art:range hash="sha256:7c35cfecf7c81067ea29b553cd0cd9c6264584fa147dcfb9edff282f3b23d124" start-line="1652" end-line="1911"/>
+      <art:range hash="sha256:cebfde1a99fec8973e9a04486dcdb5b4911991d83da485247a26d634bf6e0c3e" start-line="2007" end-line="2023"/>
+      <art:range hash="sha256:f7d99f1f6e50f318c848ebeee7184c03f4a861a1b7e75bb7ba49f9541ff26168" start-line="2059" end-line="2062"/>
+      <art:range hash="sha256:733f85a1653cbd19987c4e2ddec70fdbced2cee28ee4382d59b94db1e1b767a3" start-line="2214" end-line="2237"/>
+    </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>HTML documentation source-browser support in the page shell:
+    modal dialog behavior, parsed XML tree rendering, collapsible nodes,
+    scrollable inspection, and raw-source copy action.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-technical-documentation-xml-source-popup-prose">
+    <art:spec-ref node="technical-documentation-xslt-processing"
+              revision="draft-1"
+              node-hash="sha256:0c5b3adcc11a7fbf96aad90d30c6b2951498404b0a3fb9e14cd363611ca00b4a"/>
+    <art:artifact repo="repo-clayers"
+              repo-revision="8704d65"
+              path="schemas/doc/prose.xslt">
+      <art:range hash="sha256:49fd8049e4e3cdd44db22ffe717e4f7262448806f49f3db365c461597da41bee" start-line="47" end-line="67"/>
+    </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>Section rendering support for XML source buttons and serialized
+    source templates.</art:note>
   </art:mapping>
 
   <art:exempt node="src-docbook-tdg-52">External source declaration, not an

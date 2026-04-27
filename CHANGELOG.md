@@ -13,6 +13,9 @@ fixes and additions.
 
 ### Added
 
+- **HTML documentation XML browser.** Rendered docs now expose each
+  section's underlying XML in a scrollable, collapsible source view
+  with readable text and attribute wrapping.
 - **Richer technical documentation modeling.** Prose now supports a
   broader DITA/DocBook-inspired authoring vocabulary, with reusable
   media, troubleshooting, and meaningful choices modeled through
