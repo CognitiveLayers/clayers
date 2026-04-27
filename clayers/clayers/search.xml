@@ -133,6 +133,12 @@
     fingerprint rides alongside each text embedding, letting users
     rank by meaning, structure, or a weighted mix (`--alpha`,
     `--beta`).</pr:note>
+
+    <pr:related-links>
+      <pr:link ref="xpath-query-tooling">XPath query tooling</pr:link>
+      <pr:link ref="search-cli">Search command-line surface</pr:link>
+      <pr:link ref="search-index-layout">Sidecar index layout</pr:link>
+    </pr:related-links>
   </pr:section>
 
   <pr:section id="search-how-it-works">
@@ -203,26 +209,52 @@
     <pr:shortdesc>How 256 bits encode layer, namespace, ancestor
     path, element name, and relation types.</pr:shortdesc>
 
-    <pr:p>The fingerprint is a fixed 256-bit vector with six segments
-    + 5 reserved bits:</pr:p>
+    <pr:p>The fingerprint is a fixed 256-bit vector with six active segments
+    and five reserved bits:</pr:p>
 
-    <pr:ul>
-      <pr:li>Bits 0-10 (11 bits): layer one-hot over the eleven
-      clayers layers (prose, terminology, organization, relation,
-      decision, source, plan, artifact, llm, revision, index).</pr:li>
-      <pr:li>Bits 11-42 (32 bits): FxHash of the namespace URI.</pr:li>
-      <pr:li>Bits 43-170 (128 bits): ancestor-path 3-gram shingles.
-      The ancestor chain's element localnames are joined with
-      <pr:code>/</pr:code>; each 3-gram is hashed into <pr:code>[0,
-      128)</pr:code> and the corresponding bit is set.</pr:li>
-      <pr:li>Bits 171-186 (16 bits): element-localname hash.</pr:li>
-      <pr:li>Bits 187-218 (32 bits): outgoing relation-type bitset
-      (hash-bucketed).</pr:li>
-      <pr:li>Bits 219-250 (32 bits): incoming relation-type
-      bitset.</pr:li>
-      <pr:li>Bits 251-255 (5 bits): reserved for future growth
-      (zero-filled).</pr:li>
-    </pr:ul>
+    <pr:properties>
+      <pr:title>Fingerprint segments</pr:title>
+      <pr:property>
+        <pr:proptype>Bits 0-10</pr:proptype>
+        <pr:propvalue>11 bits</pr:propvalue>
+        <pr:propdesc>Layer one-hot over the eleven clayers layers: prose,
+        terminology, organization, relation, decision, source, plan,
+        artifact, llm, revision, and index.</pr:propdesc>
+      </pr:property>
+      <pr:property>
+        <pr:proptype>Bits 11-42</pr:proptype>
+        <pr:propvalue>32 bits</pr:propvalue>
+        <pr:propdesc>FxHash of the namespace URI.</pr:propdesc>
+      </pr:property>
+      <pr:property>
+        <pr:proptype>Bits 43-170</pr:proptype>
+        <pr:propvalue>128 bits</pr:propvalue>
+        <pr:propdesc>Ancestor-path 3-gram shingles. The ancestor chain's
+        element localnames are joined with <pr:code>/</pr:code>; each 3-gram
+        is hashed into <pr:code>[0, 128)</pr:code> and the corresponding bit
+        is set.</pr:propdesc>
+      </pr:property>
+      <pr:property>
+        <pr:proptype>Bits 171-186</pr:proptype>
+        <pr:propvalue>16 bits</pr:propvalue>
+        <pr:propdesc>Element-localname hash.</pr:propdesc>
+      </pr:property>
+      <pr:property>
+        <pr:proptype>Bits 187-218</pr:proptype>
+        <pr:propvalue>32 bits</pr:propvalue>
+        <pr:propdesc>Outgoing relation-type bitset, hash-bucketed.</pr:propdesc>
+      </pr:property>
+      <pr:property>
+        <pr:proptype>Bits 219-250</pr:proptype>
+        <pr:propvalue>32 bits</pr:propvalue>
+        <pr:propdesc>Incoming relation-type bitset, hash-bucketed.</pr:propdesc>
+      </pr:property>
+      <pr:property>
+        <pr:proptype>Bits 251-255</pr:proptype>
+        <pr:propvalue>5 bits</pr:propvalue>
+        <pr:propdesc>Reserved for future growth and zero-filled.</pr:propdesc>
+      </pr:property>
+    </pr:properties>
 
     <pr:p>The layout is frozen: a change in segment boundaries
     invalidates every stored fingerprint. Bumping
@@ -237,25 +269,31 @@
 
     <pr:p>The sidecar holds three files:</pr:p>
 
-    <pr:ul>
-      <pr:li><pr:code>index.usearch</pr:code> — a memory-mappable
-      usearch index of 640-dim f32 vectors, one per
-      <pr:code>@id</pr:code>-bearing node. The per-node
-      <trm:ref term="term-concatenated-fingerprint">concatenated
-      fingerprint</trm:ref> stores the text embedding in the first 384
-      dims and the structural fingerprint (bits cast to 0.0/1.0 f32s)
-      in the last 256 dims.</pr:li>
-      <pr:li><pr:code>meta.sqlite</pr:code> — a SQLite database with
-      table <pr:code>nodes(id TEXT PRIMARY KEY, file TEXT, line_start
-      INTEGER, line_end INTEGER, layer TEXT, namespace TEXT, node_hash
-      TEXT, preview TEXT, key INTEGER)</pr:code>. Supplies human-
-      readable fields for the query output and serves as the
-      incremental-rebuild cache.</pr:li>
-      <pr:li><pr:code>config.json</pr:code> — build configuration:
-      model name, text-dim, struct-dim, build timestamp, spec
-      revision, fingerprint-version. Changing the model or
-      fingerprint-version triggers a full rebuild.</pr:li>
-    </pr:ul>
+    <pr:dl>
+      <pr:dlentry>
+        <pr:dt><pr:code>index.usearch</pr:code></pr:dt>
+        <pr:dd>A memory-mappable usearch index of 640-dim f32 vectors, one
+        per <pr:code>@id</pr:code>-bearing node. The per-node
+        <trm:ref term="term-concatenated-fingerprint">concatenated
+        fingerprint</trm:ref> stores the text embedding in the first 384 dims
+        and the structural fingerprint (bits cast to 0.0/1.0 f32s) in the
+        last 256 dims.</pr:dd>
+      </pr:dlentry>
+      <pr:dlentry>
+        <pr:dt><pr:code>meta.sqlite</pr:code></pr:dt>
+        <pr:dd>A SQLite database with table <pr:code>nodes(id TEXT PRIMARY
+        KEY, file TEXT, line_start INTEGER, line_end INTEGER, layer TEXT,
+        namespace TEXT, node_hash TEXT, preview TEXT, key INTEGER)</pr:code>.
+        Supplies human-readable fields for query output and serves as the
+        incremental-rebuild cache.</pr:dd>
+      </pr:dlentry>
+      <pr:dlentry>
+        <pr:dt><pr:code>config.json</pr:code></pr:dt>
+        <pr:dd>Build configuration: model name, text-dim, struct-dim, build
+        timestamp, spec revision, fingerprint-version. Changing the model or
+        fingerprint-version triggers a full rebuild.</pr:dd>
+      </pr:dlentry>
+    </pr:dl>
 
     <pr:p>Concurrent writes are serialized via a lockfile
     <pr:code>.clayers/search/.lock</pr:code>; parallel
@@ -290,32 +328,47 @@
     <pr:shortdesc>Flags, defaults, and the post-filter semantics of
     `--xpath` and `--layer`.</pr:shortdesc>
 
+    <pr:synopsis kind="command">clayers search "QUERY" [PATH] [--alpha F] [--beta F] [--k N] [--xpath EXPR] [--layer L[,L...]] [--json]</pr:synopsis>
+    <pr:synopsis kind="command">clayers search index [PATH]</pr:synopsis>
+
     <pr:p>Two entry points share the <pr:code>search</pr:code>
-    subcommand: <pr:code>clayers search "QUERY" [PATH]</pr:code> runs
-    a ranked query; <pr:code>clayers search index [PATH]</pr:code>
-    builds or updates the index without querying (useful in CI).</pr:p>
+    subcommand: querying runs a ranked search, while
+    <pr:code>clayers search index [PATH]</pr:code> builds or updates the
+    index without querying.</pr:p>
 
-    <pr:p>Ranking knobs:</pr:p>
-
-    <pr:ul>
-      <pr:li><pr:code>--alpha F</pr:code> (default 0.7) — weight on
-      the cosine-over-text component.</pr:li>
-      <pr:li><pr:code>--beta F</pr:code> (default 0.3) — weight on
-      the Tanimoto-over-structure component.
-      <pr:code>--beta 0</pr:code> yields pure-semantic search.</pr:li>
-      <pr:li><pr:code>--k N</pr:code> (default 10) — result count.</pr:li>
-    </pr:ul>
-
-    <pr:p>Filter knobs (applied as post-filters on the top-2k
-    candidates returned from usearch):</pr:p>
-
-    <pr:ul>
-      <pr:li><pr:code>--xpath EXPR</pr:code> — keep only hits whose
-      id is in the set returned by the spec-level
-      <pr:code>xpath_to_id_set</pr:code> helper.</pr:li>
-      <pr:li><pr:code>--layer L[,L…]</pr:code> — convenience:
-      translates to <pr:code>//XXX:*[@id]</pr:code> and intersects.</pr:li>
-    </pr:ul>
+    <pr:properties>
+      <pr:title>Search flags</pr:title>
+      <pr:property>
+        <pr:proptype>Ranking</pr:proptype>
+        <pr:propvalue><pr:code>--alpha F</pr:code></pr:propvalue>
+        <pr:propdesc>Weight on the cosine-over-text component. Default is
+        0.7.</pr:propdesc>
+      </pr:property>
+      <pr:property>
+        <pr:proptype>Ranking</pr:proptype>
+        <pr:propvalue><pr:code>--beta F</pr:code></pr:propvalue>
+        <pr:propdesc>Weight on the Tanimoto-over-structure component. Default
+        is 0.3; <pr:code>--beta 0</pr:code> yields pure semantic search.</pr:propdesc>
+      </pr:property>
+      <pr:property>
+        <pr:proptype>Ranking</pr:proptype>
+        <pr:propvalue><pr:code>--k N</pr:code></pr:propvalue>
+        <pr:propdesc>Result count. Default is 10.</pr:propdesc>
+      </pr:property>
+      <pr:property>
+        <pr:proptype>Filter</pr:proptype>
+        <pr:propvalue><pr:code>--xpath EXPR</pr:code></pr:propvalue>
+        <pr:propdesc>Keep only hits whose id is in the set returned by the
+        spec-level <pr:code>xpath_to_id_set</pr:code> helper.</pr:propdesc>
+      </pr:property>
+      <pr:property>
+        <pr:proptype>Filter</pr:proptype>
+        <pr:propvalue><pr:code>--layer L[,L...]</pr:code></pr:propvalue>
+        <pr:propdesc>Convenience filter that translates to
+        <pr:code>//XXX:*[@id]</pr:code> and intersects the candidate
+        set.</pr:propdesc>
+      </pr:property>
+    </pr:properties>
 
     <pr:p>Output is a ranked table of <pr:code>id</pr:code>,
     <pr:code>file:line</pr:code>, <pr:code>layer</pr:code>, score
@@ -336,16 +389,12 @@
     warm-up costs and returns three JSON envelopes the caller must
     merge. The multi-query mode folds those into a single call.</pr:p>
 
-    <pr:p>Shape:</pr:p>
+    <pr:synopsis kind="command">clayers search "raw query" PATH --also "paraphrase 1" --also "paraphrase 2" --k 10 --json</pr:synopsis>
 
-    <pr:ul>
-      <pr:li><pr:code>clayers search "raw query" PATH --also "paraphrase 1" --also "paraphrase 2" --k 10 --json</pr:code></pr:li>
-      <pr:li><pr:code>--also</pr:code> is a repeatable flag carrying
-      one additional natural-language query string. Any number may be
-      given; the positional <pr:code>QUERY</pr:code> becomes
-      optional once at least one <pr:code>--also</pr:code> is
-      supplied.</pr:li>
-    </pr:ul>
+    <pr:p><pr:code>--also</pr:code> is a repeatable flag carrying one
+    additional natural-language query string. Any number may be given; the
+    positional <pr:code>QUERY</pr:code> becomes optional once at least one
+    <pr:code>--also</pr:code> is supplied.</pr:p>
 
     <pr:p>Semantics: the engine runs one semantic search per variant
     (positional + all <pr:code>--also</pr:code> entries), collects the
@@ -750,7 +799,7 @@
   <art:mapping id="map-search-chunker">
     <art:spec-ref node="search-chunker-strategy"
                   revision="draft-1"
-                  node-hash="sha256:7df9fe6649c64a1e943094065c206927a324134be2f48014ca9fb76b884d3c03"/>
+                  node-hash="sha256:83401cfdd79b67d90456f6c9ff6ce1bcf3f6f61f95c49d159aec555591b2aca1"/>
     <art:artifact repo="repo-clayers"
                   repo-revision="456975c"
                   path="crates/clayers-spec/src/chunker.rs">
@@ -765,7 +814,7 @@
   <art:mapping id="map-search-node-hash">
     <art:spec-ref node="search-incremental-rebuild"
                   revision="draft-1"
-                  node-hash="sha256:db1625df959f9be800503b7ca18ce09c8b8cf0f2ff07bdc3193b4fab6df4ffda"/>
+                  node-hash="sha256:b139f258c1d30b6363f8ff685870f2cd8e8b0f35d1e202323fc59aac99b2d141"/>
     <art:artifact repo="repo-clayers"
                   repo-revision="456975c"
                   path="crates/clayers-spec/src/hash.rs">
@@ -781,7 +830,7 @@
   <art:mapping id="map-search-xpath-id-set">
     <art:spec-ref node="search-cli"
                   revision="draft-1"
-                  node-hash="sha256:97201a2e9288b0acd38f941720f8b866f033e957ac20a1ed4ddc2866df4e273c"/>
+                  node-hash="sha256:03d94fd14b0f77c1dbb2af04b8715f07b8d3f5553d603dd81cd205be4319e60f"/>
     <art:artifact repo="repo-clayers"
                   repo-revision="456975c"
                   path="crates/clayers-xml/src/query.rs">
@@ -796,7 +845,7 @@
   <art:mapping id="map-search-fingerprint">
     <art:spec-ref node="search-structural-fingerprint"
                   revision="draft-1"
-                  node-hash="sha256:69af7be416470026536d8d001449e741d546f6a5e6f15b7cdbafb0dabded9edf"/>
+                  node-hash="sha256:a800b72ee9b43ff38ab897da6c0f4fbc907f02e60a76a7bbc0aac5f7617a5dd3"/>
     <art:artifact repo="repo-clayers"
                   repo-revision="456975c"
                   path="crates/clayers-search/src/fingerprint.rs">
@@ -812,7 +861,7 @@
   <art:mapping id="map-search-embedder">
     <art:spec-ref node="search-how-it-works"
                   revision="draft-1"
-                  node-hash="sha256:04d2ce7153d670a2850b18a498e7190c023999f6a23e5f8d055a54c9825af25c"/>
+                  node-hash="sha256:afaf20142d8bd8eedaa46662b3c33580f5f2de174c664368cdeb9035b404ef77"/>
     <art:artifact repo="repo-clayers"
                   repo-revision="456975c"
                   path="crates/clayers-search/src/embedder.rs">
@@ -827,7 +876,7 @@
   <art:mapping id="map-search-indexer">
     <art:spec-ref node="search-how-it-works"
                   revision="draft-1"
-                  node-hash="sha256:04d2ce7153d670a2850b18a498e7190c023999f6a23e5f8d055a54c9825af25c"/>
+                  node-hash="sha256:afaf20142d8bd8eedaa46662b3c33580f5f2de174c664368cdeb9035b404ef77"/>
     <art:artifact repo="repo-clayers"
                   repo-revision="456975c"
                   path="crates/clayers-search/src/index.rs">
@@ -843,7 +892,7 @@
   <art:mapping id="map-search-meta-store">
     <art:spec-ref node="search-index-layout"
                   revision="draft-1"
-                  node-hash="sha256:9a8545e318aafa41a07d3925da2456b871a869e7a3bfdd234fc87a3a1d258e63"/>
+                  node-hash="sha256:282373c7b1d93c21917130602f27f9c4a19055126a9c7c0560aea6281112410a"/>
     <art:artifact repo="repo-clayers"
                   repo-revision="456975c"
                   path="crates/clayers-search/src/meta.rs">
@@ -858,7 +907,7 @@
   <art:mapping id="map-search-cli">
     <art:spec-ref node="search-cli"
                   revision="draft-1"
-                  node-hash="sha256:97201a2e9288b0acd38f941720f8b866f033e957ac20a1ed4ddc2866df4e273c"/>
+                  node-hash="sha256:03d94fd14b0f77c1dbb2af04b8715f07b8d3f5553d603dd81cd205be4319e60f"/>
     <art:artifact repo="repo-clayers"
                   repo-revision="d66b4b2"
                   path="crates/clayers/src/cli.rs">
@@ -873,7 +922,7 @@
   <art:mapping id="map-search-subcmd">
     <art:spec-ref node="search-cli"
                   revision="draft-1"
-                  node-hash="sha256:97201a2e9288b0acd38f941720f8b866f033e957ac20a1ed4ddc2866df4e273c"/>
+                  node-hash="sha256:03d94fd14b0f77c1dbb2af04b8715f07b8d3f5553d603dd81cd205be4319e60f"/>
     <art:artifact repo="repo-clayers"
                   repo-revision="d66b4b2"
                   path="crates/clayers/src/search_cmd.rs">
@@ -888,7 +937,7 @@
   <art:mapping id="map-search-multi-query">
     <art:spec-ref node="search-multi-query"
                   revision="draft-1"
-                  node-hash="sha256:932466db8dc7ae54bb48ea2300e155a58c8b294551b96400720c03e9db7c8b38"/>
+                  node-hash="sha256:e0e8c02b63ef6cf06fbdf97eba92e04aaf98aa541eb228f9640d549a5eb4bf0b"/>
     <art:artifact repo="repo-clayers"
                   repo-revision="d66b4b2"
                   path="crates/clayers/src/search_cmd.rs">
@@ -904,7 +953,7 @@
   <art:mapping id="map-search-gitignore">
     <art:spec-ref node="search-adopt-integration"
                   revision="draft-1"
-                  node-hash="sha256:929aa4be70f1cde481f6610832fada03a29d42da979711300308f5d7cfc860aa"/>
+                  node-hash="sha256:bcc37e9080eb462a173d44469dbb137eb60bc68ae985228fa4da8d163f829280"/>
     <art:artifact repo="repo-clayers"
                   repo-revision="456975c"
                   path="crates/clayers/src/gitignore.rs">
@@ -919,7 +968,7 @@
   <art:mapping id="map-search-adopt-integration">
     <art:spec-ref node="search-adopt-integration"
                   revision="draft-1"
-                  node-hash="sha256:929aa4be70f1cde481f6610832fada03a29d42da979711300308f5d7cfc860aa"/>
+                  node-hash="sha256:bcc37e9080eb462a173d44469dbb137eb60bc68ae985228fa4da8d163f829280"/>
     <art:artifact repo="repo-clayers"
                   repo-revision="456975c"
                   path="crates/clayers/src/adopt.rs">

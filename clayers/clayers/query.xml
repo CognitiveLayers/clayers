@@ -9,6 +9,7 @@
        xmlns:trm="urn:clayers:terminology"
        xmlns:org="urn:clayers:organization"
        xmlns:rel="urn:clayers:relation"
+       xmlns:diag="urn:clayers:diagnostic"
        xmlns:art="urn:clayers:artifact"
        xmlns:llm="urn:clayers:llm"
        spec:index="index.xml">
@@ -41,16 +42,26 @@
     trace from a concept to its definition, its code, its dependencies,
     and its machine description in a single pipeline.</pr:p>
 
-    <pr:p>The command accepts two positional arguments: a spec directory path
-    and an XPath expression. It supports two optional flags:</pr:p>
+    <pr:p>The command accepts an XPath expression and an optional spec
+    directory path:</pr:p>
 
-    <pr:ul>
-      <pr:li><pr:b>--text</pr:b>: extract text content only, stripping XML
-      tags. Useful for getting definitions, titles, and LLM descriptions
-      as plain strings.</pr:li>
-      <pr:li><pr:b>--count</pr:b>: print just the count of matching nodes.
-      Useful for quick cardinality checks in CI or agent scripts.</pr:li>
-    </pr:ul>
+    <pr:synopsis kind="command">clayers query XPATH [PATH] [--text | --count]</pr:synopsis>
+
+    <pr:properties>
+      <pr:title>Query output modes</pr:title>
+      <pr:property>
+        <pr:proptype><pr:option>--text</pr:option></pr:proptype>
+        <pr:propvalue>Text output</pr:propvalue>
+        <pr:propdesc>Extract text content only, stripping XML tags. Useful for
+        definitions, titles, and LLM descriptions.</pr:propdesc>
+      </pr:property>
+      <pr:property>
+        <pr:proptype><pr:option>--count</pr:option></pr:proptype>
+        <pr:propvalue>Cardinality output</pr:propvalue>
+        <pr:propdesc>Print only the count of matching nodes. Useful for CI
+        checks and agent scripts.</pr:propdesc>
+      </pr:property>
+    </pr:properties>
 
     <pr:p>Return types are handled automatically: element results are
     serialized as XML fragments (or text with --text), while scalar results
@@ -68,6 +79,28 @@
     <pr:note type="info">XPath 1.0 only: no regex, no if/then/else. Use
     contains(), starts-with(), and substring() for string matching within
     XPath expressions.</pr:note>
+
+    <pr:example>
+      <pr:title>Find code paths mapped to a spec node</pr:title>
+      <pr:codeblock language="bash">clayers query '//art:mapping[art:spec-ref/@node="term-drift"]/art:artifact/@path' clayers/clayers/ --text</pr:codeblock>
+    </pr:example>
+
+    <diag:issue id="diag-query-no-results" ref="xpath-query-tooling">
+      <diag:title>XPath returns no results</diag:title>
+      <diag:severity>info</diag:severity>
+      <diag:condition>A query succeeds but prints no matching nodes.</diag:condition>
+      <diag:cause>The expression may use the wrong namespace prefix, query a raw
+      file shape instead of the combined document shape, or target an ID that
+      is not present in the selected spec.</diag:cause>
+      <diag:remedy>Start with a count query such as //pr:section, confirm the
+      relevant namespace prefix, then narrow the predicate.</diag:remedy>
+      <diag:responsible-party>Query author</diag:responsible-party>
+    </diag:issue>
+
+    <pr:related-links>
+      <pr:link ref="search-overview" role="contrast">Semantic search overview</pr:link>
+      <pr:link ref="reference-synthesis" role="explains">Reference synthesis</pr:link>
+    </pr:related-links>
   </pr:section>
 
   <!-- Topic typing -->
@@ -86,6 +119,14 @@
     produce the queryable XML tree.</rel:note>
   </rel:relation>
 
+  <rel:relation type="references" from="diag-query-no-results" to="xpath-query-tooling">
+    <rel:note>The diagnostic issue describes a query failure mode.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="diag-query-no-results" to="diagnostic-layer">
+    <rel:note>The issue is represented in the diagnostic layer.</rel:note>
+  </rel:relation>
+
   <rel:relation type="depends-on" from="xpath-query-tooling" to="term-xpath-query">
     <rel:note>The query tooling section depends on the XPath query concept
     for its semantic foundation.</rel:note>
@@ -96,7 +137,7 @@
   <art:mapping id="map-xpath-query-tooling">
     <art:spec-ref node="xpath-query-tooling"
               revision="draft-1"
-              node-hash="sha256:7f4b1653d9b38abbcbdd6e6b5a98dd8618015c3511fa7e62303f7c2366c7448e"/>
+              node-hash="sha256:36f96b6d59878a27b9d7c861fa143024c64ff1d26e29f5ac81759fae63f21e53"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/query.rs">
@@ -111,7 +152,7 @@
   <art:mapping id="map-term-xpath-query">
     <art:spec-ref node="term-xpath-query"
               revision="draft-1"
-              node-hash="sha256:2545860d1cce32c81ce76d246cec7b6a14158f3a3cfbb2ca7b1893dab9b5c73a"/>
+              node-hash="sha256:f02ca489eee0aad20626776891565c9351f331801a545516eb8b32a1a750de79"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/query.rs">

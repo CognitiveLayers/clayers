@@ -73,6 +73,12 @@
     its own <trm:ref term="term-namespace">namespace</trm:ref> and schema.
     The specification matures over time: it starts as prose and gains
     precision through additional semantic layers.</pr:p>
+
+    <pr:blockquote>
+      <pr:p>Specifications should be readable by humans, structured enough for
+      tools, and explicit enough for implementation work.</pr:p>
+      <pr:attribution>Clayers design principle</pr:attribution>
+    </pr:blockquote>
   </pr:section>
 
   <pr:section id="layered-architecture">
@@ -123,12 +129,28 @@
           <pr:td>Architecture Decision Records with status lifecycle and alternatives</pr:td>
         </pr:tr>
         <pr:tr>
+          <pr:td>Deliberation</pr:td>
+          <pr:td>Choice sets, options, outcomes, conditions, and rationale</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>Diagnostic</pr:td>
+          <pr:td>Known conditions, causes, remedies, and severities</pr:td>
+        </pr:tr>
+        <pr:tr>
           <pr:td>Source</pr:td>
           <pr:td>External references, bibliography, and provenance tracking</pr:td>
         </pr:tr>
         <pr:tr>
           <pr:td>Plan</pr:td>
           <pr:td>Implementation plans with itemized steps and acceptance criteria</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>Content</pr:td>
+          <pr:td>Content-addressed reusable assets, fixtures, and embedded data</pr:td>
+        </pr:tr>
+        <pr:tr>
+          <pr:td>Testing</pr:td>
+          <pr:td>First-class manual, vector, property, program, and witness tests</pr:td>
         </pr:tr>
         <pr:tr>
           <pr:td>Artifact Mapping</pr:td>
@@ -151,6 +173,19 @@
     defines this uniqueness domain. Every non-index layer declares which
     index it belongs to via the index attribute on the clayers root,
     making each file self-describing.</pr:p>
+
+    <pr:sidebar>
+      <pr:title>Layer files are topic-oriented</pr:title>
+      <pr:p>A file may mix prose, terms, organization, relations, LLM
+      descriptions, and artifact mappings for one topic. The namespace
+      identifies the layer; the file groups the work.</pr:p>
+    </pr:sidebar>
+
+    <pr:related-links>
+      <pr:link ref="technical-documentation-prose">Technical documentation prose</pr:link>
+      <pr:link ref="validation-flow">Validation flow</pr:link>
+      <pr:link ref="artifact-drift">Artifact drift</pr:link>
+    </pr:related-links>
   </pr:section>
 
   <!-- Topic typing -->
@@ -169,7 +204,7 @@
   <art:mapping id="map-overview-readme">
     <art:spec-ref node="overview"
               revision="draft-1"
-              node-hash="sha256:4c01128974ea0632ee9141a09d25f3b72193e94324f81f66bffdda94f6a152be"/>
+              node-hash="sha256:356b5cf699a3b7656896ba6c4b1ef9b7d51232d6be13e1e30597425760010490"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="README.md">
@@ -183,7 +218,7 @@
   <art:mapping id="map-layered-architecture">
     <art:spec-ref node="layered-architecture"
               revision="draft-1"
-              node-hash="sha256:7605f2d03622601155210f0193b8dc3bd289a4f161ddf0b184e2c960d78d1077"/>
+              node-hash="sha256:98a575095a7b34eea1e1b0746d3d55bc17a8592688956c82080aa536982c552a"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="schemas/index.xsd">
@@ -197,7 +232,7 @@
   <art:mapping id="map-term-node">
     <art:spec-ref node="term-node"
               revision="draft-1"
-              node-hash="sha256:bc4d07abb5c09d8302aa459ca59a2cb9f843fefa7120c58394fd2e81669bdadd"/>
+              node-hash="sha256:4ddfa490232a01852f22801d170863eeb7bb2da7f9a8fe5dd349d714c669f07d"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/validate.rs">
@@ -212,7 +247,7 @@
   <art:mapping id="map-term-index">
     <art:spec-ref node="term-index"
               revision="draft-1"
-              node-hash="sha256:4ed8ad9a66a530a5b073a18b5367976f75fcaf1c44d31f852ea3d644c765f6a6"/>
+              node-hash="sha256:e266daa605fedff1314ac33ea2f93cf6e10ec4acf616b5918cb65559a3f5ed14"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/discovery.rs">
@@ -227,11 +262,11 @@
   <art:mapping id="map-term-namespace">
     <art:spec-ref node="term-namespace"
               revision="draft-1"
-              node-hash="sha256:74b6c9a26be8cd31679dd35049deeb376ba1ba7b2d116a83cf5a4ed20f6cb732"/>
+              node-hash="sha256:efca9f4018559ab028b5fd28f199c4bca1cc94780f2dce5257ff564fc8228c8a"/>
     <art:artifact repo="repo-clayers"
               repo-revision="2916ded"
               path="crates/clayers-spec/src/namespace.rs">
-        <art:range hash="sha256:3a6a8868f288f640345257a56eda124dbed4da105a231e4d8cd6c2d41d290cd3"
+        <art:range hash="sha256:0b7ff3aac564c3f740b978b68213b7d0df73c4920629135b6e405a78364c4d0f"
                    start-line="1" end-line="73"/>
       </art:artifact>
     <art:coverage>full</art:coverage>
@@ -242,11 +277,11 @@
   <art:mapping id="map-term-layer">
     <art:spec-ref node="term-layer"
               revision="draft-1"
-              node-hash="sha256:bf1c12a3d4388bf455a435f574b8e8ad9fb7a8b293978e7e9c5b49141f13f134"/>
+              node-hash="sha256:9f503ec712a9238dc5ca8212bfbe8beb6fd4eef157f655fc9e24bbf906581be0"/>
     <art:artifact repo="repo-clayers"
               repo-revision="2916ded"
               path="crates/clayers-spec/src/namespace.rs">
-        <art:range hash="sha256:1a5bf09a92120a0258189aadf37ac2fac832075c56a8f2553f7728f0b1d69c55"
+        <art:range hash="sha256:2f7e7143bddb7d32c06129a6a8040f86991998ce301f65cb58a393771b14a91c"
                    start-line="3" end-line="20"/>
       </art:artifact>
     <art:coverage>partial</art:coverage>

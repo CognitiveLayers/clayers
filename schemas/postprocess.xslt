@@ -1,20 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   XSLT 1.0 transform: synthesize rel:relation type="references" from
-  trm:ref and src:cite elements.
+  trm:ref, src:cite, cnt:ref, pr:xref, pr:media, pr:related-links/pr:link,
+  diag:issue, diag:verifies-with, delib:choice-set, and delib:option
+  elements.
 
   Identity transform that copies all nodes unchanged, then appends one
   rel:relation element for each unique (ancestor-id, term) pair found
   in trm:ref elements, and one for each unique (ancestor-id, source)
-  pair found in src:cite elements. The "from" attribute is the nearest
-  ancestor with an @id attribute; "to" is the referenced ID.
+  pair found in src:cite elements, prose xrefs, and related links. The
+  "from" attribute is the nearest ancestor with an @id attribute; "to"
+  is the referenced ID.
 
   Applied by clayers-cli during combined document assembly.
 -->
 <xsl:stylesheet version="1.0"
     xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+    xmlns:pr="urn:clayers:prose"
     xmlns:trm="urn:clayers:terminology"
     xmlns:src="urn:clayers:source"
+    xmlns:cnt="urn:clayers:content"
+    xmlns:diag="urn:clayers:diagnostic"
+    xmlns:delib="urn:clayers:deliberation"
     xmlns:rel="urn:clayers:relation"
     xmlns:xmi="http://www.omg.org/spec/XMI/20131001"
     xmlns:uml="http://www.omg.org/spec/UML/20131001"
@@ -29,6 +36,41 @@
   <xsl:key name="cite-pair"
            match="//src:cite[@source]"
            use="concat(ancestor::*[@id][1]/@id, '|', @source)"/>
+
+  <!-- Muenchian grouping key: unique (ancestor-id, prose xref) pairs -->
+  <xsl:key name="xref-pair"
+           match="//pr:xref[@ref]"
+           use="concat(ancestor::*[@id][1]/@id, '|', @ref)"/>
+
+  <!-- Muenchian grouping key: unique (ancestor-id, related link) pairs -->
+  <xsl:key name="link-pair"
+           match="//pr:link[@ref]"
+           use="concat(ancestor::*[@id][1]/@id, '|', @ref)"/>
+
+  <!-- Muenchian grouping key: unique (ancestor-id, content ref) pairs -->
+  <xsl:key name="content-pair"
+           match="//cnt:ref[@content] | //pr:media[@content]"
+           use="concat(ancestor::*[@id][1]/@id, '|', @content)"/>
+
+  <!-- Muenchian grouping key: unique (diagnostic issue, affected node) pairs -->
+  <xsl:key name="diagnostic-ref-pair"
+           match="//diag:issue[@ref]"
+           use="concat(@id, '|', @ref)"/>
+
+  <!-- Muenchian grouping key: unique (diagnostic issue, verification test) pairs -->
+  <xsl:key name="diagnostic-test-pair"
+           match="//diag:verifies-with[@test]"
+           use="concat(ancestor::diag:issue[@id][1]/@id, '|', @test)"/>
+
+  <!-- Muenchian grouping key: unique (deliberation choice-set, referenced topic) pairs -->
+  <xsl:key name="deliberation-ref-pair"
+           match="//delib:choice-set[@ref]"
+           use="concat(@id, '|', @ref)"/>
+
+  <!-- Muenchian grouping key: unique (deliberation option, choice-set) pairs -->
+  <xsl:key name="deliberation-option-pair"
+           match="//delib:choice-set[@id]/delib:option[@id]"
+           use="concat(@id, '|', ancestor::delib:choice-set[@id][1]/@id)"/>
 
   <!-- UML relationship keys: group by relationship identity to deduplicate.
        UML Association: both memberEnd endpoints with xml:id produce "references" relations.
@@ -81,6 +123,85 @@
         <!-- Skip self-references -->
         <xsl:if test="$from-id != $to-id">
           <rel:relation type="references" from="{$from-id}" to="{$to-id}"/>
+        </xsl:if>
+      </xsl:for-each>
+
+      <!-- For each unique (ancestor-id, prose xref) pair, emit a relation -->
+      <xsl:for-each select="//pr:xref[@ref]
+                            [ancestor::*[@id]]
+                            [generate-id() = generate-id(key('xref-pair',
+                              concat(ancestor::*[@id][1]/@id, '|', @ref))[1])]">
+        <xsl:variable name="from-id" select="ancestor::*[@id][1]/@id"/>
+        <xsl:variable name="to-id" select="@ref"/>
+        <!-- Skip self-references -->
+        <xsl:if test="$from-id != $to-id">
+          <rel:relation type="references" from="{$from-id}" to="{$to-id}"/>
+        </xsl:if>
+      </xsl:for-each>
+
+      <!-- For each unique (ancestor-id, related link) pair, emit a relation -->
+      <xsl:for-each select="//pr:link[@ref]
+                            [ancestor::*[@id]]
+                            [generate-id() = generate-id(key('link-pair',
+                              concat(ancestor::*[@id][1]/@id, '|', @ref))[1])]">
+        <xsl:variable name="from-id" select="ancestor::*[@id][1]/@id"/>
+        <xsl:variable name="to-id" select="@ref"/>
+        <!-- Skip self-references -->
+        <xsl:if test="$from-id != $to-id">
+          <rel:relation type="references" from="{$from-id}" to="{$to-id}"/>
+        </xsl:if>
+      </xsl:for-each>
+
+      <!-- For each unique (ancestor-id, content) pair, emit a relation -->
+      <xsl:for-each select="(//cnt:ref[@content] | //pr:media[@content])
+                            [ancestor::*[@id]]
+                            [generate-id() = generate-id(key('content-pair',
+                              concat(ancestor::*[@id][1]/@id, '|', @content))[1])]">
+        <xsl:variable name="from-id" select="ancestor::*[@id][1]/@id"/>
+        <xsl:variable name="to-id" select="@content"/>
+        <xsl:if test="$from-id != $to-id">
+          <rel:relation type="references" from="{$from-id}" to="{$to-id}"/>
+        </xsl:if>
+      </xsl:for-each>
+
+      <!-- Diagnostic issues reference the affected node they diagnose. -->
+      <xsl:for-each select="//diag:issue[@id and @ref]
+                            [generate-id() = generate-id(key('diagnostic-ref-pair',
+                              concat(@id, '|', @ref))[1])]">
+        <xsl:if test="@id != @ref">
+          <rel:relation type="references" from="{@id}" to="{@ref}"/>
+        </xsl:if>
+      </xsl:for-each>
+
+      <!-- Diagnostic verification links depend on the referenced test. -->
+      <xsl:for-each select="//diag:verifies-with[@test]
+                            [ancestor::diag:issue[@id]]
+                            [generate-id() = generate-id(key('diagnostic-test-pair',
+                              concat(ancestor::diag:issue[@id][1]/@id, '|', @test))[1])]">
+        <xsl:variable name="from-id" select="ancestor::diag:issue[@id][1]/@id"/>
+        <xsl:variable name="to-id" select="@test"/>
+        <xsl:if test="$from-id != $to-id">
+          <rel:relation type="depends-on" from="{$from-id}" to="{$to-id}"/>
+        </xsl:if>
+      </xsl:for-each>
+
+      <!-- Deliberation choice sets reference the topic they deliberate. -->
+      <xsl:for-each select="//delib:choice-set[@id and @ref]
+                            [generate-id() = generate-id(key('deliberation-ref-pair',
+                              concat(@id, '|', @ref))[1])]">
+        <xsl:if test="@id != @ref">
+          <rel:relation type="references" from="{@id}" to="{@ref}"/>
+        </xsl:if>
+      </xsl:for-each>
+
+      <!-- Deliberation options refine their containing choice set. -->
+      <xsl:for-each select="//delib:choice-set[@id]/delib:option[@id]
+                            [generate-id() = generate-id(key('deliberation-option-pair',
+                              concat(@id, '|', ancestor::delib:choice-set[@id][1]/@id))[1])]">
+        <xsl:variable name="from-id" select="@id"/>
+        <xsl:variable name="to-id" select="ancestor::delib:choice-set[@id][1]/@id"/>
+        <xsl:if test="$from-id != $to-id">
+          <rel:relation type="refines" from="{$from-id}" to="{$to-id}"/>
         </xsl:if>
       </xsl:for-each>
 

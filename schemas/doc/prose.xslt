@@ -6,9 +6,10 @@
     xmlns:rel="urn:clayers:relation"
     xmlns:llm="urn:clayers:llm"
     xmlns:art="urn:clayers:artifact"
+    xmlns:cnt="urn:clayers:content"
     xmlns:doc="urn:clayers:doc"
     xmlns:cmb="urn:clayers:combined"
-    exclude-result-prefixes="pr org rel llm art doc cmb">
+    exclude-result-prefixes="pr org rel llm art cnt doc cmb">
 
   <!-- Section: depth-based headings -->
   <xsl:template match="pr:section">
@@ -144,6 +145,23 @@
     <ol><xsl:apply-templates/></ol>
   </xsl:template>
 
+  <!-- Definition list -->
+  <xsl:template match="pr:dl">
+    <dl><xsl:apply-templates/></dl>
+  </xsl:template>
+
+  <xsl:template match="pr:dlentry">
+    <xsl:apply-templates/>
+  </xsl:template>
+
+  <xsl:template match="pr:dt">
+    <dt><xsl:apply-templates/></dt>
+  </xsl:template>
+
+  <xsl:template match="pr:dd">
+    <dd><xsl:apply-templates/></dd>
+  </xsl:template>
+
   <!-- List item -->
   <xsl:template match="pr:li">
     <li><xsl:apply-templates/></li>
@@ -154,6 +172,10 @@
     <ol class="steps"><xsl:apply-templates/></ol>
   </xsl:template>
 
+  <xsl:template match="pr:steps-unordered">
+    <ul class="steps steps-unordered"><xsl:apply-templates/></ul>
+  </xsl:template>
+
   <!-- Step -->
   <xsl:template match="pr:step">
     <li>
@@ -161,6 +183,72 @@
       <xsl:apply-templates/>
     </li>
   </xsl:template>
+
+  <xsl:template match="pr:stepsection">
+    <li class="stepsection"><xsl:apply-templates/></li>
+  </xsl:template>
+
+  <xsl:template match="pr:cmd">
+    <div class="task-cmd"><xsl:apply-templates/></div>
+  </xsl:template>
+
+  <xsl:template match="pr:info | pr:prereq | pr:context | pr:result | pr:postreq | pr:stepresult">
+    <div class="task-detail task-{local-name()}">
+      <div class="task-detail-label"><xsl:value-of select="replace(local-name(), '-', ' ')"/></div>
+      <xsl:apply-templates/>
+    </div>
+  </xsl:template>
+
+  <xsl:template match="pr:substeps">
+    <ol class="steps substeps"><xsl:apply-templates/></ol>
+  </xsl:template>
+
+  <xsl:template match="pr:choices">
+    <ul class="choices"><xsl:apply-templates/></ul>
+  </xsl:template>
+
+  <xsl:template match="pr:choice">
+    <li><xsl:apply-templates/></li>
+  </xsl:template>
+
+  <xsl:template match="pr:choicetable">
+    <table class="choice-table">
+      <xsl:choose>
+        <xsl:when test="pr:chhead">
+          <thead><xsl:apply-templates select="pr:chhead"/></thead>
+        </xsl:when>
+        <xsl:otherwise>
+          <thead>
+            <tr><th>Option</th><th>Description</th></tr>
+          </thead>
+        </xsl:otherwise>
+      </xsl:choose>
+      <tbody><xsl:apply-templates select="pr:chrow"/></tbody>
+    </table>
+  </xsl:template>
+
+  <xsl:template match="pr:chhead">
+    <tr><xsl:apply-templates/></tr>
+  </xsl:template>
+
+  <xsl:template match="pr:choptionhd | pr:chdeschd">
+    <th><xsl:apply-templates/></th>
+  </xsl:template>
+
+  <xsl:template match="pr:chrow">
+    <tr><xsl:apply-templates/></tr>
+  </xsl:template>
+
+  <xsl:template match="pr:choption | pr:chdesc">
+    <td><xsl:apply-templates/></td>
+  </xsl:template>
+
+  <xsl:template match="pr:stepxmp">
+    <xsl:call-template name="render-example">
+      <xsl:with-param name="class" select="'step-example'"/>
+    </xsl:call-template>
+  </xsl:template>
+
 
   <!-- Note callout -->
   <xsl:template match="pr:note">
@@ -178,9 +266,69 @@
     </xsl:if><xsl:value-of select="."/></code></pre>
   </xsl:template>
 
+  <xsl:template match="pr:synopsis">
+    <pre class="synopsis {if (@kind) then concat('synopsis-', @kind) else ''}"><code><xsl:if test="@language">
+      <xsl:attribute name="class">language-<xsl:value-of select="@language"/></xsl:attribute>
+    </xsl:if><xsl:value-of select="."/></code></pre>
+  </xsl:template>
+
+  <!-- Examples, figures, and media -->
+  <xsl:template match="pr:example">
+    <xsl:call-template name="render-example">
+      <xsl:with-param name="class" select="'example'"/>
+    </xsl:call-template>
+  </xsl:template>
+
+  <xsl:template name="render-example">
+    <xsl:param name="class"/>
+    <div class="{$class}">
+      <xsl:if test="@id"><xsl:attribute name="id" select="@id"/></xsl:if>
+      <xsl:if test="pr:title">
+        <div class="example-title"><xsl:value-of select="pr:title"/></div>
+      </xsl:if>
+      <xsl:apply-templates select="node()[not(self::pr:title)]"/>
+    </div>
+  </xsl:template>
+
+  <xsl:template match="pr:figure">
+    <figure>
+      <xsl:if test="@id"><xsl:attribute name="id" select="@id"/></xsl:if>
+      <xsl:apply-templates select="node()[not(self::pr:title or self::pr:caption)]"/>
+      <xsl:if test="pr:title or pr:caption">
+        <figcaption>
+          <xsl:if test="pr:title"><strong><xsl:value-of select="pr:title"/></strong></xsl:if>
+          <xsl:if test="pr:title and pr:caption"><xsl:text>: </xsl:text></xsl:if>
+          <xsl:apply-templates select="pr:caption/node()"/>
+        </figcaption>
+      </xsl:if>
+    </figure>
+  </xsl:template>
+
+  <xsl:template match="pr:media">
+    <xsl:variable name="content-id" select="@content"/>
+    <xsl:variable name="content" select="ancestor::cmb:spec//cnt:content[@id = $content-id][1]"/>
+    <xsl:variable name="href" select="if (@href) then string(@href) else string($content/@url)"/>
+    <xsl:variable name="format" select="if (@format) then string(@format) else replace(string($content/@media-type), '^.*/', '')"/>
+    <xsl:choose>
+      <xsl:when test="matches($href, '\.(png|jpg|jpeg|gif|webp|svg)$', 'i') or lower-case($format) = ('png','jpg','jpeg','gif','webp','svg')">
+        <img src="{$href}" alt="{@alt}">
+          <xsl:if test="@width"><xsl:attribute name="width" select="@width"/></xsl:if>
+          <xsl:if test="@height"><xsl:attribute name="height" select="@height"/></xsl:if>
+          <xsl:if test="@scale"><xsl:attribute name="style" select="concat('max-width:', @scale, '%;')"/></xsl:if>
+        </img>
+      </xsl:when>
+      <xsl:otherwise>
+        <a class="media-link" href="{$href}"><xsl:value-of select="@alt"/></a>
+      </xsl:otherwise>
+    </xsl:choose>
+  </xsl:template>
+
   <!-- Table -->
   <xsl:template match="pr:table">
-    <table><xsl:apply-templates/></table>
+    <xsl:if test="pr:title">
+      <div class="table-title"><xsl:value-of select="pr:title"/></div>
+    </xsl:if>
+    <table><xsl:apply-templates select="node()[not(self::pr:title)]"/></table>
   </xsl:template>
 
   <xsl:template match="pr:thead">
@@ -203,6 +351,88 @@
     <td><xsl:apply-templates/></td>
   </xsl:template>
 
+  <!-- Reference/property tables -->
+  <xsl:template match="pr:properties">
+    <xsl:if test="pr:title">
+      <div class="table-title"><xsl:value-of select="pr:title"/></div>
+    </xsl:if>
+    <table class="properties">
+      <thead>
+        <tr>
+          <th><xsl:value-of select="(pr:prophead/pr:proptypehd, 'Type')[1]"/></th>
+          <th><xsl:value-of select="(pr:prophead/pr:propvaluehd, 'Value')[1]"/></th>
+          <th><xsl:value-of select="(pr:prophead/pr:propdeschd, 'Description')[1]"/></th>
+        </tr>
+      </thead>
+      <tbody><xsl:apply-templates select="pr:property"/></tbody>
+    </table>
+  </xsl:template>
+
+  <xsl:template match="pr:property">
+    <tr>
+      <td><xsl:apply-templates select="pr:proptype/node()"/></td>
+      <td><xsl:apply-templates select="pr:propvalue/node()"/></td>
+      <td><xsl:apply-templates select="pr:propdesc/node()"/></td>
+    </tr>
+  </xsl:template>
+
+  <!-- Troubleshooting -->
+  <xsl:template match="pr:troubleshooting | pr:steptroubleshooting">
+    <section class="troubleshooting {if (self::pr:steptroubleshooting) then 'step-troubleshooting' else ''}">
+      <xsl:if test="@id"><xsl:attribute name="id" select="@id"/></xsl:if>
+      <xsl:if test="pr:title"><h4><xsl:value-of select="pr:title"/></h4></xsl:if>
+      <xsl:apply-templates select="pr:condition | pr:cause | pr:remedy | pr:responsible-party"/>
+    </section>
+  </xsl:template>
+
+  <xsl:template match="pr:condition | pr:cause | pr:remedy | pr:responsible-party">
+    <div class="trouble-part trouble-{local-name()}">
+      <div class="trouble-label"><xsl:value-of select="replace(local-name(), '-', ' ')"/></div>
+      <xsl:apply-templates/>
+    </div>
+  </xsl:template>
+
+  <!-- Publishing and navigation blocks -->
+  <xsl:template match="pr:blockquote">
+    <blockquote>
+      <xsl:apply-templates select="node()[not(self::pr:attribution)]"/>
+      <xsl:if test="pr:attribution">
+        <footer><xsl:apply-templates select="pr:attribution/node()"/></footer>
+      </xsl:if>
+    </blockquote>
+  </xsl:template>
+
+  <xsl:template match="pr:sidebar">
+    <aside class="sidebar-block">
+      <xsl:if test="@id"><xsl:attribute name="id" select="@id"/></xsl:if>
+      <xsl:if test="pr:title"><h4><xsl:value-of select="pr:title"/></h4></xsl:if>
+      <xsl:apply-templates select="node()[not(self::pr:title)]"/>
+    </aside>
+  </xsl:template>
+
+  <xsl:template match="pr:related-links">
+    <nav class="related-links" aria-label="Related links">
+      <div class="related-links-title">Related links</div>
+      <ul><xsl:apply-templates/></ul>
+    </nav>
+  </xsl:template>
+
+  <xsl:template match="pr:link">
+    <li>
+      <a href="#{@ref}">
+        <xsl:choose>
+          <xsl:when test="node()"><xsl:apply-templates/></xsl:when>
+          <xsl:otherwise>
+            <xsl:variable name="target" select="@ref"/>
+            <xsl:variable name="title" select="ancestor::cmb:spec//pr:section[@id = $target]/pr:title"/>
+            <xsl:value-of select="($title, @ref)[1]"/>
+          </xsl:otherwise>
+        </xsl:choose>
+      </a>
+      <xsl:if test="@role"><span class="link-role"><xsl:value-of select="@role"/></span></xsl:if>
+    </li>
+  </xsl:template>
+
   <!-- Inline elements -->
   <xsl:template match="pr:b">
     <strong><xsl:apply-templates/></strong>
@@ -212,8 +442,36 @@
     <em><xsl:apply-templates/></em>
   </xsl:template>
 
+  <xsl:template match="pr:u">
+    <u><xsl:apply-templates/></u>
+  </xsl:template>
+
+  <xsl:template match="pr:q">
+    <q><xsl:apply-templates/></q>
+  </xsl:template>
+
+  <xsl:template match="pr:sup">
+    <sup><xsl:apply-templates/></sup>
+  </xsl:template>
+
+  <xsl:template match="pr:sub">
+    <sub><xsl:apply-templates/></sub>
+  </xsl:template>
+
   <xsl:template match="pr:code">
     <code><xsl:apply-templates/></code>
+  </xsl:template>
+
+  <xsl:template match="pr:var">
+    <var><xsl:apply-templates/></var>
+  </xsl:template>
+
+  <xsl:template match="pr:kbd">
+    <kbd><xsl:apply-templates/></kbd>
+  </xsl:template>
+
+  <xsl:template match="pr:filepath | pr:option | pr:cmdname | pr:parmname | pr:apiname | pr:msgph">
+    <code class="{local-name()}"><xsl:apply-templates/></code>
   </xsl:template>
 
   <!-- Cross-reference -->

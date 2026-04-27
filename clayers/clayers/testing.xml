@@ -34,21 +34,37 @@
     <pr:p>The layer defines distinct test types, each modeling a different
     verification paradigm:</pr:p>
 
-    <pr:ul>
-      <pr:li><pr:b>manual</pr:b>: human-executed procedures with expected
-      results and optional role assignment.</pr:li>
-      <pr:li><pr:b>vectors</pr:b>: structured input/output data pairs, with
-      each value referencing a <pr:code>cnt:content</pr:code> node for the
-      actual data.</pr:li>
-      <pr:li><pr:b>property</pr:b>: generative/property-based tests declaring
-      invariants that must hold over generated inputs, with optional bounds
-      on sample count and timeout.</pr:li>
-      <pr:li><pr:b>program</pr:b>: executable test code referenced through
-      <pr:code>cnt:content</pr:code>, with a language attribute for
-      runtime selection.</pr:li>
-      <pr:li><pr:b>witness</pr:b>: blackbox external verification via shell
-      commands, executable scripts, or API calls.</pr:li>
-    </pr:ul>
+    <pr:properties>
+      <pr:title>Test types</pr:title>
+      <pr:property>
+        <pr:proptype>manual</pr:proptype>
+        <pr:propdesc>Human-executed procedures with expected results and
+        optional role assignment.</pr:propdesc>
+      </pr:property>
+      <pr:property>
+        <pr:proptype>vectors</pr:proptype>
+        <pr:propdesc>Structured input/output data pairs, with each value
+        referencing a <pr:code>cnt:content</pr:code> node for the actual
+        data.</pr:propdesc>
+      </pr:property>
+      <pr:property>
+        <pr:proptype>property</pr:proptype>
+        <pr:propdesc>Generative/property-based tests declaring invariants that
+        must hold over generated inputs, with optional bounds on sample count
+        and timeout.</pr:propdesc>
+      </pr:property>
+      <pr:property>
+        <pr:proptype>program</pr:proptype>
+        <pr:propdesc>Executable test code referenced through
+        <pr:code>cnt:content</pr:code>, with a language attribute for runtime
+        selection.</pr:propdesc>
+      </pr:property>
+      <pr:property>
+        <pr:proptype>witness</pr:proptype>
+        <pr:propdesc>Blackbox external verification via shell commands,
+        executable scripts, or API calls.</pr:propdesc>
+      </pr:property>
+    </pr:properties>
 
     <pr:p>Tests reference data through <pr:code>cnt:content</pr:code> nodes
     rather than embedding it inline. This separation keeps test definitions
@@ -100,7 +116,9 @@
     perform the test (e.g., "security engineer", "QA lead"), enabling
     assignment and filtering in test management workflows.</pr:p>
 
-    <pr:codeblock>
+    <pr:example>
+      <pr:title>Manual accessibility review</pr:title>
+      <pr:codeblock language="xml">
 &lt;tst:manual id="test-accessibility-review"&gt;
   &lt;tst:title&gt;Screen reader navigation&lt;/tst:title&gt;
   &lt;tst:procedure&gt;
@@ -116,7 +134,8 @@
   &lt;/tst:expected&gt;
   &lt;tst:role&gt;accessibility-engineer&lt;/tst:role&gt;
 &lt;/tst:manual&gt;
-    </pr:codeblock>
+      </pr:codeblock>
+    </pr:example>
   </pr:section>
 
   <org:concept ref="test-type-manual">
@@ -163,7 +182,9 @@
     element with mixed content provides context for what the case
     exercises.</pr:p>
 
-    <pr:codeblock>
+    <pr:example>
+      <pr:title>Vector test with reusable content</pr:title>
+      <pr:codeblock language="xml">
 &lt;!-- Content nodes for test data --&gt;
 &lt;cnt:content id="cnt-valid-xml" media-type="application/xml"
              hash="sha256:abc..."&gt;
@@ -203,7 +224,8 @@
     message with line number.&lt;/tst:description&gt;
   &lt;/tst:vector&gt;
 &lt;/tst:vectors&gt;
-    </pr:codeblock>
+      </pr:codeblock>
+    </pr:example>
   </pr:section>
 
   <org:concept ref="test-type-vectors">
@@ -233,7 +255,9 @@
     mixed content for rich descriptions with embedded prose and terminology
     references.</pr:p>
 
-    <pr:codeblock>
+    <pr:example>
+      <pr:title>Property test bounds</pr:title>
+      <pr:codeblock language="xml">
 &lt;tst:property id="test-c14n-roundtrip"&gt;
   &lt;tst:title&gt;Canonicalization is idempotent&lt;/tst:title&gt;
   &lt;tst:invariant&gt;
@@ -248,7 +272,8 @@
   &lt;/tst:generator&gt;
   &lt;tst:bounds sample-count="5000" timeout="PT30S"/&gt;
 &lt;/tst:property&gt;
-    </pr:codeblock>
+      </pr:codeblock>
+    </pr:example>
   </pr:section>
 
   <org:concept ref="test-type-property">
@@ -277,7 +302,9 @@
     embedding code inline, the test definition remains a clean declarative
     node while the implementation lives in the content layer.</pr:p>
 
-    <pr:codeblock>
+    <pr:example>
+      <pr:title>Program test backed by content</pr:title>
+      <pr:codeblock language="xml">
 &lt;!-- Test code embedded in a content node --&gt;
 &lt;cnt:content id="cnt-validate-test" media-type="text/x-rust"
              hash="sha256:abc..."&gt;
@@ -309,7 +336,8 @@ fn validate_rejects_duplicate_ids() {
              source="cnt-drift-tests" lang="rust"&gt;
   &lt;tst:title&gt;Drift detection integration tests&lt;/tst:title&gt;
 &lt;/tst:program&gt;
-    </pr:codeblock>
+      </pr:codeblock>
+    </pr:example>
   </pr:section>
 
   <org:concept ref="test-type-program">
@@ -331,22 +359,31 @@ fn validate_rejects_duplicate_ids() {
     than embedded logic. The <pr:code>type</pr:code> attribute classifies the
     witness mechanism:</pr:p>
 
-    <pr:ul>
-      <pr:li><pr:b>command</pr:b>: a shell command whose exit code indicates
-      pass (0) or fail (non-zero). The <pr:code>command</pr:code> child
-      element holds the command string, and the optional
-      <pr:code>exit-code</pr:code> element overrides the default success
-      code.</pr:li>
-      <pr:li><pr:b>script</pr:b>: an executable script referenced via the
-      <pr:code>source</pr:code> attribute (pointing to a
-      <pr:code>cnt:content</pr:code> node). The <pr:code>lang</pr:code>
-      attribute specifies the script language for runtime selection.</pr:li>
-      <pr:li><pr:b>api</pr:b>: an HTTP API call with
-      <pr:code>endpoint</pr:code>, <pr:code>method</pr:code>, and expected
-      <pr:code>status</pr:code> code. Request and response bodies reference
-      <pr:code>cnt:content</pr:code> nodes via the <pr:code>request</pr:code>
-      and <pr:code>response</pr:code> attributes.</pr:li>
-    </pr:ul>
+    <pr:properties>
+      <pr:title>Witness kinds</pr:title>
+      <pr:property>
+        <pr:proptype>command</pr:proptype>
+        <pr:propdesc>A shell command whose exit code indicates pass (0) or
+        fail (non-zero). The <pr:code>command</pr:code> child element holds
+        the command string, and the optional <pr:code>exit-code</pr:code>
+        element overrides the default success code.</pr:propdesc>
+      </pr:property>
+      <pr:property>
+        <pr:proptype>script</pr:proptype>
+        <pr:propdesc>An executable script referenced via the
+        <pr:code>source</pr:code> attribute, pointing to a
+        <pr:code>cnt:content</pr:code> node. The <pr:code>lang</pr:code>
+        attribute specifies the script language for runtime selection.</pr:propdesc>
+      </pr:property>
+      <pr:property>
+        <pr:proptype>api</pr:proptype>
+        <pr:propdesc>An HTTP API call with <pr:code>endpoint</pr:code>,
+        <pr:code>method</pr:code>, and expected <pr:code>status</pr:code>
+        code. Request and response bodies reference <pr:code>cnt:content</pr:code>
+        nodes via <pr:code>request</pr:code> and <pr:code>response</pr:code>
+        attributes.</pr:propdesc>
+      </pr:property>
+    </pr:properties>
 
     <pr:p>The witness type enumeration is extensible. Extension layers define
     new witness types by creating a complexType annotated with
@@ -355,7 +392,9 @@ fn validate_rejects_duplicate_ids() {
     <pr:code>type-witness-kind</pr:code>. This follows the same extensibility
     pattern used for relation types and source types.</pr:p>
 
-    <pr:codeblock>
+    <pr:example>
+      <pr:title>Witness tests and plan criteria</pr:title>
+      <pr:codeblock language="xml">
 &lt;!-- Command witness: simple shell check --&gt;
 &lt;tst:witness id="test-cargo-test" type="command"&gt;
   &lt;tst:title&gt;Cargo test suite passes&lt;/tst:title&gt;
@@ -398,7 +437,14 @@ if any(b["ns/iter"] > 1000 for b in data["benchmarks"]):
 &lt;pln:criterion test="test-cargo-test"&gt;
   All tests pass before release.
 &lt;/pln:criterion&gt;
-    </pr:codeblock>
+      </pr:codeblock>
+    </pr:example>
+
+    <pr:related-links>
+      <pr:link ref="plan-acceptance-criteria">Plan acceptance criteria</pr:link>
+      <pr:link ref="content-layer">Content layer</pr:link>
+      <pr:link ref="extensible-relation-types">Extensible relation types</pr:link>
+    </pr:related-links>
   </pr:section>
 
   <org:concept ref="test-type-witness">
@@ -622,7 +668,7 @@ if any(b["ns/iter"] > 1000 for b in data["benchmarks"]):
   <art:mapping id="map-type-witness-kind-testing-schema">
     <art:spec-ref node="type-witness-kind"
               revision="draft-1"
-              node-hash="sha256:3be09f34485dbe395ddbf66dbcd16ba0975f52ca873b3c3f82b186b6f54ba96a"/>
+              node-hash="sha256:908bd94da8403238f302177e5a7f8af1a917a71f44ea638ab5ed5ccff11e5479"/>
     <art:artifact repo="repo-clayers"
               repo-revision="e5fa37e"
               path="schemas/testing.xsd">
@@ -635,7 +681,7 @@ if any(b["ns/iter"] > 1000 for b in data["benchmarks"]):
   <art:mapping id="map-type-witness-testing-schema">
     <art:spec-ref node="type-witness"
               revision="draft-1"
-              node-hash="sha256:130acf3aad11956ea4fcc32bf94d2f3a7d61f65de6ea3846f4c6189f4379bbff"/>
+              node-hash="sha256:aafc99225d3ca84babbc2b78365e9223c086c8a342764e7c22a4e1aaf1d60da7"/>
     <art:artifact repo="repo-clayers"
               repo-revision="e5fa37e"
               path="schemas/testing.xsd">

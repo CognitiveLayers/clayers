@@ -215,13 +215,18 @@
     for the schema command). At each level it checks two locations in
     order:</pr:p>
 
-    <pr:ol>
-      <pr:li><pr:code>schemas/</pr:code> — the canonical location in the
-      source repository (used during development).</pr:li>
-      <pr:li><pr:code>.clayers/schemas/</pr:code> — the adopted location
-      planted by <pr:code>clayers adopt</pr:code> (used in downstream
-      projects).</pr:li>
-    </pr:ol>
+    <pr:dl>
+      <pr:dlentry>
+        <pr:dt><pr:filepath>schemas/</pr:filepath></pr:dt>
+        <pr:dd>The canonical source-repository location used during schema
+        development.</pr:dd>
+      </pr:dlentry>
+      <pr:dlentry>
+        <pr:dt><pr:filepath>.clayers/schemas/</pr:filepath></pr:dt>
+        <pr:dd>The adopted location planted by
+        <pr:cmdname>clayers adopt</pr:cmdname> for downstream projects.</pr:dd>
+      </pr:dlentry>
+    </pr:dl>
 
     <pr:p>The first directory found wins. This means a project that has
     both locations (e.g., the clayers repo after self-adoption) will
@@ -233,6 +238,30 @@
     <pr:p>The <pr:code>schema</pr:code> command's path argument becomes
     optional: when omitted, it uses auto-discovery from the current
     directory. When provided, it bypasses discovery entirely.</pr:p>
+
+    <pr:related-links>
+      <pr:link ref="rnc-schema-export" role="uses">RNC schema export</pr:link>
+      <pr:link ref="connectivity-analysis" role="uses">Connectivity analysis</pr:link>
+    </pr:related-links>
+  </pr:section>
+
+  <pr:section id="rnc-schema-export">
+    <pr:title>RNC Schema Export</pr:title>
+    <pr:shortdesc>How XSD layer schemas are converted into compact
+    RELAX NG notation for agent-readable schema summaries.</pr:shortdesc>
+
+    <pr:p>The <pr:code>schema</pr:code> command exports XSD schemas as RNC
+    summaries for LLM and agent consumption. The exporter must preserve the
+    structure that authors use in layer schemas, including named complex
+    types, recursive type references, attribute groups, model groups, choices,
+    sequences, wildcard content, mixed content, and simple type enumerations.</pr:p>
+
+    <pr:p>Model groups are part of the supported XSD subset. A schema can define
+    a reusable <pr:code>xs:group name="..."</pr:code> and later include it via
+    <pr:code>xs:group ref="..."</pr:code> inside complex types, sequences, or
+    choices. The RNC exporter expands those references in place so the output
+    remains useful even when the source schema factors common prose or block
+    vocabularies into named groups.</pr:p>
   </pr:section>
 
   <!-- Topic typing -->
@@ -262,6 +291,11 @@
     automatically, enabling adopted projects to use clayers commands
     without explicit schema paths.</org:purpose>
   </org:concept>
+
+  <org:reference ref="rnc-schema-export">
+    <org:purpose>Defines the schema command's RNC conversion behavior,
+    including preservation of reusable XSD model groups.</org:purpose>
+  </org:reference>
 
   <org:concept ref="extensible-relation-types">
     <org:purpose>Understanding how extension layers define custom relation
@@ -323,6 +357,11 @@
     their planted schemas.</rel:note>
   </rel:relation>
 
+  <rel:relation type="refines" from="rnc-schema-export" to="schema-design">
+    <rel:note>RNC export is a read-oriented projection of the XSD schema
+    design.</rel:note>
+  </rel:relation>
+
   <rel:relation type="constrains" from="schema-design" to="validation-flow">
     <rel:note>XSD design choices (xs:unique vs xs:key, explicit refs vs xs:any)
     directly constrain how the validator can operate.</rel:note>
@@ -358,7 +397,7 @@
   <art:mapping id="map-schema-design-acyclic">
     <art:spec-ref node="schema-design"
               revision="draft-1"
-              node-hash="sha256:90c03d3057d39af76045192e106276a7996d974bffaab77a8c5e10334eb852de"/>
+              node-hash="sha256:05de63e96a9f6fb0e13b79a02600fe8ca233b49cca233fc5fca0f5aef7411a3c"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/schema.rs">
@@ -373,7 +412,7 @@
   <art:mapping id="map-schema-design-content-discover">
     <art:spec-ref node="schema-design"
               revision="draft-1"
-              node-hash="sha256:90c03d3057d39af76045192e106276a7996d974bffaab77a8c5e10334eb852de"/>
+              node-hash="sha256:05de63e96a9f6fb0e13b79a02600fe8ca233b49cca233fc5fca0f5aef7411a3c"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/schema.rs">
@@ -388,7 +427,7 @@
   <art:mapping id="map-schema-design-content-collect">
     <art:spec-ref node="schema-design"
               revision="draft-1"
-              node-hash="sha256:90c03d3057d39af76045192e106276a7996d974bffaab77a8c5e10334eb852de"/>
+              node-hash="sha256:05de63e96a9f6fb0e13b79a02600fe8ca233b49cca233fc5fca0f5aef7411a3c"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/schema.rs">
@@ -403,7 +442,7 @@
   <art:mapping id="map-open-world-layers">
     <art:spec-ref node="open-world-layers"
               revision="draft-1"
-              node-hash="sha256:9f8671dbd09bcb4f761e0585e2bf1fe3da55e64a838fd7c05238ec001f2854a5"/>
+              node-hash="sha256:46de9a4572444610dcf07c4ddca9e002b93916a1dd573506f7fb03ead690ac8e"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="schemas/spec.xsd">
@@ -418,7 +457,7 @@
   <art:mapping id="map-revision-layer">
     <art:spec-ref node="revision-layer"
               revision="draft-1"
-              node-hash="sha256:b447a8931aa62dc2b1bd5c988dc9c57cfd86ee13d4fd2207a4f3e2bc9db024cd"/>
+              node-hash="sha256:2fb9e6a826fb2973e4d13cdb07dc4a4426bdae3addc73cdad084145661561ade"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="schemas/revision.xsd">
@@ -432,7 +471,7 @@
   <art:mapping id="map-index-layer">
     <art:spec-ref node="index-layer"
               revision="draft-1"
-              node-hash="sha256:70f9fe55fda318fa7d633452cd9c7173edfe2416c4c3a877a41f9e1c8c8af3d7"/>
+              node-hash="sha256:8671c840c916d9425735055d5b5f36abd0da880ba9162402320c277bc31bc99a"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="schemas/index.xsd">
@@ -446,7 +485,7 @@
   <art:mapping id="map-extensible-relation-types-xsd">
     <art:spec-ref node="extensible-relation-types"
               revision="draft-1"
-              node-hash="sha256:04eec661506c36086a3acb5081e0dceeffd8c5c99b5ffc04ef8a003c57225e6d"/>
+              node-hash="sha256:19c61759489d844938f439721c246027c75da81845d30b78d7507c018eaf93bf"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="schemas/relation.xsd">
@@ -462,7 +501,7 @@
   <art:mapping id="map-extensible-relation-types-py">
     <art:spec-ref node="extensible-relation-types"
               revision="draft-1"
-              node-hash="sha256:04eec661506c36086a3acb5081e0dceeffd8c5c99b5ffc04ef8a003c57225e6d"/>
+              node-hash="sha256:19c61759489d844938f439721c246027c75da81845d30b78d7507c018eaf93bf"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/schema.rs">
@@ -547,7 +586,7 @@
   <art:mapping id="map-schema-discovery-lib">
     <art:spec-ref node="schema-discovery"
               revision="draft-1"
-              node-hash="sha256:3eccade7b60e38257f907bd2d3cfb1d08e515588b39967686b625681066ef608"/>
+              node-hash="sha256:595ac8f190ee4188ba2f401d759b4348364fda71243a7ff1ec2b2343f46fea7b"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers-spec/src/discovery.rs">
@@ -562,7 +601,7 @@
   <art:mapping id="map-schema-discovery-connectivity">
     <art:spec-ref node="schema-discovery"
               revision="draft-1"
-              node-hash="sha256:3eccade7b60e38257f907bd2d3cfb1d08e515588b39967686b625681066ef608"/>
+              node-hash="sha256:595ac8f190ee4188ba2f401d759b4348364fda71243a7ff1ec2b2343f46fea7b"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers-spec/src/connectivity.rs">
@@ -577,7 +616,7 @@
   <art:mapping id="map-schema-discovery-cli">
     <art:spec-ref node="schema-discovery"
               revision="draft-1"
-              node-hash="sha256:3eccade7b60e38257f907bd2d3cfb1d08e515588b39967686b625681066ef608"/>
+              node-hash="sha256:595ac8f190ee4188ba2f401d759b4348364fda71243a7ff1ec2b2343f46fea7b"/>
     <art:artifact repo="repo-clayers"
               repo-revision="2916ded"
               path="crates/clayers/src/cli.rs">
@@ -600,12 +639,40 @@
     is available.
   </llm:node>
 
+  <llm:node ref="rnc-schema-export">
+    The schema command exports XSD layer schemas to RELAX NG Compact syntax
+    for agent consumption. It preserves named complex types, recursive type
+    references, attribute groups, model groups, choices, sequences, wildcards,
+    mixed content, and enumerations. xs:group references are expanded in place
+    so schemas can factor reusable vocabularies without losing RNC detail.
+  </llm:node>
+
+  <art:mapping id="map-rnc-schema-export-groups">
+    <art:spec-ref node="rnc-schema-export"
+              revision="draft-1"
+              node-hash="sha256:00c7db5d175e0c71df3a68b57d7936e7d14896449424625f9e678e00a56f64e4"/>
+    <art:artifact repo="repo-clayers"
+              repo-revision="abb4044"
+              path="crates/clayers-xml/src/rnc/convert.rs">
+        <art:range hash="sha256:551ea59fabe8d822d64e59c7d45190cdde344b495aa21afc7e20ac0ad94c85a0" start-line="73" end-line="84"/>
+        <art:range hash="sha256:0463a1daee5eec4ed0970e138f9488583738845c88ab5ab396897305b0f1fbc4" start-line="90" end-line="127"/>
+        <art:range hash="sha256:69c2fee421ab02a928bdc7d3a0611dd3a45900478599eb220fa2338816d359eb" start-line="154" end-line="159"/>
+        <art:range hash="sha256:22a85e30e8ed8ccef202014bd1e65a4c8b90154aa03ec0f9496fe9beb292fdbe" start-line="384" end-line="460"/>
+        <art:range hash="sha256:cf3b62ea6da93e65dc87c1f7cced97862db84eabc5b6ff5b136dbe7f6e0f10e2" start-line="603" end-line="620"/>
+        <art:range hash="sha256:444552c31d8aaf7dbcb2224e311abfff51b3938f631aa0595de78558367033c5" start-line="663" end-line="715"/>
+        <art:range hash="sha256:214c624b31f5c474e9b320d250941f231c11d4af1d28df475e3a8be5234708ee" start-line="718" end-line="745"/>
+        <art:range hash="sha256:d3e74f0deb2ce4c754c5974c5b66d63a8e8040e05ee6358d3d10beb5633b0c18" start-line="962" end-line="1147"/>
+      </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>RNC conversion registers XSD model groups, expands xs:group references during emission, and follows group references during recursive named-pattern detection.</art:note>
+  </art:mapping>
+
   <!-- Type→schema mappings -->
 
   <art:mapping id="map-type-relation-schema">
     <art:spec-ref node="type-relation"
               revision="draft-1"
-              node-hash="sha256:0bbf60e354cdabb471f5db56e852a14561b44a5c711116349848c1b9cad24f77"/>
+              node-hash="sha256:b730668d65759e90e8f89c54d6971fdab76f25a1ade139541bbd151f13854c7c"/>
     <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/relation.xsd">
@@ -619,7 +686,7 @@
   <art:mapping id="map-type-relation-kind-schema">
     <art:spec-ref node="type-relation-kind"
               revision="draft-1"
-              node-hash="sha256:31613b87f79dd8240a75cdcae301e4c099518410b34e58b5bdef1615ac88ec02"/>
+              node-hash="sha256:7f410fc761dad19207cda24e592638a0b9e414677262b6d1e5cfcb4e03aa7a60"/>
     <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/relation.xsd">

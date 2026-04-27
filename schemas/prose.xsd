@@ -3,32 +3,42 @@
            xmlns:pr="urn:clayers:prose"
            xmlns:trm="urn:clayers:terminology"
            xmlns:src="urn:clayers:source"
+           xmlns:cnt="urn:clayers:content"
            xmlns:llm="urn:clayers:llm"
            xmlns:spec="urn:clayers:spec"
            targetNamespace="urn:clayers:prose"
            elementFormDefault="qualified"
-           version="1.1">
+           version="1.2">
 
   <xs:import namespace="urn:clayers:terminology" schemaLocation="terminology.xsd"/>
   <xs:import namespace="urn:clayers:source" schemaLocation="source.xsd"/>
+  <xs:import namespace="urn:clayers:content" schemaLocation="content.xsd"/>
 
   <xs:annotation>
     <xs:documentation>
       Prose Layer Schema.
-      DITA-style technical writing elements for specification content.
-      Borrows DITA's internal prose primitives: paragraphs, lists,
-      steps, notes, short descriptions, cross-references.
+      DITA/DocBook-inspired technical writing elements for specification
+      content. Supports sections, paragraphs, lists, structured task steps,
+      notes, examples, figures, content-backed media references, property
+      tables, synopses, sidebars, and cross-references.
     </xs:documentation>
     <xs:appinfo>
       <llm:describe>
-        The prose schema provides DITA-style technical writing elements.
-        Content is organized into sections (each with a required id and
-        title). Sections contain paragraphs, lists, ordered steps, notes
-        with severity types, code blocks, tables, and cross-references.
-        Inline content can embed terminology references and markup.
-        Steps can have optional IDs for cross-layer referencing.
+        The prose schema provides technical-writing elements inspired by DITA
+        and DocBook. Content is organized into addressable sections with
+        titles and optional short descriptions. Sections contain paragraphs,
+        unordered/ordered/definition lists, structured steps, task detail
+        blocks, notes, examples, figures, content-backed media references,
+        code blocks, synopses, tables, property tables, block
+        quotes, sidebars, related links, and nested sections. Inline content
+        supports terminology references, source citations, cross-references,
+        and technical phrase markup for code, UI labels, commands, files,
+        options, parameters, APIs, keyboard input, variables, messages,
+        quotations, superscript, and subscript.
       </llm:describe>
       <spec:keyref name="prose-xrefs" selector=".//pr:xref" field="@ref"/>
+      <spec:keyref name="prose-related-links" selector=".//pr:link" field="@ref"/>
+      <spec:keyref name="prose-media-content-refs" selector=".//pr:media[@content]" field="@content"/>
     </xs:appinfo>
   </xs:annotation>
 
@@ -37,49 +47,86 @@
     <xs:annotation><xs:appinfo><spec:content-element/></xs:appinfo></xs:annotation>
   </xs:element>
 
+  <!-- Reusable inline phrase vocabulary. -->
+  <xs:group name="InlinePhraseGroup">
+    <xs:choice>
+      <xs:element ref="trm:ref"/>
+      <xs:element ref="src:cite"/>
+      <xs:element name="xref" type="pr:CrossRefType"/>
+      <xs:element name="b" type="pr:InlineContentType"/>
+      <xs:element name="i" type="pr:InlineContentType"/>
+      <xs:element name="u" type="pr:InlineContentType"/>
+      <xs:element name="q" type="pr:InlineContentType"/>
+      <xs:element name="sup" type="pr:InlineContentType"/>
+      <xs:element name="sub" type="pr:InlineContentType"/>
+      <xs:element name="var" type="pr:InlineContentType"/>
+      <xs:element name="kbd" type="pr:InlineContentType"/>
+      <xs:element name="filepath" type="pr:InlineContentType"/>
+      <xs:element name="option" type="pr:InlineContentType"/>
+      <xs:element name="cmdname" type="pr:InlineContentType"/>
+      <xs:element name="parmname" type="pr:InlineContentType"/>
+      <xs:element name="apiname" type="pr:InlineContentType"/>
+      <xs:element name="msgph" type="pr:InlineContentType"/>
+      <xs:element name="code" type="pr:InlineContentType"/>
+    </xs:choice>
+  </xs:group>
+
+  <!-- Reusable block vocabulary for sections and rich containers. -->
+  <xs:group name="BlockContentGroup">
+    <xs:choice>
+      <xs:element name="p" type="pr:InlineContentType"/>
+      <xs:element name="ul" type="pr:UnorderedListType"/>
+      <xs:element name="ol" type="pr:OrderedListType"/>
+      <xs:element name="dl" type="pr:DefinitionListType"/>
+      <xs:element name="steps" type="pr:StepsType"/>
+      <xs:element name="steps-unordered" type="pr:StepsType"/>
+      <xs:element name="prereq" type="pr:TaskDetailType"/>
+      <xs:element name="context" type="pr:TaskDetailType"/>
+      <xs:element name="result" type="pr:TaskDetailType"/>
+      <xs:element name="postreq" type="pr:TaskDetailType"/>
+      <xs:element name="note" type="pr:NoteType"/>
+      <xs:element name="codeblock" type="pr:CodeBlockType"/>
+      <xs:element name="synopsis" type="pr:SynopsisType"/>
+      <xs:element name="example" type="pr:ExampleType"/>
+      <xs:element name="figure" type="pr:FigureType"/>
+      <xs:element name="media" type="pr:MediaType"/>
+      <xs:element name="table" type="pr:TableType"/>
+      <xs:element name="properties" type="pr:PropertiesType"/>
+      <xs:element name="blockquote" type="pr:BlockQuoteType"/>
+      <xs:element name="sidebar" type="pr:SidebarType"/>
+      <xs:element name="related-links" type="pr:RelatedLinksType"/>
+      <xs:element name="section" type="pr:SectionType"/>
+      <!-- Block-level content from any other layer (e.g., py:class,
+           py:method, pln:plan, dec:decision). -->
+      <xs:any namespace="##other" processContents="strict"/>
+    </xs:choice>
+  </xs:group>
+
   <!-- Section: the primary structural unit -->
   <xs:complexType name="SectionType">
     <xs:annotation>
       <xs:appinfo>
         <llm:describe>
-          A structural unit of prose. Requires an id (for cross-layer
-          referencing) and a title. Contains optional shortdesc, then
-          body elements: p, ul, ol, steps, note, codeblock, table,
-          or nested sections. Sections are the addressable nodes that
-          other layers reference.
+          A structural unit of prose. Requires an id and title. Contains an
+          optional shortdesc, then block content: paragraphs, lists,
+          structured tasks, notes, examples, figures, media, code blocks,
+          synopses, tables, property tables, block quotes, sidebars, related
+          links, nested sections, or block-level content from other layers.
         </llm:describe>
       </xs:appinfo>
     </xs:annotation>
     <xs:sequence>
       <xs:element name="title" type="xs:string"/>
       <xs:element name="shortdesc" type="pr:InlineContentType" minOccurs="0"/>
-      <xs:choice maxOccurs="unbounded">
-        <xs:element name="p" type="pr:InlineContentType"/>
-        <xs:element name="ul" type="pr:UnorderedListType"/>
-        <xs:element name="ol" type="pr:OrderedListType"/>
-        <xs:element name="steps" type="pr:StepsType"/>
-        <xs:element name="note" type="pr:NoteType"/>
-        <xs:element name="codeblock" type="pr:CodeBlockType"/>
-        <xs:element name="table" type="pr:TableType"/>
-        <xs:element name="section" type="pr:SectionType"/>
-        <!-- Block-level content from any other layer (e.g., py:class,
-             py:method, pln:plan, dec:decision). Matches the established
-             pattern in layer.xsd, plan.xsd, and testing.xsd. -->
-        <xs:any namespace="##other" processContents="strict"/>
-      </xs:choice>
+      <xs:group ref="pr:BlockContentGroup" minOccurs="0" maxOccurs="unbounded"/>
     </xs:sequence>
     <xs:attribute name="id" type="xs:ID" use="required"/>
   </xs:complexType>
 
-  <!-- Inline content: mixed text with embedded references -->
+  <!-- Inline content: mixed text with embedded references and phrase markup -->
   <xs:complexType name="InlineContentType" mixed="true">
     <xs:choice minOccurs="0" maxOccurs="unbounded">
-      <xs:element ref="trm:ref"/>
-      <xs:element ref="src:cite"/>
-      <xs:element name="xref" type="pr:CrossRefType"/>
-      <xs:element name="b" type="xs:string"/>
-      <xs:element name="i" type="xs:string"/>
-      <xs:element name="code" type="xs:string"/>
+      <xs:group ref="pr:InlinePhraseGroup"/>
     </xs:choice>
   </xs:complexType>
 
@@ -88,68 +135,136 @@
     <xs:annotation>
       <xs:appinfo>
         <llm:describe>
-          A cross-reference to another node in the specification. The
-          ref attribute is a node ID, validated via keyref in the
-          combined schema. Element content is display text.
+          A cross-reference to another node in the specification. The ref
+          attribute is a node ID, validated via keyref in the combined schema.
+          Element content is optional display text. Empty xrefs render from
+          the target section title when available.
         </llm:describe>
       </xs:appinfo>
     </xs:annotation>
+    <xs:choice minOccurs="0" maxOccurs="unbounded">
+      <xs:group ref="pr:InlinePhraseGroup"/>
+    </xs:choice>
     <xs:attribute name="ref" type="xs:string" use="required">
       <xs:annotation>
         <xs:documentation>
-          Node ID reference. Uses xs:string (not xs:IDREF) because
-          target nodes may live in other layer documents.
+          Node ID reference. Uses xs:string (not xs:IDREF) because target
+          nodes may live in other layer documents.
         </xs:documentation>
       </xs:annotation>
     </xs:attribute>
   </xs:complexType>
 
   <!-- Lists -->
+  <xs:complexType name="ListItemType" mixed="true">
+    <xs:choice minOccurs="0" maxOccurs="unbounded">
+      <xs:group ref="pr:InlinePhraseGroup"/>
+      <xs:element name="p" type="pr:InlineContentType"/>
+      <xs:element name="ul" type="pr:UnorderedListType"/>
+      <xs:element name="ol" type="pr:OrderedListType"/>
+      <xs:element name="dl" type="pr:DefinitionListType"/>
+      <xs:element name="note" type="pr:NoteType"/>
+      <xs:element name="codeblock" type="pr:CodeBlockType"/>
+      <xs:element name="example" type="pr:ExampleType"/>
+      <xs:element name="table" type="pr:TableType"/>
+    </xs:choice>
+  </xs:complexType>
+
   <xs:complexType name="UnorderedListType">
     <xs:sequence>
-      <xs:element name="li" type="pr:InlineContentType" maxOccurs="unbounded"/>
+      <xs:element name="li" type="pr:ListItemType" maxOccurs="unbounded"/>
     </xs:sequence>
   </xs:complexType>
 
   <xs:complexType name="OrderedListType">
     <xs:sequence>
-      <xs:element name="li" type="pr:InlineContentType" maxOccurs="unbounded"/>
+      <xs:element name="li" type="pr:ListItemType" maxOccurs="unbounded"/>
     </xs:sequence>
   </xs:complexType>
 
-  <!-- Step: individual procedural step with optional addressability -->
+  <xs:complexType name="DefinitionListType">
+    <xs:sequence>
+      <xs:element name="dlentry" type="pr:DefinitionListEntryType" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="DefinitionListEntryType">
+    <xs:sequence>
+      <xs:element name="dt" type="pr:InlineContentType"/>
+      <xs:element name="dd" type="pr:ListItemType" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Task details and steps -->
+  <xs:complexType name="TaskDetailType" mixed="true">
+    <xs:choice minOccurs="0" maxOccurs="unbounded">
+      <xs:group ref="pr:InlinePhraseGroup"/>
+      <xs:element name="p" type="pr:InlineContentType"/>
+      <xs:element name="ul" type="pr:UnorderedListType"/>
+      <xs:element name="ol" type="pr:OrderedListType"/>
+      <xs:element name="dl" type="pr:DefinitionListType"/>
+      <xs:element name="note" type="pr:NoteType"/>
+      <xs:element name="codeblock" type="pr:CodeBlockType"/>
+      <xs:element name="example" type="pr:ExampleType"/>
+      <xs:element name="media" type="pr:MediaType"/>
+      <xs:element name="table" type="pr:TableType"/>
+    </xs:choice>
+  </xs:complexType>
+
   <xs:complexType name="StepType" mixed="true">
     <xs:annotation>
       <xs:appinfo>
         <llm:describe>
-          An individual step in a procedural sequence. Extends inline
-          content with an optional id attribute for cross-layer referencing.
-          Steps with IDs become addressable nodes that can have artifact
-          mappings, relations, and LLM descriptions.
+          An individual procedural step. Legacy text-only steps remain valid.
+          Structured steps can use cmd for the imperative action, info for
+          supplemental explanation, substeps for nested procedures, stepxmp
+          for examples, and stepresult for expected outcome. Domain choices
+          belong in the deliberation layer; diagnostic guidance belongs in
+          the diagnostic layer. Optional id makes a step addressable.
         </llm:describe>
       </xs:appinfo>
     </xs:annotation>
-    <xs:complexContent mixed="true">
-      <xs:extension base="pr:InlineContentType">
-        <xs:attribute name="id" type="xs:ID" use="optional"/>
-      </xs:extension>
-    </xs:complexContent>
+    <xs:choice minOccurs="0" maxOccurs="unbounded">
+      <xs:group ref="pr:InlinePhraseGroup"/>
+      <xs:element name="cmd" type="pr:InlineContentType"/>
+      <xs:element name="info" type="pr:TaskDetailType"/>
+      <xs:element name="substeps" type="pr:StepsType"/>
+      <xs:element name="stepxmp" type="pr:ExampleType"/>
+      <xs:element name="stepresult" type="pr:TaskDetailType"/>
+      <xs:element name="note" type="pr:NoteType"/>
+      <xs:element name="codeblock" type="pr:CodeBlockType"/>
+      <xs:element name="example" type="pr:ExampleType"/>
+      <xs:element name="p" type="pr:InlineContentType"/>
+      <xs:any namespace="##other" processContents="strict"/>
+    </xs:choice>
+    <xs:attribute name="id" type="xs:ID" use="optional"/>
   </xs:complexType>
 
-  <!-- Steps: ordered procedural sequence -->
+  <xs:complexType name="StepSectionType" mixed="true">
+    <xs:choice minOccurs="0" maxOccurs="unbounded">
+      <xs:group ref="pr:InlinePhraseGroup"/>
+      <xs:element name="p" type="pr:InlineContentType"/>
+      <xs:element name="note" type="pr:NoteType"/>
+    </xs:choice>
+  </xs:complexType>
+
   <xs:complexType name="StepsType">
-    <xs:sequence>
-      <xs:element name="step" type="pr:StepType" maxOccurs="unbounded"/>
-    </xs:sequence>
+    <xs:choice maxOccurs="unbounded">
+      <xs:element name="step" type="pr:StepType"/>
+      <xs:element name="stepsection" type="pr:StepSectionType"/>
+    </xs:choice>
   </xs:complexType>
 
   <!-- Note with type classification -->
   <xs:complexType name="NoteType" mixed="true">
-    <xs:complexContent mixed="true">
-      <xs:extension base="pr:InlineContentType">
-        <xs:attribute name="type" type="pr:NoteKind" default="info"/>
-      </xs:extension>
-    </xs:complexContent>
+    <xs:choice minOccurs="0" maxOccurs="unbounded">
+      <xs:group ref="pr:InlinePhraseGroup"/>
+      <xs:element name="p" type="pr:InlineContentType"/>
+      <xs:element name="ul" type="pr:UnorderedListType"/>
+      <xs:element name="ol" type="pr:OrderedListType"/>
+      <xs:element name="codeblock" type="pr:CodeBlockType"/>
+    </xs:choice>
+    <xs:attribute name="type" type="pr:NoteKind" default="info"/>
   </xs:complexType>
 
   <xs:simpleType name="NoteKind">
@@ -162,7 +277,7 @@
     </xs:restriction>
   </xs:simpleType>
 
-  <!-- Code block -->
+  <!-- Code and synopsis blocks -->
   <xs:complexType name="CodeBlockType">
     <xs:simpleContent>
       <xs:extension base="xs:string">
@@ -171,9 +286,59 @@
     </xs:simpleContent>
   </xs:complexType>
 
-  <!-- Simple table -->
+  <xs:complexType name="SynopsisType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="kind" type="xs:string" use="optional"/>
+        <xs:attribute name="language" type="xs:string" use="optional"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <!-- Examples, figures, and media -->
+  <xs:complexType name="ExampleType">
+    <xs:sequence>
+      <xs:element name="title" type="xs:string" minOccurs="0"/>
+      <xs:group ref="pr:BlockContentGroup" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="FigureType">
+    <xs:sequence>
+      <xs:element name="title" type="xs:string" minOccurs="0"/>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element name="media" type="pr:MediaType"/>
+        <xs:group ref="pr:BlockContentGroup"/>
+      </xs:choice>
+      <xs:element name="caption" type="pr:InlineContentType" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="MediaType">
+    <xs:attribute name="content" type="xs:string" use="optional"/>
+    <xs:attribute name="href" type="xs:anyURI" use="optional"/>
+    <xs:attribute name="alt" type="xs:string" use="required"/>
+    <xs:attribute name="format" type="xs:string" use="optional"/>
+    <xs:attribute name="placement" type="pr:MediaPlacementKind" default="block"/>
+    <xs:attribute name="width" type="xs:string" use="optional"/>
+    <xs:attribute name="height" type="xs:string" use="optional"/>
+    <xs:attribute name="scale" type="xs:positiveInteger" use="optional"/>
+    <xs:assert test="@content or @href"/>
+  </xs:complexType>
+
+  <xs:simpleType name="MediaPlacementKind">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="inline"/>
+      <xs:enumeration value="block"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Tables -->
   <xs:complexType name="TableType">
     <xs:sequence>
+      <xs:element name="title" type="xs:string" minOccurs="0"/>
       <xs:element name="thead" type="pr:TableRowGroupType" minOccurs="0"/>
       <xs:element name="tbody" type="pr:TableRowGroupType"/>
     </xs:sequence>
@@ -188,10 +353,65 @@
   <xs:complexType name="TableRowType">
     <xs:sequence>
       <xs:choice maxOccurs="unbounded">
-        <xs:element name="th" type="pr:InlineContentType"/>
-        <xs:element name="td" type="pr:InlineContentType"/>
+        <xs:element name="th" type="pr:ListItemType"/>
+        <xs:element name="td" type="pr:ListItemType"/>
       </xs:choice>
     </xs:sequence>
+  </xs:complexType>
+
+  <!-- Reference/property tables -->
+  <xs:complexType name="PropertiesType">
+    <xs:sequence>
+      <xs:element name="title" type="xs:string" minOccurs="0"/>
+      <xs:element name="prophead" type="pr:PropertyHeadType" minOccurs="0"/>
+      <xs:element name="property" type="pr:PropertyType" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="PropertyHeadType">
+    <xs:sequence>
+      <xs:element name="proptypehd" type="pr:InlineContentType" minOccurs="0"/>
+      <xs:element name="propvaluehd" type="pr:InlineContentType" minOccurs="0"/>
+      <xs:element name="propdeschd" type="pr:InlineContentType" minOccurs="0"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="PropertyType">
+    <xs:sequence>
+      <xs:element name="proptype" type="pr:InlineContentType" minOccurs="0"/>
+      <xs:element name="propvalue" type="pr:InlineContentType" minOccurs="0"/>
+      <xs:element name="propdesc" type="pr:ListItemType"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Publishing and navigation blocks -->
+  <xs:complexType name="BlockQuoteType">
+    <xs:sequence>
+      <xs:group ref="pr:BlockContentGroup" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="attribution" type="pr:InlineContentType" minOccurs="0"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="SidebarType">
+    <xs:sequence>
+      <xs:element name="title" type="xs:string" minOccurs="0"/>
+      <xs:group ref="pr:BlockContentGroup" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="RelatedLinksType">
+    <xs:sequence>
+      <xs:element name="link" type="pr:RelatedLinkType" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="RelatedLinkType" mixed="true">
+    <xs:choice minOccurs="0" maxOccurs="unbounded">
+      <xs:group ref="pr:InlinePhraseGroup"/>
+    </xs:choice>
+    <xs:attribute name="ref" type="xs:string" use="required"/>
+    <xs:attribute name="role" type="xs:string" use="optional"/>
   </xs:complexType>
 
 </xs:schema>

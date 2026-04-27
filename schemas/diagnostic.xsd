@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:diag="urn:clayers:diagnostic"
+           xmlns:llm="urn:clayers:llm"
+           xmlns:spec="urn:clayers:spec"
+           targetNamespace="urn:clayers:diagnostic"
+           elementFormDefault="qualified"
+           version="1.0">
+
+  <xs:annotation>
+    <xs:documentation>
+      Diagnostic Layer Schema.
+      First-class troubleshooting and remediation records. A diagnostic issue
+      captures a known condition, causes, remedies, severity, responsible
+      party, and optional verification links.
+    </xs:documentation>
+    <xs:appinfo>
+      <llm:describe>
+        The diagnostic schema models troubleshooting as domain data rather
+        than prose-only markup. Each diag:issue is an addressable node with
+        optional ref to the affected spec node. Conditions, causes, and
+        remedies support rich mixed content through xs:any so prose,
+        terminology, source, content, and command markup can appear inside
+        diagnostic records. Verification links may point to testing-layer
+        witnesses or tests.
+      </llm:describe>
+      <spec:keyref name="diagnostic-issue-refs" selector=".//diag:issue" field="@ref"/>
+      <spec:keyref name="diagnostic-verification-refs" selector=".//diag:verifies-with" field="@test"/>
+    </xs:appinfo>
+  </xs:annotation>
+
+  <xs:element name="issue" type="diag:IssueType">
+    <xs:annotation><xs:appinfo><spec:content-element/></xs:appinfo></xs:annotation>
+  </xs:element>
+
+  <xs:complexType name="IssueType" id="type-diagnostic-issue">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          A known failure mode or troubleshooting item. The id makes the
+          issue addressable. The optional ref attribute points to the node
+          being diagnosed. Title names the issue; severity classifies impact;
+          condition describes what is observed; cause explains why; remedy
+          describes recovery. verifies-with links to tests that can confirm
+          the issue or remediation.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="title" type="xs:string"/>
+      <xs:element name="severity" type="diag:SeverityKind" minOccurs="0"/>
+      <xs:element name="condition" type="diag:RichTextType"/>
+      <xs:element name="cause" type="diag:RichTextType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="remedy" type="diag:RichTextType" maxOccurs="unbounded"/>
+      <xs:element name="responsible-party" type="diag:RichTextType" minOccurs="0"/>
+      <xs:element name="verifies-with" type="diag:VerificationType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID" use="required"/>
+    <xs:attribute name="ref" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="RichTextType" mixed="true">
+    <xs:sequence>
+      <xs:any namespace="##other" processContents="strict" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="VerificationType" mixed="true">
+    <xs:sequence>
+      <xs:any namespace="##other" processContents="strict" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="test" type="xs:string" use="required"/>
+  </xs:complexType>
+
+  <xs:simpleType name="SeverityKind">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="info"/>
+      <xs:enumeration value="warning"/>
+      <xs:enumeration value="error"/>
+      <xs:enumeration value="critical"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+</xs:schema>

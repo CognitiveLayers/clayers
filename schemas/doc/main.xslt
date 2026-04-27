@@ -9,6 +9,8 @@
     xmlns:org="urn:clayers:organization"
     xmlns:rel="urn:clayers:relation"
     xmlns:dec="urn:clayers:decision"
+    xmlns:diag="urn:clayers:diagnostic"
+    xmlns:delib="urn:clayers:deliberation"
     xmlns:src="urn:clayers:source"
     xmlns:pln="urn:clayers:plan"
     xmlns:art="urn:clayers:artifact"
@@ -17,7 +19,7 @@
     xmlns:rev="urn:clayers:revision"
     xmlns:idx="urn:clayers:index"
     xmlns:doc="urn:clayers:doc"
-    exclude-result-prefixes="xs cmb spec pr trm org rel dec src pln art llm py rev idx doc">
+    exclude-result-prefixes="xs cmb spec pr trm org rel dec diag delib src pln art llm py rev idx doc">
 
   <xsl:import href="catchall.xslt"/>
   <xsl:import href="prose.xslt"/>
@@ -25,6 +27,8 @@
   <xsl:import href="organization.xslt"/>
   <xsl:import href="relation.xslt"/>
   <xsl:import href="decision.xslt"/>
+  <xsl:import href="diagnostic.xslt"/>
+  <xsl:import href="deliberation.xslt"/>
   <xsl:import href="source.xslt"/>
   <xsl:import href="plan.xslt"/>
   <xsl:import href="artifact.xslt"/>
@@ -549,6 +553,91 @@ a:hover { color: var(--clr-accent-hover); }
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 0.25rem;
+}
+
+/* Technical documentation blocks */
+dl {
+  margin: 1rem 0;
+}
+dt {
+  font-weight: 600;
+  margin-top: 0.75rem;
+}
+dd {
+  margin-left: 1.25rem;
+  color: hsl(var(--foreground));
+}
+.task-detail,
+.troubleshooting,
+.example,
+.step-example,
+.sidebar-block,
+.related-links {
+  border: 1px solid hsl(var(--border));
+  border-radius: calc(var(--radius) - 2px);
+  padding: 0.75rem 1rem;
+  margin: 1rem 0;
+  background: hsl(var(--card));
+}
+.task-detail-label,
+.trouble-label,
+.example-title,
+.related-links-title,
+.table-title {
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: hsl(var(--muted-foreground));
+  margin-bottom: 0.35rem;
+}
+.task-cmd {
+  font-weight: 600;
+  margin: 0.35rem 0;
+}
+.stepsection {
+  list-style: none;
+  margin-left: -1.25rem;
+  color: hsl(var(--muted-foreground));
+}
+figure {
+  margin: 1.25rem 0;
+}
+figure img,
+.content img {
+  max-width: 100%;
+  height: auto;
+  border: 1px solid hsl(var(--border));
+  border-radius: calc(var(--radius) - 2px);
+}
+figcaption {
+  margin-top: 0.4rem;
+  font-size: 0.85rem;
+  color: hsl(var(--muted-foreground));
+}
+blockquote {
+  border-left: 3px solid hsl(var(--border));
+  margin: 1rem 0;
+  padding-left: 1rem;
+  color: hsl(var(--muted-foreground));
+}
+blockquote footer {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+}
+kbd {
+  font-family: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.8em;
+  border: 1px solid hsl(var(--border));
+  border-bottom-width: 2px;
+  border-radius: calc(var(--radius) - 4px);
+  padding: 0.05em 0.35em;
+  background: hsl(var(--background));
+}
+.link-role {
+  margin-left: 0.5rem;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.8rem;
 }
 
 /* Term tooltip */

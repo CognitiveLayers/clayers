@@ -86,6 +86,13 @@
     notebooks that explore spec connectivity, web dashboards that render
     spec health metrics, and agent frameworks that query specs
     programmatically instead of parsing CLI output.</pr:p>
+
+    <pr:sidebar>
+      <pr:title>Package boundary</pr:title>
+      <pr:p>The Python package is a native integration surface, not a wrapper
+      around subprocess calls. It exposes the same spec, repository, and query
+      concepts as the Rust crates.</pr:p>
+    </pr:sidebar>
   </pr:section>
 
   <pr:section id="python-module-structure">
@@ -144,6 +151,9 @@
     mirrors the corresponding Rust struct with read-only Python attributes.
     Errors are raised as SpecError exceptions.</pr:p>
 
+    <pr:synopsis kind="python">from clayers import KnowledgeModel
+km = KnowledgeModel("clayers/my-project")</pr:synopsis>
+
     <py:class id="py-km" name="KnowledgeModel">
       <py:param name="path" type="str"/>
       <py:param name="repo_root" type="str | None" default="None"/>
@@ -194,9 +204,9 @@
       </py:method>
     </py:class>
 
-    <pr:p>A CI gate that validates a spec and checks drift on every
-    commit:</pr:p>
-    <pr:codeblock language="python">from clayers import KnowledgeModel
+    <pr:example>
+      <pr:title>CI gate for validation and drift</pr:title>
+      <pr:codeblock language="python">from clayers import KnowledgeModel
 
 km = KnowledgeModel("clayers/my-project")
 result = km.validate()
@@ -206,10 +216,11 @@ drift = km.check_drift()
 assert drift.drifted_count == 0, (
     f"{drift.drifted_count} mappings drifted"
 )</pr:codeblock>
+    </pr:example>
 
-    <pr:p>Querying the spec as a knowledge base to find which code
-    implements a concept:</pr:p>
-    <pr:codeblock language="python">km = KnowledgeModel("clayers/clayers")
+    <pr:example>
+      <pr:title>Query the spec as a knowledge base</pr:title>
+      <pr:codeblock language="python">km = KnowledgeModel("clayers/clayers")
 
 # Find all terms
 terms = km.query("//trm:term/trm:name", mode="text")
@@ -222,9 +233,11 @@ paths = km.query(
     mode="text",
 )
 print(paths.values)  # ['crates/clayers-spec/src/drift.rs']</pr:codeblock>
+    </pr:example>
 
-    <pr:p>A coverage threshold test in pytest:</pr:p>
-    <pr:codeblock language="python">def test_spec_coverage_above_threshold():
+    <pr:example>
+      <pr:title>Coverage threshold test in pytest</pr:title>
+      <pr:codeblock language="python">def test_spec_coverage_above_threshold():
     km = KnowledgeModel("clayers/my-project")
     cov = km.coverage()
     mapped_pct = cov.mapped_nodes / cov.total_nodes * 100
@@ -232,9 +245,11 @@ print(paths.values)  # ['crates/clayers-spec/src/drift.rs']</pr:codeblock>
         f"Only {mapped_pct:.0f}% of spec nodes are mapped. "
         f"Unmapped: {cov.unmapped_nodes}"
     )</pr:codeblock>
+    </pr:example>
 
-    <pr:p>Exploring spec connectivity in a notebook:</pr:p>
-    <pr:codeblock language="python">km = KnowledgeModel("clayers/clayers")
+    <pr:example>
+      <pr:title>Explore connectivity in a notebook</pr:title>
+      <pr:codeblock language="python">km = KnowledgeModel("clayers/clayers")
 conn = km.connectivity()
 print(f"Nodes: {conn.node_count}, Edges: {conn.edge_count}")
 print(f"Density: {conn.density:.4f}")
@@ -242,6 +257,13 @@ for hub in conn.hub_nodes[:3]:
     print(f"  Hub: {hub.id} (degree {hub.total_degree})")
 for node_id in conn.isolated_nodes[:5]:
     print(f"  Isolated: {node_id}")</pr:codeblock>
+    </pr:example>
+
+    <pr:related-links>
+      <pr:link ref="validation-flow">Validation flow</pr:link>
+      <pr:link ref="drift-detection-tooling">Drift detection tooling</pr:link>
+      <pr:link ref="xpath-query-tooling">XPath query tooling</pr:link>
+    </pr:related-links>
   </pr:section>
 
   <pr:section id="python-repo-api">
@@ -743,7 +765,7 @@ print(count_terms(repo))</pr:codeblock>
   <art:mapping id="map-py-module-root">
     <art:spec-ref node="python-integration"
               revision="draft-1"
-              node-hash="sha256:a35155628c70b362ebb53f90357309f862e6c3269f0415eb4d2a5a9ca9db6395"/>
+              node-hash="sha256:444d1f5bb64547738297db94ab291bb7e741db8d9e45e4a70cbcc6c874c776d7"/>
     <art:artifact repo="repo-clayers"
               repo-revision="69ddfa1"
               path="crates/clayers-py/src/lib.rs">
@@ -758,7 +780,7 @@ print(count_terms(repo))</pr:codeblock>
   <!-- ── KnowledgeModel class and members ── -->
 
   <art:mapping id="map-py-km">
-    <art:spec-ref node="py-km" revision="draft-1" node-hash="sha256:5be142453470d0084cb76bf20ec5ac38f6e407ba39da8e2bd18687d0cb4907a6"/>
+    <art:spec-ref node="py-km" revision="draft-1" node-hash="sha256:44b9ecb2d1bf15d26e8334e3cc14b9679415dc336c92503531529a30d378904b"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/knowledge_model.rs">
       <art:range hash="sha256:0cc54dabf5652187bd28781812dfe93649e2886fbc46e27b649856438e63a99d" start-line="9" end-line="143"/>
@@ -767,7 +789,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-km-name">
-    <art:spec-ref node="py-km-name" revision="draft-1" node-hash="sha256:710a826e4629a7723465203d9e3ad515456b53e398e0f30892637c090acf143d"/>
+    <art:spec-ref node="py-km-name" revision="draft-1" node-hash="sha256:7c0895f8abbe745d8ee93f82744162d25e72a8bf73bdfdfdbfa829a96cd9b71c"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/knowledge_model.rs">
       <art:range hash="sha256:fb8b6225f98045cf56a769122fe256b658e4958c7f6318d586d0e36c3c5833df" start-line="63" end-line="66"/>
@@ -776,7 +798,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-km-files">
-    <art:spec-ref node="py-km-files" revision="draft-1" node-hash="sha256:12c61fc2a2f1e3869740bae871a5764166a3fd0c2f053d50705cd6923c97c7e9"/>
+    <art:spec-ref node="py-km-files" revision="draft-1" node-hash="sha256:28b3bd6bd1e5d903d6ae51007fcc7a1e1d9ecc5f5e4669b4d2cd01926ecb8a93"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/knowledge_model.rs">
       <art:range hash="sha256:12a264db376aa562064083dd2e49030e8c48f4badd8a613fe860d15f280bed86" start-line="68" end-line="71"/>
@@ -785,7 +807,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-km-combined-xml">
-    <art:spec-ref node="py-km-combined-xml" revision="draft-1" node-hash="sha256:582e1de199f17a4efd8c75ef1a789119cf50c3f208a61ed3364f542067112abf"/>
+    <art:spec-ref node="py-km-combined-xml" revision="draft-1" node-hash="sha256:0f01c4b6ecbfeeb89f65385a1f3294e97d93402a4ce1b16be196b29aab5c3e79"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/knowledge_model.rs">
       <art:range hash="sha256:a0d306da1e91928575cda7eb4ef0d0426f68fd7a075b2e2daf94faee019667cc" start-line="78" end-line="91"/>
@@ -794,7 +816,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-km-schema-dir">
-    <art:spec-ref node="py-km-schema-dir" revision="draft-1" node-hash="sha256:0c946276e8052f0fbf4b937c916d660b5a8fbbfe22e6e17708d26196e333cf18"/>
+    <art:spec-ref node="py-km-schema-dir" revision="draft-1" node-hash="sha256:0d91dfc1945ddcac20732164439ea343f79a12a5d82802e2d08acccb0f7c9a23"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/knowledge_model.rs">
       <art:range hash="sha256:a7b5cf0b6082fd175cf6f53f1e8a90e79dd27d56adbb06eaf105e705ba485bcb" start-line="73" end-line="76"/>
@@ -803,7 +825,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-km-validate">
-    <art:spec-ref node="py-km-validate" revision="draft-1" node-hash="sha256:0119287bd3fccb545668bd40916a300c14dac54631f3ec798d51aa8bddc1f14c"/>
+    <art:spec-ref node="py-km-validate" revision="draft-1" node-hash="sha256:6d95d8772f2ed103b48bb834d397b59c3db653338648044a17f33df32aef5bd1"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/knowledge_model.rs">
       <art:range hash="sha256:659a45c169f20cdc7448adff9c2b8c16e7749b0ac28bf5bafa0fb4d5aec6c9e8" start-line="93" end-line="96"/>
@@ -812,7 +834,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-km-check-drift">
-    <art:spec-ref node="py-km-check-drift" revision="draft-1" node-hash="sha256:a81bca02685f8a89c61ca35c68be88272e37fff4dcf93b7a5c6d88add19060d9"/>
+    <art:spec-ref node="py-km-check-drift" revision="draft-1" node-hash="sha256:386e8f2087d0c281efdda1bd3e517139f52340ac6830186825f0834a8fd1d218"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/knowledge_model.rs">
       <art:range hash="sha256:ed0d1def91caf322c55e877bcd3efc2ffe8d0a11b0ce642e04722d9697a410c4" start-line="98" end-line="105"/>
@@ -821,7 +843,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-km-coverage">
-    <art:spec-ref node="py-km-coverage" revision="draft-1" node-hash="sha256:b5d572982e5a9936fa662bd36d89785ff2d65d74242058cb29c65d11f20e6597"/>
+    <art:spec-ref node="py-km-coverage" revision="draft-1" node-hash="sha256:53b207b702d7bb3d6c9287e8b43a2dcb5bc7206159c3280937062a3dda970826"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/knowledge_model.rs">
       <art:range hash="sha256:9e3fa0303e6aef4e91aa42eb3b48f3e162b835b15af352e3f1b881c0d353da6e" start-line="107" end-line="112"/>
@@ -830,7 +852,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-km-connectivity">
-    <art:spec-ref node="py-km-connectivity" revision="draft-1" node-hash="sha256:90ff080f8c76514d2042acacc7db35f8ba3a49e466e2e187c4fa5895408a0597"/>
+    <art:spec-ref node="py-km-connectivity" revision="draft-1" node-hash="sha256:255f937e1a5cd4daec95c8418afd6023b3ae5bc579c09c30a69b6fdfa63eb1dd"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/knowledge_model.rs">
       <art:range hash="sha256:ff7617ca512f8c31328b1b95085aaebd321b563458117d65f73193c4b177cda9" start-line="114" end-line="118"/>
@@ -839,7 +861,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-km-query">
-    <art:spec-ref node="py-km-query" revision="draft-1" node-hash="sha256:48f7983dff17e9b17548efba580b1485fa6a0f182abc28d9b96d9069f2064345"/>
+    <art:spec-ref node="py-km-query" revision="draft-1" node-hash="sha256:b5c0a1556cbf62c469fbb49fc3967e773e336acdb560d0e43a24e0bc37bd99ce"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/knowledge_model.rs">
       <art:range hash="sha256:0095eff04aa719a3a1a091061bab6be8be32202b5d0f6a5c5ec57eaaeeba1d84" start-line="132" end-line="138"/>
@@ -848,7 +870,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-km-fix-node-hashes">
-    <art:spec-ref node="py-km-fix-node-hashes" revision="draft-1" node-hash="sha256:dd847abe48d28cc5b4c4d3b8b2f4a60c9e3c877db59a6d084428cffd4a92da78"/>
+    <art:spec-ref node="py-km-fix-node-hashes" revision="draft-1" node-hash="sha256:555627fbb66718455a5d86703f0c2ada55200cd2e5c51159f72fc65a52c365bc"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/knowledge_model.rs">
       <art:range hash="sha256:7d1c4f968d79f2c5071877a145c77ea910cd743ef26ac80db5a7c8a91a154897" start-line="120" end-line="124"/>
@@ -857,7 +879,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-km-fix-artifact-hashes">
-    <art:spec-ref node="py-km-fix-artifact-hashes" revision="draft-1" node-hash="sha256:44a72b060a5668885d7931a7f70a4c38c9b248b52ca40c4b567c8df41caab04e"/>
+    <art:spec-ref node="py-km-fix-artifact-hashes" revision="draft-1" node-hash="sha256:c0648476d508dbc5ef9cbddbc90345b27ca7858ece5690908435c4eab34a3475"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/knowledge_model.rs">
       <art:range hash="sha256:f0d608804be9cfcd4aafa488c26e062fe6b425ba2383e8196efe5bd18a6c88a5" start-line="126" end-line="130"/>
@@ -868,7 +890,7 @@ print(count_terms(repo))</pr:codeblock>
   <!-- ── Sync Repo class and members ── -->
 
   <art:mapping id="map-py-repo">
-    <art:spec-ref node="py-repo" revision="draft-1" node-hash="sha256:79ea88537e6821a2f71504b4e217f7ebdacd95dff9835e8950eaba41df5e3774"/>
+    <art:spec-ref node="py-repo" revision="draft-1" node-hash="sha256:ab11dc8de044fd1820e5abef2c34e2e7809f577b2ad71d31708c084979b57001"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/repo/repo_sync.rs">
       <art:range hash="sha256:51b2b401945d72b26f8ddf84c7e5f19d99d6868c125d8a0d31ab7c5c3c32532b" start-line="25" end-line="250"/>
@@ -877,7 +899,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-repo-import-xml">
-    <art:spec-ref node="py-repo-import-xml" revision="draft-1" node-hash="sha256:e73f9dd4056b79b9f53447d06ed606717625c762bdd169c59ac374e4621ea546"/>
+    <art:spec-ref node="py-repo-import-xml" revision="draft-1" node-hash="sha256:7314c8f7feb1c37037873825ec4b2a0375a78813e16105c94dc3d53140581066"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/repo/repo_sync.rs">
       <art:range hash="sha256:3deb54e639eaaf922fd2d074d4e97373a567cbdceecbcc09955d86e364fd10b9" start-line="39" end-line="47"/>
@@ -886,7 +908,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-repo-export-xml">
-    <art:spec-ref node="py-repo-export-xml" revision="draft-1" node-hash="sha256:2bf883f0cb0466eac2040c9e59e2e59f8b8d9f61e2358221aa9323f30139b336"/>
+    <art:spec-ref node="py-repo-export-xml" revision="draft-1" node-hash="sha256:80b48d56d04381d2dba4adecd7fa0ff5d821d65b22bfdd60f1e48a1796e7a6d4"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/repo/repo_sync.rs">
       <art:range hash="sha256:a8ce60bc8556a17e6ff4c1796e42378d269c744c1fd7f25bda9cb36e017bb532" start-line="49" end-line="57"/>
@@ -895,7 +917,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-repo-build-tree">
-    <art:spec-ref node="py-repo-build-tree" revision="draft-1" node-hash="sha256:1447d29963630658298fb952771c0b9dd87231e5302514090eaabd9226395fa0"/>
+    <art:spec-ref node="py-repo-build-tree" revision="draft-1" node-hash="sha256:c9e70ba80ce38055398d987c2c183e16f8912765870899b6245afec388a4df9a"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/repo/repo_sync.rs">
       <art:range hash="sha256:d578ffbc2532ecd40d4bf5f17816a58c458db851934e271ce251d3c4e659e376" start-line="59" end-line="77"/>
@@ -904,7 +926,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-repo-commit">
-    <art:spec-ref node="py-repo-commit" revision="draft-1" node-hash="sha256:94ef6db5b81fd2b79e66f001f85cea935e745fe5cee66a5901099bc9f4a7d9b3"/>
+    <art:spec-ref node="py-repo-commit" revision="draft-1" node-hash="sha256:c3af3b1a5d3587696d4db611ef929d955c82f115d1ddc41ff7ab6e25cf6b26c8"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/repo/repo_sync.rs">
       <art:range hash="sha256:84a271711cc2a8c98eefae7cc23a3f1954d55bf50a756da45c7e3e7fcc1cebcf" start-line="79" end-line="105"/>
@@ -913,7 +935,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-repo-create-branch">
-    <art:spec-ref node="py-repo-create-branch" revision="draft-1" node-hash="sha256:be42429e8f17db7959b20f4b5903c23861d5474da14dcf9b7c54d9759e5d9a66"/>
+    <art:spec-ref node="py-repo-create-branch" revision="draft-1" node-hash="sha256:27aac73f757a174a9949b154987e7e41686ae552921eca182adc08c4498121ec"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/repo/repo_sync.rs">
       <art:range hash="sha256:9893ad73149fa3ffa4de08e083a2b6c001ee31ef850aa56fd115690b035b8518" start-line="107" end-line="123"/>
@@ -922,7 +944,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-repo-delete-branch">
-    <art:spec-ref node="py-repo-delete-branch" revision="draft-1" node-hash="sha256:2dbabcba2bc32e46b234ab4356ee73fcd8dfa779e22406f013f061ced2fb0d25"/>
+    <art:spec-ref node="py-repo-delete-branch" revision="draft-1" node-hash="sha256:4606902c912259cf3562c637e02755d3ed48d09d2ab096bad3a9bc8b91fb3e65"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/repo/repo_sync.rs">
       <art:range hash="sha256:d8b7fcc83bf40bb57bdda75ed779a107352ff16a8db993f54bd7bf2954302164" start-line="125" end-line="135"/>
@@ -931,7 +953,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-repo-list-branches">
-    <art:spec-ref node="py-repo-list-branches" revision="draft-1" node-hash="sha256:97095bc48517c0933618d3af650bf53a12906f5d4755d3ba2d913a143d04de25"/>
+    <art:spec-ref node="py-repo-list-branches" revision="draft-1" node-hash="sha256:2ef1b78e1d756e586c5d967a8825d5269e9a7032c752a0c3b6468dfa533d5d84"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/repo/repo_sync.rs">
       <art:range hash="sha256:9250e821df97f0e24cb3b6453eb0d59ca37e33668f8325a2a38f105644d50659" start-line="137" end-line="150"/>
@@ -940,7 +962,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-repo-create-tag">
-    <art:spec-ref node="py-repo-create-tag" revision="draft-1" node-hash="sha256:d8bc8dbd51a9a91589423b551f03041aecf645a338cf6e779b04a668fdb165fc"/>
+    <art:spec-ref node="py-repo-create-tag" revision="draft-1" node-hash="sha256:d4d6beeb2543a9e773a4917daae1d9f64a0519f1948196cdd9b27d1da58356bb"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/repo/repo_sync.rs">
       <art:range hash="sha256:af4fa428a710d716762ed0c162cec22151b6d980df90d8ec98331f8ba3b5e10b" start-line="152" end-line="176"/>
@@ -949,7 +971,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-repo-list-tags">
-    <art:spec-ref node="py-repo-list-tags" revision="draft-1" node-hash="sha256:65ca01129c3a8aa394abda58d56ae530b992ea089c6424facb466c46aca3e1b7"/>
+    <art:spec-ref node="py-repo-list-tags" revision="draft-1" node-hash="sha256:ff942454e871c587f7a6de1266d6b8f5eea58e5a4b3ed4cb1381a46e17afa4fe"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/repo/repo_sync.rs">
       <art:range hash="sha256:66d781533354d6a2f739806b33e08afd6110e7720744e1212e1a85e491ee0b98" start-line="178" end-line="189"/>
@@ -958,7 +980,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-repo-log">
-    <art:spec-ref node="py-repo-log" revision="draft-1" node-hash="sha256:f4554b27993221f9963021cc6506b273440d539463737a18e0c86d3872118970"/>
+    <art:spec-ref node="py-repo-log" revision="draft-1" node-hash="sha256:bfb61ce8f5526cd200cd6e647708b75cfa53b7a93fca05f36523852bf35cf31f"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/repo/repo_sync.rs">
       <art:range hash="sha256:206c2f5f1163d6db367035bbd970b87a996979f509d0b6b9d8cfff23f08299e0" start-line="191" end-line="206"/>
@@ -967,7 +989,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-repo-diff-trees">
-    <art:spec-ref node="py-repo-diff-trees" revision="draft-1" node-hash="sha256:97ee57218d4821f07c7f21c3e6a3c049d8f637d7a8e267cc22bf4c5b22f5349c"/>
+    <art:spec-ref node="py-repo-diff-trees" revision="draft-1" node-hash="sha256:bd2f2817f10cb9b2ef0b76b2445193d0dddd793f835077889f0f169c4f0c30f3"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/repo/repo_sync.rs">
       <art:range hash="sha256:ccfa121bf350cb14284ceeb662b6f86f44ca83a77e4a1d20634bb4500db17ec8" start-line="208" end-line="225"/>
@@ -976,7 +998,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-repo-query">
-    <art:spec-ref node="py-repo-query" revision="draft-1" node-hash="sha256:612aef0c5735b26ae833ea713ba393113a0d26b71ccd517ac51a7a483afed74a"/>
+    <art:spec-ref node="py-repo-query" revision="draft-1" node-hash="sha256:96f91fc23b9f3b9fc1342395fa295be1b29bb084f076b9c7e7dc2f6a4244846c"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/repo/repo_sync.rs">
       <art:range hash="sha256:4608a5e3925ea40ee0729156ab5148a51388a233a95a18d84cddcaad0ed6da63" start-line="227" end-line="245"/>
@@ -987,7 +1009,7 @@ print(count_terms(repo))</pr:codeblock>
   <!-- ── Author, CommitObject, FileChange ── -->
 
   <art:mapping id="map-py-author">
-    <art:spec-ref node="py-author" revision="draft-1" node-hash="sha256:98c133c355eb0d09ac8d4f13305a7e8802a3ed27605751ebf81b4400f015e51b"/>
+    <art:spec-ref node="py-author" revision="draft-1" node-hash="sha256:7ba8d82ab52b0d0836ac5a2368f3edb22dff4661cf2e585a3fae12117d5ab08f"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/repo/objects.rs">
       <art:range hash="sha256:0a4d3aba28931648ebcf4916d3c2f984738063e78e2f88529da6937f3079256a" start-line="5" end-line="33"/>
@@ -996,7 +1018,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-author-name">
-    <art:spec-ref node="py-author-name" revision="draft-1" node-hash="sha256:a56ebfeb5408b7ef52e38c18cd90b572997715fcf64c6df47c0ccea8b7eaf91b"/>
+    <art:spec-ref node="py-author-name" revision="draft-1" node-hash="sha256:fadc5692bfd172d2ef55ac4d0ae7f168700c6d4581f1d2f8c9e57f29db9359d0"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/repo/objects.rs">
       <art:range hash="sha256:e91068e84ebd3b21d6f727aeae8a09f494838762ac42a3863912c67a2f7a731c" start-line="20" end-line="23"/>
@@ -1005,7 +1027,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-author-email">
-    <art:spec-ref node="py-author-email" revision="draft-1" node-hash="sha256:a9f1eb27b9953c2dc5c81fb4b417b88ed1ddc03484cc79790094ca7ffdae9c78"/>
+    <art:spec-ref node="py-author-email" revision="draft-1" node-hash="sha256:47ff69f574a8412c0b809f34574b4fcf6c68ef99e58241089e38e754c6b2c31f"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/repo/objects.rs">
       <art:range hash="sha256:78a730880a67f33d7035cf2928968ba426b576681bcea1213245bda0babc5640" start-line="25" end-line="28"/>
@@ -1014,7 +1036,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-commit-object">
-    <art:spec-ref node="py-commit-object" revision="draft-1" node-hash="sha256:0de5338035b54c3984830d1db25737bd9a15bab7ebd1292096588a6f453f5a24"/>
+    <art:spec-ref node="py-commit-object" revision="draft-1" node-hash="sha256:4c993e40c3725719c70f1a3c0f75b12f2b91de7cdd644dd4350ed892dde584f6"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/repo/objects.rs">
       <art:range hash="sha256:b8b87d3b5740d241da9a72619ed604d1d3c0147f805408282113c02d35e5da9d" start-line="35" end-line="60"/>
@@ -1023,7 +1045,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-commit-tree">
-    <art:spec-ref node="py-commit-tree" revision="draft-1" node-hash="sha256:21c3467b6a683a68bd166b9b713a6b3b49cfc703db28ecdbe24bd3fce47d821c"/>
+    <art:spec-ref node="py-commit-tree" revision="draft-1" node-hash="sha256:7978391a7f9e998ea9297e5dbb3810b9343f4c13878fbcbf1699e605a5fe9c07"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/repo/objects.rs">
       <art:range hash="sha256:20aeb4a51a858373d225bdb07e65a13810c6f7c24b01bfcacf73f6dfa7ebc92b" start-line="38" end-line="39"/>
@@ -1032,7 +1054,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-commit-parents">
-    <art:spec-ref node="py-commit-parents" revision="draft-1" node-hash="sha256:f6deb551d8033413ec941c5068113a05c21987d5d9455a2e903d2397e9f90756"/>
+    <art:spec-ref node="py-commit-parents" revision="draft-1" node-hash="sha256:26b7dfe163bb799dbeadf38e59c06e1ce535405c309faefa5a2359fada78e2bb"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/repo/objects.rs">
       <art:range hash="sha256:e208d46b151206d8ef718a9efc8296650c7b8f208c121aae39944e348f0e56e2" start-line="40" end-line="41"/>
@@ -1041,7 +1063,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-commit-author">
-    <art:spec-ref node="py-commit-author" revision="draft-1" node-hash="sha256:e322e1529287f0e5d7d354f53cfd69fb2470d218e2b0c795c80a8c56780c7c47"/>
+    <art:spec-ref node="py-commit-author" revision="draft-1" node-hash="sha256:a94ddd1d2d3927b4bf40bcb284cf17d3fe000ef105af5c9996da9592876d6274"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/repo/objects.rs">
       <art:range hash="sha256:d13463c6734ce94f84c2ddc7a827a03cb2c95e3bea7d565528a9f0ee3ce57a23" start-line="42" end-line="43"/>
@@ -1050,7 +1072,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-commit-timestamp">
-    <art:spec-ref node="py-commit-timestamp" revision="draft-1" node-hash="sha256:2ac280218fa848f28df6ebed5f83e3cd79d98b8fde8c1c785daf013d72a63cfb"/>
+    <art:spec-ref node="py-commit-timestamp" revision="draft-1" node-hash="sha256:f6c684e922b9cd7c53f6348277cbd8b36ecb6a5340f052c89d414de40d4ac772"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/repo/objects.rs">
       <art:range hash="sha256:f9e229cd1528efc2c5014f0ca45291c6fd4ca231af96b3403489cf0424ca2cae" start-line="44" end-line="45"/>
@@ -1059,7 +1081,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-commit-message">
-    <art:spec-ref node="py-commit-message" revision="draft-1" node-hash="sha256:bf5490c9da6df992dca7b7926b2b7402ba643d294bbed4f57f79e83245de2306"/>
+    <art:spec-ref node="py-commit-message" revision="draft-1" node-hash="sha256:078262cf626031c6e9a1f5779baa4e8a34fb3e86245e3807e766f9f7aaff0a35"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/repo/objects.rs">
       <art:range hash="sha256:2e84c3551c14da92a2f69b2f4451890e8924eeac76abc5df53b4f16802d35198" start-line="46" end-line="47"/>
@@ -1068,7 +1090,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-file-change">
-    <art:spec-ref node="py-file-change" revision="draft-1" node-hash="sha256:d3aca3f97a6451ccd6b9e597bb0f9a2395002c4a2b01c96a135d652fca21bb40"/>
+    <art:spec-ref node="py-file-change" revision="draft-1" node-hash="sha256:4501447657aa5326249b5101d170609a495aa1ce42e352d2cc66671d0f5b0469"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/repo/objects.rs">
       <art:range hash="sha256:8e12b0d4e5af6baf534068dd6ab56bb8ccdf02884eb0e8bbb4a72cd45cf8161f" start-line="71" end-line="111"/>
@@ -1077,7 +1099,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-fc-kind">
-    <art:spec-ref node="py-fc-kind" revision="draft-1" node-hash="sha256:ad772ee065bca4cc2cad4695df0f7ffc4a37d1463682198f0962d3428427f6d0"/>
+    <art:spec-ref node="py-fc-kind" revision="draft-1" node-hash="sha256:a51f0461bb12d3c3cd6047938a4afa58f79fa7dd68a2b40c1bfe7f723d8df42d"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/repo/objects.rs">
       <art:range hash="sha256:d9f06ddff155dd9f48aeba3717e592ef176b029f129163cd8320286bb17a2619" start-line="74" end-line="75"/>
@@ -1086,7 +1108,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-fc-path">
-    <art:spec-ref node="py-fc-path" revision="draft-1" node-hash="sha256:0f92b987275559adb7dfec8217be58eb143c11ceb17499a734d1c477f72c8262"/>
+    <art:spec-ref node="py-fc-path" revision="draft-1" node-hash="sha256:ee682b4454ed1e4ab686a58e6eb289850d60e1e7de1026a31ff23471ccf2e170"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/repo/objects.rs">
       <art:range hash="sha256:5d9bfa462ac79cb6844c6155ea9ff5d51da330610320bbef35f4c1270b9a6977" start-line="76" end-line="77"/>
@@ -1095,7 +1117,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-fc-old-hash">
-    <art:spec-ref node="py-fc-old-hash" revision="draft-1" node-hash="sha256:f637bb3a5299de11b353d0eccc997de19df360e29dfdbdf50f42458bd39be01f"/>
+    <art:spec-ref node="py-fc-old-hash" revision="draft-1" node-hash="sha256:fdf8e8137c4b58c48d6d8ef410b5b03ac3c7e6351db239119dab505620e20f92"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/repo/objects.rs">
       <art:range hash="sha256:ffc613a5c1c4dfb8059c28ca10f5dd92ec2bac99a005813d03b0ddf746afaf17" start-line="78" end-line="79"/>
@@ -1104,7 +1126,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-fc-new-hash">
-    <art:spec-ref node="py-fc-new-hash" revision="draft-1" node-hash="sha256:068f006ddd22e13030b7d206c74e16a5a8b2bcb6a5c0eff6ebc375302573fea0"/>
+    <art:spec-ref node="py-fc-new-hash" revision="draft-1" node-hash="sha256:b4d0d146567f11aafc219aa034aff1416e4501689dfd5d21647fbf711a6002b2"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/repo/objects.rs">
       <art:range hash="sha256:931329b8cc10dce6c0c7a372cbb598646b63c61d0bf0d0bb7f1b5d936c8c369b" start-line="80" end-line="81"/>
@@ -1115,7 +1137,7 @@ print(count_terms(repo))</pr:codeblock>
   <!-- ── ContentHash ── -->
 
   <art:mapping id="map-py-content-hash">
-    <art:spec-ref node="py-content-hash" revision="draft-1" node-hash="sha256:81f5c3413b1e4dc051624e107996195086abeed4135acc29fa4b1f394451b59a"/>
+    <art:spec-ref node="py-content-hash" revision="draft-1" node-hash="sha256:a1603f9dd8437d50b0adf09a4b39aabb87577e7579baf852a9803f66b6ee39c3"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/xml/hash.rs">
       <art:range hash="sha256:1635e4ae48d59b4c3840dfa86137640f1871ebd85e85201838e8e7ce2440d2e9" start-line="3" end-line="78"/>
@@ -1124,7 +1146,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-ch-hex">
-    <art:spec-ref node="py-ch-hex" revision="draft-1" node-hash="sha256:ee0af491bb457ebe999f5cb0e9fe9f91fa8ee5b87befb628e3f2d2288e524fe4"/>
+    <art:spec-ref node="py-ch-hex" revision="draft-1" node-hash="sha256:4487715127ac0ef812cd334c8b02fca89e7325c2b7e8b920c351f42067d5a312"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/xml/hash.rs">
       <art:range hash="sha256:a83431bbb93818ac7366d15dac3919e7fd744f9da818a182596e1d1c666da768" start-line="50" end-line="53"/>
@@ -1133,7 +1155,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-ch-prefixed">
-    <art:spec-ref node="py-ch-prefixed" revision="draft-1" node-hash="sha256:54aeaaf28da3e42bb61491baccd4a5af5339a59c1e47fbe1423ca3a183d75606"/>
+    <art:spec-ref node="py-ch-prefixed" revision="draft-1" node-hash="sha256:a87f546c0cb5b21e852fadd42609ce65e5df0eb4f101bfa7d35871a630f7b17a"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/xml/hash.rs">
       <art:range hash="sha256:9e28b94cb0c2f2311dd73cefc2d925fa206663a803b6369612caac04a1e9f05c" start-line="55" end-line="58"/>
@@ -1142,7 +1164,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-ch-from-canonical">
-    <art:spec-ref node="py-ch-from-canonical" revision="draft-1" node-hash="sha256:874fe818370b512f32868a06773c11addb369922d5cbc2a94d6157ef6396550b"/>
+    <art:spec-ref node="py-ch-from-canonical" revision="draft-1" node-hash="sha256:96cf7c1a2865f30cef5362488d46ab9670db6afeba0551597fb07ef2a9cbda7c"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/xml/hash.rs">
       <art:range hash="sha256:42e3da122fd6758e2d3415266c6b0bccea24dd6483e3bcf3371277b1f1f3ba8f" start-line="35" end-line="40"/>
@@ -1151,7 +1173,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-ch-from-hex">
-    <art:spec-ref node="py-ch-from-hex" revision="draft-1" node-hash="sha256:15007fb6025631fad0b374c128519daf61da885bcb520bd44e13fdc5cc4cd055"/>
+    <art:spec-ref node="py-ch-from-hex" revision="draft-1" node-hash="sha256:0a23a72b0da32dc6c08363fd72129d6d1af79b09df9ca0e8c5db82b17a8aab6f"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/xml/hash.rs">
       <art:range hash="sha256:8d7c19cc08a88b6c3d797769366f70cf0ec12c151a32b3baeb613b2df710de92" start-line="42" end-line="48"/>
@@ -1160,7 +1182,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-ch-from-bytes">
-    <art:spec-ref node="py-ch-from-bytes" revision="draft-1" node-hash="sha256:af614d55e11121ec6eb6ae51087e8f4408583c0edb1d5318cca51a17d4e88eb3"/>
+    <art:spec-ref node="py-ch-from-bytes" revision="draft-1" node-hash="sha256:5bba7e1405e10d1869c105d355f309adec6edf0cdab9c5a96e1128e57ca2a6f3"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/xml/hash.rs">
       <art:range hash="sha256:565b15a1326fef274112a49db3f95362dab2b7494a823145d37b77316fca1d04" start-line="21" end-line="33"/>
@@ -1171,7 +1193,7 @@ print(count_terms(repo))</pr:codeblock>
   <!-- ── QueryResult ── -->
 
   <art:mapping id="map-py-query-result">
-    <art:spec-ref node="py-query-result" revision="draft-1" node-hash="sha256:78700644d92fe94c451e9619a3b3d8d141f0a7734df5297dc6df2e5c334efea9"/>
+    <art:spec-ref node="py-query-result" revision="draft-1" node-hash="sha256:b8c849ae5fffe854696c2597f4c6b2c23ceabbbe256c3e35ce7697bdfbc6dca0"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/query.rs">
       <art:range hash="sha256:954397f8f81f0660cd37595455b6252194a60334b748bdfd096903a5f998c5fa" start-line="3" end-line="26"/>
@@ -1180,7 +1202,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-qr-kind">
-    <art:spec-ref node="py-qr-kind" revision="draft-1" node-hash="sha256:e5e8aed212549fa66683bc50596489b090b6d8e2537f0868244623f80ebc1d7f"/>
+    <art:spec-ref node="py-qr-kind" revision="draft-1" node-hash="sha256:d1653033ea192deab0b107cbdf8625589a4a499a338208f50004f6587bcb6735"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/query.rs">
       <art:range hash="sha256:d9f06ddff155dd9f48aeba3717e592ef176b029f129163cd8320286bb17a2619" start-line="6" end-line="7"/>
@@ -1189,7 +1211,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-qr-count">
-    <art:spec-ref node="py-qr-count" revision="draft-1" node-hash="sha256:ab9128bdec737f105d9acbd221b6a189deaceec959a044fdbc028a733f318d97"/>
+    <art:spec-ref node="py-qr-count" revision="draft-1" node-hash="sha256:223c5ae23ca45211c85efd6522c84be70c05d9117abea2f4dcb13010460ea99c"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/query.rs">
       <art:range hash="sha256:cb5b9adcd5535d18240e1056ddc0c0eb18d6195ddcc5af3fb071f8fa722150a9" start-line="8" end-line="9"/>
@@ -1198,7 +1220,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-qr-values">
-    <art:spec-ref node="py-qr-values" revision="draft-1" node-hash="sha256:6614e3a824179f85a6b0b661dc3c94b508c55ded270864eb021cf17b61cf6345"/>
+    <art:spec-ref node="py-qr-values" revision="draft-1" node-hash="sha256:113236c71d205ee752596fed23f7ad33642f6046918252357f0be319383933fb"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/query.rs">
       <art:range hash="sha256:9537b4c0ddf9acfdd894c54852f77ab299bca33cbcee748071ae4ce6fef264b7" start-line="10" end-line="11"/>
@@ -1209,7 +1231,7 @@ print(count_terms(repo))</pr:codeblock>
   <!-- ── Error hierarchy exceptions ── -->
 
   <art:mapping id="map-py-clayers-error">
-    <art:spec-ref node="py-clayers-error" revision="draft-1" node-hash="sha256:4833a584249bb8bf468d69624945118c9791f6b08ea6a285e338f2e0a22eedfb"/>
+    <art:spec-ref node="py-clayers-error" revision="draft-1" node-hash="sha256:0a9275aad43c4f9aa097d39a555e887563f8024f1a7b04a1c7ed159888459e86"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/errors.rs">
       <art:range hash="sha256:bbb891530f41820baeac098b7d2a470ba5a438e1970136e3d4b458841790bcb7" start-line="4" end-line="4"/>
@@ -1218,7 +1240,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-xml-error">
-    <art:spec-ref node="py-xml-error" revision="draft-1" node-hash="sha256:0eec445a2a86338d853c024c61f3dc76bdcfba5939b920a9037ab782e2d12840"/>
+    <art:spec-ref node="py-xml-error" revision="draft-1" node-hash="sha256:a37161656cceb3af18f87387ddcd5cb5af3c8e190ff3c3bcc83501e3b62b0d9c"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/errors.rs">
       <art:range hash="sha256:1c2546c47c68ed8bb00f4fe267ede7d500f05ee8d97d300465b80be7c3b0769c" start-line="5" end-line="5"/>
@@ -1227,7 +1249,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-spec-error">
-    <art:spec-ref node="py-spec-error" revision="draft-1" node-hash="sha256:08b8626a8ca86cd39a0548d99b19698c634f4298cb3a9f1a77211e1eaa3a4e40"/>
+    <art:spec-ref node="py-spec-error" revision="draft-1" node-hash="sha256:e0ea077be7c64bd3fea647b30c5d8a588795f42ac4c735193e348f13bb1f6c05"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/errors.rs">
       <art:range hash="sha256:f22981978f34f79ab2daa1d89353785b88f141de90148f8978a7cc8728ba9d7a" start-line="6" end-line="6"/>
@@ -1236,7 +1258,7 @@ print(count_terms(repo))</pr:codeblock>
   </art:mapping>
 
   <art:mapping id="map-py-repo-error">
-    <art:spec-ref node="py-repo-error" revision="draft-1" node-hash="sha256:3800749bbfa0b0c0973ff536906a73a761e812ea7d27a838b70be0877471a0bc"/>
+    <art:spec-ref node="py-repo-error" revision="draft-1" node-hash="sha256:1a3967a3197d6f0a53639c492832c9fec4a3caa1f21dbe6899373226cd8ab250"/>
     <art:artifact repo="repo-clayers" repo-revision="e3ff14a"
               path="crates/clayers-py/src/errors.rs">
       <art:range hash="sha256:03972640baef9476a4ee4d9ca58af089d051c116aa416912bcde96bd3c632bc0" start-line="7" end-line="7"/>
@@ -1248,7 +1270,7 @@ print(count_terms(repo))</pr:codeblock>
   <art:mapping id="map-py-repo-inner">
     <art:spec-ref node="term-repo-inner"
               revision="draft-1"
-              node-hash="sha256:c5bcfcdeb19a984f49eff9e3f40f5b0418a45e4b3cd1e41c83999cc361a40f48"/>
+              node-hash="sha256:464b10812ba8e1b1075a766a1e141ae059b86e610ed5146892b8d773f70906ad"/>
     <art:artifact repo="repo-clayers"
               repo-revision="69ddfa1"
               path="crates/clayers-py/src/repo/inner.rs">
@@ -1400,7 +1422,7 @@ print(count_terms(repo))</pr:codeblock>
   <art:mapping id="map-python-repo-api">
     <art:spec-ref node="python-repo-api"
               revision="draft-1"
-              node-hash="sha256:a82f2dac068b1eefbfcd71cbc5b0d1e27d8dcf8b47045c3645ad4117bedbf284"/>
+              node-hash="sha256:0e7a8a703fc4284f36902a57399cb25bc0ec47d4dd7bca982ceb81941db4c64a"/>
     <art:artifact repo="repo-clayers"
               repo-revision="9191483"
               path="crates/clayers-py/src/repo/mod.rs">
@@ -1415,7 +1437,7 @@ print(count_terms(repo))</pr:codeblock>
   <art:mapping id="map-repository-leaf-hashing-hash">
     <art:spec-ref node="repository-leaf-hashing"
               revision="draft-1"
-              node-hash="sha256:3587a3db70f3ae4bd76410e17ba0b857db8651d19c93ef714278c6a6caf7dd9a"/>
+              node-hash="sha256:9a16f6e84440b3be4d2cf0103ec5af65b769108e5cae351285ca6fa64cb5cebe"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers-repo/src/hash.rs">
@@ -1432,7 +1454,7 @@ print(count_terms(repo))</pr:codeblock>
   <art:mapping id="map-repository-leaf-hashing-import">
     <art:spec-ref node="repository-leaf-hashing"
               revision="draft-1"
-              node-hash="sha256:3587a3db70f3ae4bd76410e17ba0b857db8651d19c93ef714278c6a6caf7dd9a"/>
+              node-hash="sha256:9a16f6e84440b3be4d2cf0103ec5af65b769108e5cae351285ca6fa64cb5cebe"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers-repo/src/import.rs">
@@ -1447,7 +1469,7 @@ print(count_terms(repo))</pr:codeblock>
   <art:mapping id="map-repository-leaf-hashing-export-test">
     <art:spec-ref node="repository-leaf-hashing"
               revision="draft-1"
-              node-hash="sha256:3587a3db70f3ae4bd76410e17ba0b857db8651d19c93ef714278c6a6caf7dd9a"/>
+              node-hash="sha256:9a16f6e84440b3be4d2cf0103ec5af65b769108e5cae351285ca6fa64cb5cebe"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers-repo/src/export.rs">
@@ -1462,7 +1484,7 @@ print(count_terms(repo))</pr:codeblock>
   <art:mapping id="map-repository-working-copy-safety-guard">
     <art:spec-ref node="repository-working-copy-safety"
               revision="draft-1"
-              node-hash="sha256:a81b1120011a566e57422f7c7b5b8927a0d45ca5343278f724a2dcc951110769"/>
+              node-hash="sha256:e3758c9e02680cdb177a93b2864b06ccc6f6302467d99f79348f7c218f9f27bd"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/repo/staging.rs">
@@ -1480,7 +1502,7 @@ print(count_terms(repo))</pr:codeblock>
   <art:mapping id="map-repository-working-copy-safety-branch">
     <art:spec-ref node="repository-working-copy-safety"
               revision="draft-1"
-              node-hash="sha256:a81b1120011a566e57422f7c7b5b8927a0d45ca5343278f724a2dcc951110769"/>
+              node-hash="sha256:e3758c9e02680cdb177a93b2864b06ccc6f6302467d99f79348f7c218f9f27bd"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/repo/branch.rs">
@@ -1495,7 +1517,7 @@ print(count_terms(repo))</pr:codeblock>
   <art:mapping id="map-repository-working-copy-safety-pull">
     <art:spec-ref node="repository-working-copy-safety"
               revision="draft-1"
-              node-hash="sha256:a81b1120011a566e57422f7c7b5b8927a0d45ca5343278f724a2dcc951110769"/>
+              node-hash="sha256:e3758c9e02680cdb177a93b2864b06ccc6f6302467d99f79348f7c218f9f27bd"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/repo/remote.rs">
@@ -1512,7 +1534,7 @@ print(count_terms(repo))</pr:codeblock>
   <art:mapping id="map-repository-working-copy-safety-export">
     <art:spec-ref node="repository-working-copy-safety"
               revision="draft-1"
-              node-hash="sha256:a81b1120011a566e57422f7c7b5b8927a0d45ca5343278f724a2dcc951110769"/>
+              node-hash="sha256:e3758c9e02680cdb177a93b2864b06ccc6f6302467d99f79348f7c218f9f27bd"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/repo/init.rs">
@@ -1527,7 +1549,7 @@ print(count_terms(repo))</pr:codeblock>
   <art:mapping id="map-repository-working-copy-safety-tests">
     <art:spec-ref node="repository-working-copy-safety"
               revision="draft-1"
-              node-hash="sha256:a81b1120011a566e57422f7c7b5b8927a0d45ca5343278f724a2dcc951110769"/>
+              node-hash="sha256:e3758c9e02680cdb177a93b2864b06ccc6f6302467d99f79348f7c218f9f27bd"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/tests/cli_integration.rs">
@@ -1544,7 +1566,7 @@ print(count_terms(repo))</pr:codeblock>
   <art:mapping id="map-repository-working-copy-observation-status">
     <art:spec-ref node="repository-working-copy-observation"
               revision="draft-1"
-              node-hash="sha256:6d34aff915d18c15385d792335b3943123038281a84f4c57eea64b3da76e6e5b"/>
+              node-hash="sha256:cdb58552f4f696eca26ca58c94038091ee76b0547dbfbb721758b5d88fbe04c8"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/repo/staging.rs">
@@ -1559,7 +1581,7 @@ print(count_terms(repo))</pr:codeblock>
   <art:mapping id="map-repository-working-copy-observation-diff">
     <art:spec-ref node="repository-working-copy-observation"
               revision="draft-1"
-              node-hash="sha256:6d34aff915d18c15385d792335b3943123038281a84f4c57eea64b3da76e6e5b"/>
+              node-hash="sha256:cdb58552f4f696eca26ca58c94038091ee76b0547dbfbb721758b5d88fbe04c8"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/repo/diff.rs">
@@ -1574,7 +1596,7 @@ print(count_terms(repo))</pr:codeblock>
   <art:mapping id="map-repository-working-copy-observation-tests">
     <art:spec-ref node="repository-working-copy-observation"
               revision="draft-1"
-              node-hash="sha256:6d34aff915d18c15385d792335b3943123038281a84f4c57eea64b3da76e6e5b"/>
+              node-hash="sha256:cdb58552f4f696eca26ca58c94038091ee76b0547dbfbb721758b5d88fbe04c8"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/tests/cli_integration.rs">
@@ -1591,7 +1613,7 @@ print(count_terms(repo))</pr:codeblock>
   <art:mapping id="map-term-knowledge-model">
     <art:spec-ref node="term-knowledge-model"
               revision="draft-1"
-              node-hash="sha256:64829ab7ea88fa0a6e2cf28c2d88554dd85d27e0abc70a3a8c491bf87c3c61e1"/>
+              node-hash="sha256:920e104781d3d6b230bbcb4bc031dbd48724e5560ab2cc9e2bd195e52c76d79b"/>
     <art:artifact repo="repo-clayers"
               repo-revision="9191483"
               path="crates/clayers-py/src/knowledge_model.rs">
@@ -1606,7 +1628,7 @@ print(count_terms(repo))</pr:codeblock>
   <art:mapping id="map-term-python-binding">
     <art:spec-ref node="term-python-binding"
               revision="draft-1"
-              node-hash="sha256:e5932d55ab16c81aa63142d4bf72cd6644016b8c193e1793fc68a7091f00e3a0"/>
+              node-hash="sha256:2ff825ab280046c5c11de56ced1bb2e4193690b0ec2ee3bc36f8c7e6e1be1336"/>
     <art:artifact repo="repo-clayers"
               repo-revision="9191483"
               path="crates/clayers-py/src/lib.rs">
@@ -1621,7 +1643,7 @@ print(count_terms(repo))</pr:codeblock>
   <art:mapping id="map-term-global-runtime">
     <art:spec-ref node="term-global-runtime"
               revision="draft-1"
-              node-hash="sha256:2b2b675f85e27002ae1ef3435de1ca3f1bd97283df2f021bf6ef1497baabaeae"/>
+              node-hash="sha256:ea6cdd30e779e11c2475a984f6ec30c6eaa01b0c553e8299f3fe28b1c53696bc"/>
     <art:artifact repo="repo-clayers"
               repo-revision="9191483"
               path="crates/clayers-py/src/repo/inner.rs">
@@ -1636,7 +1658,7 @@ print(count_terms(repo))</pr:codeblock>
   <art:mapping id="map-python-module-structure">
     <art:spec-ref node="python-module-structure"
               revision="draft-1"
-              node-hash="sha256:1da210cb97775c8227baba0a323e0acf0cffc78375dad01be23e1e076a99db77"/>
+              node-hash="sha256:aaa4eeb3482af47fa24440ff0481ef0e603f452e2bb98f8ec2bc6664d58f31b3"/>
     <art:artifact repo="repo-clayers"
               repo-revision="9191483"
               path="crates/clayers-py/src/lib.rs">
@@ -1651,7 +1673,7 @@ print(count_terms(repo))</pr:codeblock>
   <art:mapping id="map-python-knowledge-model-api">
     <art:spec-ref node="python-knowledge-model-api"
               revision="draft-1"
-              node-hash="sha256:709b38fbd1fc4db99b5e6509d30496165b058fab135d441e366d8e35cbe3052f"/>
+              node-hash="sha256:3b5c60594023231c2e4baa83f5344740ad4bd60d70597470aaf54d775c06e011"/>
     <art:artifact repo="repo-clayers"
               repo-revision="9191483"
               path="crates/clayers-py/src/knowledge_model.rs">
@@ -1934,7 +1956,7 @@ print(count_terms(repo))</pr:codeblock>
   <art:mapping id="map-py-store-objects">
     <art:spec-ref node="term-store-object-types"
               revision="draft-1"
-              node-hash="sha256:d5f6b0c99da50d1ef24bc43ff9c5ad5e52be546d1fdeeb5c2f531b6515d10b7a"/>
+              node-hash="sha256:e50fc98264a4f856da07a378a25ebd4e7fc7077222d89415e4aa25f19d71a617"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers-py/src/repo/py_objects.rs">
@@ -1949,7 +1971,7 @@ print(count_terms(repo))</pr:codeblock>
   <art:mapping id="map-py-store-bridge">
     <art:spec-ref node="py-store-bridge"
               revision="draft-1"
-              node-hash="sha256:ac874fdb0cf8efc52515938477a24e5f397d960d8fcf7ce9a331310821b10541"/>
+              node-hash="sha256:dac29a86b888c04bf87329dd8fa5e327b7fe7ca1b22734d3040204e84c7b0656"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers-py/src/repo/py_store.rs">
@@ -1964,7 +1986,7 @@ print(count_terms(repo))</pr:codeblock>
   <art:mapping id="map-compliance-runner">
     <art:spec-ref node="compliance-runner"
               revision="draft-1"
-              node-hash="sha256:1cd6159fd5a892e7b7cba753db7df5d89299f1a56a7b237e3ccae4e6fd9bef8f"/>
+              node-hash="sha256:4e0d1d8b634008a4de956d206a82691333e057bc6b781844df4949b5d6f4c294"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers-py/src/repo/compliance.rs">
@@ -1981,7 +2003,7 @@ print(count_terms(repo))</pr:codeblock>
   <art:mapping id="map-compliance-store-tests">
     <art:spec-ref node="store-compliance-testing"
               revision="draft-1"
-              node-hash="sha256:39210af5e81b914e61a8d2b5a71179f0b9251afb5fd35305420cc267e316d7da"/>
+              node-hash="sha256:58436105b2714c36e6cd0a419a47abc33b19c821e0d0676747b9b140650f90d7"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers-repo/src/store/tests.rs">
@@ -2000,7 +2022,7 @@ print(count_terms(repo))</pr:codeblock>
   <art:mapping id="map-compliance-concurrency-tests">
     <art:spec-ref node="store-compliance-testing"
               revision="draft-1"
-              node-hash="sha256:39210af5e81b914e61a8d2b5a71179f0b9251afb5fd35305420cc267e316d7da"/>
+              node-hash="sha256:58436105b2714c36e6cd0a419a47abc33b19c821e0d0676747b9b140650f90d7"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers-repo/src/store/concurrency_tests.rs">
@@ -2021,7 +2043,7 @@ print(count_terms(repo))</pr:codeblock>
   <art:mapping id="map-python-store-protocols">
     <art:spec-ref node="python-store-protocols"
               revision="draft-1"
-              node-hash="sha256:7bae7782d60d9d003271b28b05a395001b6d03c5bff57bce97c8e8389c5e4d76"/>
+              node-hash="sha256:c0d8234876ec709eea98143cb876630a78e063a1b063ecf7b05c41eaf1b169f4"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers-py/python/clayers/compliance/__init__.py">

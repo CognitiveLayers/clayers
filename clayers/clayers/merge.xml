@@ -9,6 +9,7 @@
        xmlns:trm="urn:clayers:terminology"
        xmlns:org="urn:clayers:organization"
        xmlns:rel="urn:clayers:relation"
+       xmlns:diag="urn:clayers:diagnostic"
        xmlns:art="urn:clayers:artifact"
        xmlns:llm="urn:clayers:llm"
        spec:index="index.xml">
@@ -94,13 +95,31 @@
     <pr:p>The MergeStrategy trait defines a single async resolve method
     that receives a MergeConflict (path, ancestor, ours, theirs, ref
     names, deletion flags) and returns either a resolved content hash
-    or a divergence signal. Four built-in implementations cover common
-    resolution approaches: Ours always takes our version, Theirs always
-    takes theirs, Manual always produces divergence markers, and AutoMerge
-    attempts element-level three-way merge before falling back to
-    divergence. All strategies treat delete-vs-modify conflicts as
-    divergence: when one side deletes a file and the other modifies it,
-    no strategy silently resurrects the deleted file.</pr:p>
+    or a divergence signal.</pr:p>
+
+    <pr:dl>
+      <pr:dlentry>
+        <pr:dt>Ours</pr:dt>
+        <pr:dd>Always takes our version.</pr:dd>
+      </pr:dlentry>
+      <pr:dlentry>
+        <pr:dt>Theirs</pr:dt>
+        <pr:dd>Always takes their version.</pr:dd>
+      </pr:dlentry>
+      <pr:dlentry>
+        <pr:dt>Manual</pr:dt>
+        <pr:dd>Always produces divergence markers.</pr:dd>
+      </pr:dlentry>
+      <pr:dlentry>
+        <pr:dt>AutoMerge</pr:dt>
+        <pr:dd>Attempts element-level three-way merge before falling back
+        to divergence.</pr:dd>
+      </pr:dlentry>
+    </pr:dl>
+
+    <pr:note type="important">All strategies treat delete-vs-modify conflicts
+    as divergence: when one side deletes a file and the other modifies it,
+    no strategy silently resurrects the deleted file.</pr:note>
 
     <pr:p>MergePolicy dispatches strategies per file path. It holds a
     default strategy and optional overrides matched by path suffix,
@@ -169,10 +188,22 @@
     and list_divergence_entries provide tree-level conflict detection
     by scanning for entries under the DIVERGENCE_PREFIX.</pr:p>
 
-    <pr:p>Resolution follows a simple workflow: edit the original file
-    to the desired content, remove the divergence file, stage and commit.
-    The merge commit with divergence entries remains in history permanently
-    (append-only DAG).</pr:p>
+    <pr:p>Resolution follows a simple workflow:</pr:p>
+
+    <pr:steps>
+      <pr:step>
+        <pr:cmd>Edit the original file to the desired content.</pr:cmd>
+      </pr:step>
+      <pr:step>
+        <pr:cmd>Remove the matching divergence sidecar from
+        <pr:filepath>.clayers/divergence/</pr:filepath>.</pr:cmd>
+      </pr:step>
+      <pr:step>
+        <pr:cmd>Stage and commit the resolved state.</pr:cmd>
+        <pr:stepresult>The merge commit with divergence entries remains in
+        history permanently because the DAG is append-only.</pr:stepresult>
+      </pr:step>
+    </pr:steps>
   </pr:section>
 
   <pr:section id="merge-cli-command">
@@ -180,13 +211,32 @@
     <pr:shortdesc>clayers merge with strategy selection and conflict
     reporting.</pr:shortdesc>
 
-    <pr:p>The merge subcommand accepts a target branch name and an
-    optional --strategy flag (auto, ours, theirs, manual). It discovers
-    the repository, resolves the author, constructs a MergePolicy, and
-    delegates to Repo::merge. After the merge, it exports the merged
-    tree to disk and refreshes the working copy table. Conflict output
-    includes the divergence sidecar paths. The command exits non-zero
-    when unresolved conflicts remain.</pr:p>
+    <pr:synopsis kind="command">clayers merge TARGET [--strategy auto|ours|theirs|manual]</pr:synopsis>
+
+    <pr:p>The merge subcommand accepts a target branch name and an optional
+    <pr:option>--strategy</pr:option> flag. It discovers the repository,
+    resolves the author, constructs a MergePolicy, and delegates to
+    <pr:apiname>Repo::merge</pr:apiname>. After the merge, it exports the
+    merged tree to disk and refreshes the working copy table. Conflict output
+    includes the divergence sidecar paths. The command exits non-zero when
+    unresolved conflicts remain.</pr:p>
+
+    <diag:issue id="diag-merge-unresolved-conflicts" ref="merge-cli-command">
+      <diag:title>Merge exits with unresolved conflicts</diag:title>
+      <diag:severity>warning</diag:severity>
+      <diag:condition>The command reports divergence sidecar paths and returns
+      a non-zero exit status.</diag:condition>
+      <diag:cause>The configured strategy could not resolve at least one
+      conflict without author input.</diag:cause>
+      <diag:remedy>Open each sidecar path, resolve the original file, remove
+      the sidecar, and commit the resolved tree.</diag:remedy>
+    </diag:issue>
+
+    <pr:related-links>
+      <pr:link ref="merge-strategies">Strategy framework</pr:link>
+      <pr:link ref="merge-divergence-sidecar">Sidecar divergence</pr:link>
+      <pr:link ref="term-divergence">Divergence term</pr:link>
+    </pr:related-links>
   </pr:section>
 
   <!-- ================================================================== -->
@@ -260,6 +310,15 @@
   <rel:relation type="references" from="merge-cli-command" to="merge-framework">
     <rel:note>The CLI command is the user-facing interface to the merge
     framework.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="references" from="diag-merge-unresolved-conflicts" to="merge-cli-command">
+    <rel:note>The diagnostic issue describes an unresolved merge conflict
+    condition.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="diag-merge-unresolved-conflicts" to="diagnostic-layer">
+    <rel:note>The issue is represented in the diagnostic layer.</rel:note>
   </rel:relation>
 
   <!-- ================================================================== -->
@@ -364,7 +423,7 @@
   <art:mapping id="map-merge-types">
     <art:spec-ref node="merge-framework"
               revision="draft-1"
-              node-hash="sha256:3b8bf792c77a219749a963becf2714a657d4e72a46092fef1756a5cddfc99b7f"/>
+              node-hash="sha256:7b8a938e46ac951485f51eeaf323a1d0c38b7252ff746983e92b2cd506d248bd"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers-repo/src/merge.rs">
@@ -379,7 +438,7 @@
   <art:mapping id="map-merge-strategy-trait">
     <art:spec-ref node="merge-strategies"
               revision="draft-1"
-              node-hash="sha256:a2eedaf7f033abfabcc202ac6ff7373b309459c7badffe6f6e8ba39f979402b2"/>
+              node-hash="sha256:ef734560c0713daa16378a42afe09c068ecb274395441c9f40f5969e59f2573d"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers-repo/src/merge.rs">
@@ -394,7 +453,7 @@
   <art:mapping id="map-merge-builtin-strategies">
     <art:spec-ref node="merge-strategies"
               revision="draft-1"
-              node-hash="sha256:a2eedaf7f033abfabcc202ac6ff7373b309459c7badffe6f6e8ba39f979402b2"/>
+              node-hash="sha256:ef734560c0713daa16378a42afe09c068ecb274395441c9f40f5969e59f2573d"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers-repo/src/merge.rs">
@@ -409,7 +468,7 @@
   <art:mapping id="map-merge-child-key">
     <art:spec-ref node="term-child-key"
               revision="draft-1"
-              node-hash="sha256:b573849e5ba09b7ec6bcd5d74c1f486f47b4bc40deee7b9cbcd6b590a62271d4"/>
+              node-hash="sha256:ec4cc4f79d6710d42065db541920fe1e5cd0e72bdec65b61446cc6f905639f01"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers-repo/src/merge.rs">
@@ -423,7 +482,7 @@
   <art:mapping id="map-merge-documents">
     <art:spec-ref node="merge-element-level"
               revision="draft-1"
-              node-hash="sha256:36c4e7deebe76d9c9d89017b71e5762fdb672b88240afc41e37f97f4956a5153"/>
+              node-hash="sha256:f77f4ce46500abee1f99016ab87e8e4bf6889fc2025e25863dd37419424ae17f"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers-repo/src/merge.rs">
@@ -438,7 +497,7 @@
   <art:mapping id="map-merge-trees">
     <art:spec-ref node="merge-file-level"
               revision="draft-1"
-              node-hash="sha256:1b15703961e0261ad919ece320dd3201c4957c8ffe4a8f29115c5266522c61e2"/>
+              node-hash="sha256:6c822cd2539a06a0074f156bb6278d2de75af7ecdf1b79e594a180e7ebaafedc"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers-repo/src/merge.rs">
@@ -453,7 +512,7 @@
   <art:mapping id="map-merge-repo-method">
     <art:spec-ref node="merge-framework"
               revision="draft-1"
-              node-hash="sha256:3b8bf792c77a219749a963becf2714a657d4e72a46092fef1756a5cddfc99b7f"/>
+              node-hash="sha256:7b8a938e46ac951485f51eeaf323a1d0c38b7252ff746983e92b2cd506d248bd"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers-repo/src/repo.rs">
@@ -467,7 +526,7 @@
   <art:mapping id="map-merge-cli">
     <art:spec-ref node="merge-cli-command"
               revision="draft-1"
-              node-hash="sha256:d2ebee1c06f0db0abe847791f89985e49df94deb1cda3438040c26db7e9268c1"/>
+              node-hash="sha256:f5e08d181e0ad881ca0e4242da7841ad4b7fe6641db148bf09acc143061b3b93"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/repo/merge.rs">
@@ -481,7 +540,7 @@
   <art:mapping id="map-merge-cli-command-variant">
     <art:spec-ref node="merge-cli-command"
               revision="draft-1"
-              node-hash="sha256:d2ebee1c06f0db0abe847791f89985e49df94deb1cda3438040c26db7e9268c1"/>
+              node-hash="sha256:f5e08d181e0ad881ca0e4242da7841ad4b7fe6641db148bf09acc143061b3b93"/>
     <art:artifact repo="repo-clayers"
               repo-revision="2916ded"
               path="crates/clayers/src/cli.rs">
@@ -498,7 +557,7 @@
   <art:mapping id="map-merge-delete-vs-modify-tests">
     <art:spec-ref node="merge-strategies"
               revision="draft-1"
-              node-hash="sha256:a2eedaf7f033abfabcc202ac6ff7373b309459c7badffe6f6e8ba39f979402b2"/>
+              node-hash="sha256:ef734560c0713daa16378a42afe09c068ecb274395441c9f40f5969e59f2573d"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers-repo/src/merge.rs">

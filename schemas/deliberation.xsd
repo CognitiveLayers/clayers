@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:delib="urn:clayers:deliberation"
+           xmlns:llm="urn:clayers:llm"
+           xmlns:spec="urn:clayers:spec"
+           targetNamespace="urn:clayers:deliberation"
+           elementFormDefault="qualified"
+           version="1.0">
+
+  <xs:annotation>
+    <xs:documentation>
+      Deliberation Layer Schema.
+      Structured option sets and tradeoff analysis. A choice set can model
+      unresolved alternatives, task choices, configuration options, or the
+      option analysis that later becomes an architecture decision.
+    </xs:documentation>
+    <xs:appinfo>
+      <llm:describe>
+        The deliberation schema models meaningful choices and tradeoffs as
+        first-class nodes. A delib:choice-set has an id, optional ref to the
+        affected topic, status, optional context, and one or more options.
+        Options have ids, outcome classifications, optional conditions, and
+        rationale. Use this layer when choices need to be queried, tracked,
+        or referenced by decisions; use prose lists for simple presentation.
+      </llm:describe>
+      <spec:keyref name="deliberation-choice-set-refs" selector=".//delib:choice-set" field="@ref"/>
+    </xs:appinfo>
+  </xs:annotation>
+
+  <xs:element name="choice-set" type="delib:ChoiceSetType">
+    <xs:annotation><xs:appinfo><spec:content-element/></xs:appinfo></xs:annotation>
+  </xs:element>
+
+  <xs:complexType name="ChoiceSetType" id="type-deliberation-choice-set">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          A set of options under consideration. The id makes the choice set
+          addressable. The optional ref attribute points to the topic, task,
+          or decision context being deliberated. Status tracks whether the
+          choice set is open, resolved, or deferred. Options carry outcomes
+          such as selected, rejected, deferred, or available.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="title" type="xs:string"/>
+      <xs:element name="status" type="delib:ChoiceSetStatusKind"/>
+      <xs:element name="context" type="delib:RichTextType" minOccurs="0"/>
+      <xs:element name="option" type="delib:OptionType" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID" use="required"/>
+    <xs:attribute name="ref" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="OptionType" id="type-deliberation-option">
+    <xs:annotation>
+      <xs:appinfo>
+        <llm:describe>
+          One option within a deliberation. Outcome records whether the option
+          was selected, rejected, deferred, remains available, or is merely
+          informational. Condition records when the option applies. Rationale
+          explains why the outcome was assigned.
+        </llm:describe>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="title" type="xs:string"/>
+      <xs:element name="condition" type="delib:RichTextType" minOccurs="0"/>
+      <xs:element name="rationale" type="delib:RichTextType" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID" use="required"/>
+    <xs:attribute name="outcome" type="delib:OptionOutcomeKind" use="optional" default="available"/>
+  </xs:complexType>
+
+  <xs:complexType name="RichTextType" mixed="true">
+    <xs:sequence>
+      <xs:any namespace="##other" processContents="strict" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:simpleType name="ChoiceSetStatusKind">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="open"/>
+      <xs:enumeration value="resolved"/>
+      <xs:enumeration value="deferred"/>
+      <xs:enumeration value="abandoned"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="OptionOutcomeKind">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="available"/>
+      <xs:enumeration value="selected"/>
+      <xs:enumeration value="rejected"/>
+      <xs:enumeration value="deferred"/>
+      <xs:enumeration value="informational"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+</xs:schema>

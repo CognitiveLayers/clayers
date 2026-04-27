@@ -2,6 +2,8 @@ pub const SCHEMAS: &[(&str, &str)] = &[
     ("artifact.xsd", include_str!("../schemas/artifact.xsd")),
     ("content.xsd", include_str!("../schemas/content.xsd")),
     ("decision.xsd", include_str!("../schemas/decision.xsd")),
+    ("deliberation.xsd", include_str!("../schemas/deliberation.xsd")),
+    ("diagnostic.xsd", include_str!("../schemas/diagnostic.xsd")),
     ("index.xsd", include_str!("../schemas/index.xsd")),
     ("llm.xsd", include_str!("../schemas/llm.xsd")),
     (
@@ -48,6 +50,14 @@ pub const DOC_XSLT_FILES: &[(&str, &str)] = &[
     (
         "decision.xslt",
         include_str!("../schemas/doc/decision.xslt"),
+    ),
+    (
+        "deliberation.xslt",
+        include_str!("../schemas/doc/deliberation.xslt"),
+    ),
+    (
+        "diagnostic.xslt",
+        include_str!("../schemas/doc/diagnostic.xslt"),
     ),
     (
         "source.xslt",

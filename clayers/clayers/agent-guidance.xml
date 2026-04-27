@@ -943,7 +943,7 @@ Bad fits (use other skills instead):
   <art:mapping id="map-skill-clayers-review-artifacts">
     <art:spec-ref node="skill-clayers-review-artifacts"
               revision="draft-1"
-              node-hash="sha256:f5d4311e728308600b2dbc8c3f1aa9e5a1e62677894988f4a4ce8b2dbc8aa74f"/>
+              node-hash="sha256:db9b900f263936bb2aad0221b3ebc9b07f445a137651b6a786429dd8f1cf9130"/>
     <art:artifact repo="repo-clayers"
               repo-revision="9191483"
               path="crates/clayers/src/adopt.rs">
@@ -958,7 +958,7 @@ Bad fits (use other skills instead):
   <art:mapping id="map-skill-clayers-onboard">
     <art:spec-ref node="skill-clayers-onboard"
               revision="draft-1"
-              node-hash="sha256:a786c9501b0235b3d12f554ffc2de81bf0048757b5ba5494893a94b15f68d120"/>
+              node-hash="sha256:a5be291cc10616e8802fde93ea17ec2434cefe7f90bb2d6033e2c813b3625443"/>
     <art:artifact repo="repo-clayers"
               repo-revision="9191483"
               path="crates/clayers/src/adopt.rs">
@@ -973,7 +973,7 @@ Bad fits (use other skills instead):
   <art:mapping id="map-agent-workflow-instructions">
     <art:spec-ref node="agent-workflow-instructions"
               revision="draft-1"
-              node-hash="sha256:6fd5faf4e547af9f31cdfbe68de73bb046fa1739d32fc27fdc3591a1151383a7"/>
+              node-hash="sha256:5764c17dc2e8df5eab38791480e5ddd879e57b8f0e2bcbd66902c57730ce4976"/>
     <art:artifact repo="repo-clayers"
               repo-revision="9191483"
               path="crates/clayers/src/adopt.rs">

@@ -1,0 +1,368 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Diagnostics and Deliberation: semantic domains split out of prose.
+  Diagnostics owns troubleshooting/remediation knowledge; deliberation owns
+  option sets and tradeoff analysis that may later become decisions.
+-->
+<spec:clayers xmlns:spec="urn:clayers:spec"
+       xmlns:pr="urn:clayers:prose"
+       xmlns:trm="urn:clayers:terminology"
+       xmlns:org="urn:clayers:organization"
+       xmlns:rel="urn:clayers:relation"
+       xmlns:diag="urn:clayers:diagnostic"
+       xmlns:delib="urn:clayers:deliberation"
+       xmlns:dec="urn:clayers:decision"
+       xmlns:cnt="urn:clayers:content"
+       xmlns:art="urn:clayers:artifact"
+       xmlns:llm="urn:clayers:llm"
+       spec:index="index.xml">
+
+  <trm:term id="term-diagnostic-issue">
+    <trm:name>Diagnostic Issue</trm:name>
+    <trm:definition>A structured failure-mode record with condition, cause,
+    remedy, severity, and optional verification links. Diagnostic issues
+    capture troubleshooting knowledge as queryable domain data instead of
+    prose-only documentation.</trm:definition>
+  </trm:term>
+
+  <trm:term id="term-deliberation-choice-set">
+    <trm:name>Deliberation Choice Set</trm:name>
+    <trm:definition>A structured set of options under consideration, with
+    per-option outcomes, conditions, and rationale. Choice sets model
+    alternatives before, during, or outside formal architecture decisions.</trm:definition>
+  </trm:term>
+
+  <pr:section id="diagnostic-layer">
+    <pr:title>Diagnostic Layer</pr:title>
+    <pr:shortdesc>Known conditions, causes, remedies, severities, and
+    verification links for failure modes.</pr:shortdesc>
+
+    <pr:p>Troubleshooting imported from DITA looks like prose, but its useful
+    information is operational: a condition is observed, one or more causes
+    explain it, and remedies describe recovery. That structure should be
+    queryable across the spec. The diagnostic layer owns this domain, while
+    prose can still embed or render diagnostic issues inside relevant
+    documentation sections.</pr:p>
+
+    <pr:p>A <pr:code>diag:issue</pr:code> may point at the node it diagnoses
+    via <pr:code>@ref</pr:code>. Conditions, causes, and remedies accept rich
+    mixed content so authors can include prose phrases, terminology references,
+    source citations, content references, or command snippets.</pr:p>
+
+    <diag:issue id="diag-validation-keyref-fails" ref="validation-flow">
+      <diag:title>Reference validation fails</diag:title>
+      <diag:severity>error</diag:severity>
+      <diag:condition>The validator reports that a key reference does not
+      resolve.</diag:condition>
+      <diag:cause>A layer contains a reference attribute whose value does not
+      match any node ID in the combined document.</diag:cause>
+      <diag:remedy>Check the spelling of the reference value and confirm the
+      target file is listed in the index manifest.</diag:remedy>
+      <diag:responsible-party>Spec author</diag:responsible-party>
+    </diag:issue>
+  </pr:section>
+
+  <pr:section id="deliberation-layer">
+    <pr:title>Deliberation Layer</pr:title>
+    <pr:shortdesc>Choice sets, options, outcomes, conditions, and rationale
+    for tradeoffs that may or may not become decisions.</pr:shortdesc>
+
+    <pr:p>DITA task choices and DocBook-style option lists are not purely
+    presentational. They often encode a domain model: several options are
+    available under different conditions, some are selected, some are rejected,
+    and some remain deferred. Architecture decisions are one resolved form of
+    this broader deliberation domain, but not every choice is an ADR.</pr:p>
+
+    <pr:p>The deliberation layer captures option sets without forcing them into
+    the decision lifecycle. A <pr:code>delib:choice-set</pr:code> can remain
+    open, be resolved by selecting one or more options, or be referenced by a
+    later <pr:code>dec:decision</pr:code>. Prose should use choice sets for
+    meaningful tradeoffs and keep ordinary ordered lists for simple authoring
+    order.</pr:p>
+
+    <delib:choice-set id="choice-technical-documentation-domain-split"
+                      ref="technical-documentation-prose">
+      <delib:title>Split DITA-inspired elements by semantic domain</delib:title>
+      <delib:status>resolved</delib:status>
+      <delib:option id="choice-technical-doc-keep-all-prose" outcome="rejected">
+        <delib:title>Keep all DITA-inspired elements in prose</delib:title>
+        <delib:rationale>This preserves authoring convenience but hides
+        troubleshooting and option semantics from graph and query tooling.</delib:rationale>
+      </delib:option>
+      <delib:option id="choice-technical-doc-split-domains" outcome="selected">
+        <delib:title>Keep authoring shape in prose and move domain data to
+        content, diagnostic, and deliberation layers</delib:title>
+        <delib:rationale>Figures remain prose, media identity lives in content,
+        failure modes become diagnostics, and meaningful option sets become
+        deliberations.</delib:rationale>
+      </delib:option>
+    </delib:choice-set>
+  </pr:section>
+
+  <pr:section id="content-backed-media">
+    <pr:title>Content-Backed Media</pr:title>
+    <pr:shortdesc>Figures stay in prose, while reusable media identity,
+    location, media type, and hash live in the content layer.</pr:shortdesc>
+
+    <pr:p>Media imported from DocBook belongs to two domains. The figure,
+    caption, and placement are prose authoring structures. The asset itself
+    is reusable content: it has a URL or embedded body, a media type, and a
+    hash. Therefore <pr:code>pr:media</pr:code> should point to
+    <pr:code>cnt:content</pr:code> when the asset is reusable or integrity
+    checked.</pr:p>
+
+    <cnt:content id="cnt-docs-screenshot"
+                 url="../../assets/docs-screenshot.png"
+                 media-type="image/png"
+                 hash="sha256:0000000000000000000000000000000000000000000000000000000000000000"/>
+  </pr:section>
+
+  <org:concept ref="diagnostic-layer">
+    <org:purpose>Explains why troubleshooting belongs in a diagnostic domain
+    with queryable conditions, causes, remedies, and severity.</org:purpose>
+  </org:concept>
+
+  <org:concept ref="deliberation-layer">
+    <org:purpose>Explains why meaningful choices and tradeoffs belong in a
+    deliberation domain adjacent to, but broader than, decisions.</org:purpose>
+  </org:concept>
+
+  <org:concept ref="content-backed-media">
+    <org:purpose>Explains how prose figures reuse content-addressed media
+    nodes from the content layer.</org:purpose>
+  </org:concept>
+
+  <rel:relation type="refines" from="diagnostic-layer" to="technical-documentation-prose">
+    <rel:note>The diagnostic layer extracts troubleshooting semantics from
+    technical prose while preserving rich rendering.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="diagnostic-layer" to="term-diagnostic-issue">
+    <rel:note>The layer is centered on the diagnostic issue vocabulary.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="references" from="diag-validation-keyref-fails" to="validation-flow">
+    <rel:note>The sample diagnostic issue describes a validation failure
+    mode.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="diag-validation-keyref-fails" to="diagnostic-layer">
+    <rel:note>The sample issue demonstrates diagnostic-layer structure.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="deliberation-layer" to="decision-layer">
+    <rel:note>Deliberation generalizes option sets and tradeoffs; architecture
+    decisions are resolved deliberations with lifecycle status.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="deliberation-layer" to="term-deliberation-choice-set">
+    <rel:note>The layer is centered on the choice-set vocabulary.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="references" from="choice-technical-documentation-domain-split" to="technical-documentation-prose">
+    <rel:note>The sample choice set records the domain split for technical
+    documentation prose.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="choice-technical-documentation-domain-split" to="deliberation-layer">
+    <rel:note>The sample choice set demonstrates deliberation-layer
+    structure.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="choice-technical-doc-keep-all-prose" to="choice-technical-documentation-domain-split">
+    <rel:note>The rejected option belongs to the domain split choice set.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="choice-technical-doc-split-domains" to="choice-technical-documentation-domain-split">
+    <rel:note>The selected option belongs to the domain split choice set.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="content-backed-media" to="content-layer">
+    <rel:note>Reusable media assets are content-addressed by the content
+    layer.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="references" from="content-backed-media" to="cnt-docs-screenshot">
+    <rel:note>The sample media content node demonstrates content-backed
+    figure assets.</rel:note>
+  </rel:relation>
+
+  <llm:node ref="diagnostic-layer">
+    The diagnostic layer owns troubleshooting and remediation knowledge:
+    conditions, causes, remedies, severity, responsible party, and optional
+    verification links. Use diag:issue for known failure modes. Prose may
+    embed diagnostic issues for rendering, but diagnostic structure is not
+    prose-only authoring markup.
+  </llm:node>
+
+  <llm:node ref="deliberation-layer">
+    The deliberation layer owns meaningful choices and tradeoffs. Use
+    delib:choice-set when options have conditions, outcomes, rationale, or
+    may later be promoted into a decision. Keep dec:decision for ADR-style
+    lifecycle metadata and accepted/rejected architectural decisions. Each
+    option is a subordinate node that refines its containing choice set.
+  </llm:node>
+
+  <llm:node ref="content-backed-media">
+    Content-backed media means pr:figure owns presentation context while
+    pr:media references cnt:content for the asset. The content layer owns
+    URL/body, media-type, and hash so screenshots, diagrams, and other media
+    can be reused with integrity guarantees.
+  </llm:node>
+
+  <llm:schema namespace="urn:clayers:diagnostic">
+    Diagnostic issues are first-class nodes for known failure modes. Each
+    diag:issue has id, optional ref to the affected node, title, severity,
+    condition, one or more causes, one or more remedies, optional responsible
+    party, and optional verifies-with links to tests.
+  </llm:schema>
+
+  <llm:schema namespace="urn:clayers:deliberation">
+    Deliberation choice sets are first-class nodes for options and tradeoffs.
+    Each delib:choice-set has id, optional ref to the topic being discussed,
+    title, status, optional context, and one or more delib:option children.
+    Options have ids, outcomes, titles, optional conditions, and rationale.
+  </llm:schema>
+
+  <art:mapping id="map-diagnostic-schema">
+    <art:spec-ref node="diagnostic-layer"
+              revision="draft-1"
+              node-hash="sha256:1db78ec2f9140b373e1e58c868b7c3fa00b99f2fc1234caf87d2b50ec0912e73"/>
+    <art:artifact repo="repo-clayers"
+              repo-revision="abb4044"
+              path="schemas/diagnostic.xsd">
+      <art:range hash="sha256:de96149671eae0db0094af1050a61be3d30f3d1ff4c5af590d37ff9223f962aa"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Diagnostic schema for issue, condition, cause, remedy, severity,
+    responsible party, and verification links.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-diagnostic-doc-rendering">
+    <art:spec-ref node="diagnostic-layer"
+              revision="draft-1"
+              node-hash="sha256:1db78ec2f9140b373e1e58c868b7c3fa00b99f2fc1234caf87d2b50ec0912e73"/>
+    <art:artifact repo="repo-clayers"
+              repo-revision="abb4044"
+              path="schemas/doc/diagnostic.xslt">
+      <art:range hash="sha256:0b75c0ac8c18289b3f16ac42b7ad874eb785945fe30e1b5b5a498e66e36ca862"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Documentation renderer for diagnostic issue cards and
+    condition/cause/remedy fields.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-deliberation-schema">
+    <art:spec-ref node="deliberation-layer"
+              revision="draft-1"
+              node-hash="sha256:e982366be0f2d1c46c949df030ad93d8751232a182dcdc695f063da0410ccf72"/>
+    <art:artifact repo="repo-clayers"
+              repo-revision="abb4044"
+              path="schemas/deliberation.xsd">
+      <art:range hash="sha256:841bcc80f3ec6fae01a0764692c77aa97ead4463fc567e114c05359929309ce5"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Deliberation schema for choice sets, options, statuses,
+    outcomes, conditions, and rationale.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-deliberation-doc-rendering">
+    <art:spec-ref node="deliberation-layer"
+              revision="draft-1"
+              node-hash="sha256:e982366be0f2d1c46c949df030ad93d8751232a182dcdc695f063da0410ccf72"/>
+    <art:artifact repo="repo-clayers"
+              repo-revision="abb4044"
+              path="schemas/doc/deliberation.xslt">
+      <art:range hash="sha256:7ac980236474da66a2adc4444696856e6aefdf16a3a41468e7c852c521746a61"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Documentation renderer for deliberation choice sets and option
+    outcomes.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-content-backed-media-schema">
+    <art:spec-ref node="content-backed-media"
+              revision="draft-1"
+              node-hash="sha256:e8fafcb84482e27e3fe08524cf9cbf0335c7cba86cbbee7098e3572e1fc62012"/>
+    <art:artifact repo="repo-clayers"
+              repo-revision="abb4044"
+              path="schemas/prose.xsd">
+      <art:range hash="sha256:eb34d3f548d9ee604be8def7b99a15a12d3dd3284ba5f0221ff528142b850efe"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>Prose media references content nodes for reusable assets while
+    retaining figure/caption authoring structure.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-content-backed-media-rendering">
+    <art:spec-ref node="content-backed-media"
+              revision="draft-1"
+              node-hash="sha256:e8fafcb84482e27e3fe08524cf9cbf0335c7cba86cbbee7098e3572e1fc62012"/>
+    <art:artifact repo="repo-clayers"
+              repo-revision="abb4044"
+              path="schemas/doc/prose.xslt">
+      <art:range hash="sha256:0f28d0ff9a27420479cb409d67df56b91bffeb310932987e7e6395ade784229c"/>
+    </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>Documentation renderer resolves pr:media content references to
+    cnt:content URLs and media types.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-domain-reference-synthesis">
+    <art:spec-ref node="diagnostic-layer"
+              revision="draft-1"
+              node-hash="sha256:1db78ec2f9140b373e1e58c868b7c3fa00b99f2fc1234caf87d2b50ec0912e73"/>
+    <art:artifact repo="repo-clayers"
+              repo-revision="abb4044"
+              path="schemas/postprocess.xslt">
+      <art:range hash="sha256:ea127cab1dbfbaa07706ed3019e639d95abdabeb347d88275f35c3bd4fefbd1a"/>
+    </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>Postprocess transform synthesizes reference relations from
+    diagnostic issues, diagnostic verification links, deliberation choice
+    sets, content refs, and content-backed media.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-deliberation-rendering-import">
+    <art:spec-ref node="deliberation-layer"
+              revision="draft-1"
+              node-hash="sha256:e982366be0f2d1c46c949df030ad93d8751232a182dcdc695f063da0410ccf72"/>
+    <art:artifact repo="repo-clayers"
+              repo-revision="abb4044"
+              path="schemas/doc/main.xslt">
+      <art:range hash="sha256:7cf74f3dc58d51935e6632cc514802a9bb16b8c555b1bb48aab187e2f9bc2801"/>
+    </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>Main documentation stylesheet imports diagnostic and deliberation
+    renderers and declares their namespaces.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-domain-schemas-embedded">
+    <art:spec-ref node="diagnostic-layer"
+              revision="draft-1"
+              node-hash="sha256:1db78ec2f9140b373e1e58c868b7c3fa00b99f2fc1234caf87d2b50ec0912e73"/>
+    <art:artifact repo="repo-clayers"
+              repo-revision="abb4044"
+              path="crates/clayers/src/embedded.rs">
+      <art:range hash="sha256:e8364b5112c735ac80bd3c77f8217314059f66cd4e6a58171a3f7a9abf1e45a2"/>
+    </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>Embedded asset list includes diagnostic and deliberation schemas
+    plus their documentation stylesheets for adopt/doc generation.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-domain-namespace-prefixes">
+    <art:spec-ref node="diagnostic-layer"
+              revision="draft-1"
+              node-hash="sha256:1db78ec2f9140b373e1e58c868b7c3fa00b99f2fc1234caf87d2b50ec0912e73"/>
+    <art:artifact repo="repo-clayers"
+              repo-revision="abb4044"
+              path="crates/clayers-spec/src/namespace.rs">
+      <art:range hash="sha256:ad3f6a871c524cbc96298fd09e98882683145a70fd6a2869ca63224074179746"/>
+    </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>Namespace registry includes diagnostic and deliberation layer
+    URNs and prefixes so combined documents serialize and query correctly.</art:note>
+  </art:mapping>
+
+</spec:clayers>

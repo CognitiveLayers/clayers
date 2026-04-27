@@ -8,6 +8,8 @@ pub const TERMINOLOGY: &str = "urn:clayers:terminology";
 pub const ORGANIZATION: &str = "urn:clayers:organization";
 pub const RELATION: &str = "urn:clayers:relation";
 pub const DECISION: &str = "urn:clayers:decision";
+pub const DIAGNOSTIC: &str = "urn:clayers:diagnostic";
+pub const DELIBERATION: &str = "urn:clayers:deliberation";
 pub const SOURCE: &str = "urn:clayers:source";
 pub const PLAN: &str = "urn:clayers:plan";
 pub const ARTIFACT: &str = "urn:clayers:artifact";
@@ -25,7 +27,7 @@ pub const UML: &str = "http://www.omg.org/spec/UML/20131001";
 pub const XML: &str = "http://www.w3.org/XML/1998/namespace";
 pub const XSI: &str = "http://www.w3.org/2001/XMLSchema-instance";
 
-/// All 17 layer URN constants (excluding combined).
+/// All 19 layer URN constants (excluding combined).
 pub const ALL_LAYERS: &[&str] = &[
     SPEC,
     INDEX,
@@ -35,6 +37,8 @@ pub const ALL_LAYERS: &[&str] = &[
     ORGANIZATION,
     RELATION,
     DECISION,
+    DIAGNOSTIC,
+    DELIBERATION,
     SOURCE,
     PLAN,
     ARTIFACT,
@@ -46,7 +50,7 @@ pub const ALL_LAYERS: &[&str] = &[
     LAYER,
 ];
 
-/// Prefix-to-URI mapping for all namespaces (22 total: 17 layers + combined + 4 external).
+/// Prefix-to-URI mapping for all namespaces (24 total: 19 layers + combined + 4 external).
 pub const PREFIX_MAP: &[(&str, &str)] = &[
     ("spec", SPEC),
     ("idx", INDEX),
@@ -56,6 +60,8 @@ pub const PREFIX_MAP: &[(&str, &str)] = &[
     ("org", ORGANIZATION),
     ("rel", RELATION),
     ("dec", DECISION),
+    ("diag", DIAGNOSTIC),
+    ("delib", DELIBERATION),
     ("src", SOURCE),
     ("pln", PLAN),
     ("art", ARTIFACT),
@@ -109,7 +115,7 @@ mod tests {
             assert!(map_uris.contains(urn), "prefix map missing {urn}");
         }
         assert!(map_uris.contains(COMBINED));
-        assert_eq!(PREFIX_MAP.len(), 22);
+        assert_eq!(PREFIX_MAP.len(), 24);
     }
 
     #[test]

@@ -9,6 +9,7 @@
        xmlns:trm="urn:clayers:terminology"
        xmlns:org="urn:clayers:organization"
        xmlns:rel="urn:clayers:relation"
+       xmlns:diag="urn:clayers:diagnostic"
        xmlns:art="urn:clayers:artifact"
        xmlns:llm="urn:clayers:llm"
        spec:index="index.xml">
@@ -102,24 +103,34 @@
     argument (defaulting to the current directory) and performs three
     operations:</pr:p>
 
-    <pr:ol>
-      <pr:li><pr:b>Plant schemas.</pr:b> All 12 XSD layer schemas,
-      catalog.xml, and postprocess.xslt are embedded in the binary at
-      build time via <pr:code>include_str!</pr:code>. The command writes
-      them to <pr:code>.clayers/schemas/</pr:code> in the target
-      project.</pr:li>
-      <pr:li><pr:b>Create starter spec.</pr:b> A skeleton
-      <pr:code>clayers/&lt;project&gt;/</pr:code> directory is created
-      with an index.xml and revision.xml. The project name is derived
-      from the target directory name. This step is skipped if a
-      <pr:code>clayers/</pr:code> directory already exists.</pr:li>
-      <pr:li><pr:b>Amend agent file.</pr:b> The command looks for
-      CLAUDE.md first, then AGENTS.md. If found, it appends the
-      spec-first development workflow section. If neither exists, it
-      creates AGENTS.md. Content is wrapped in HTML comment markers
-      (<pr:code>&lt;!-- clayers:adopt --&gt;</pr:code>) for
-      idempotent updates.</pr:li>
-    </pr:ol>
+    <pr:synopsis kind="command">clayers adopt [--update] [--skills] [TARGET]</pr:synopsis>
+
+    <pr:steps>
+      <pr:step>
+        <pr:cmd>Plant schemas into <pr:filepath>.clayers/schemas/</pr:filepath>.</pr:cmd>
+        <pr:info>All embedded XSD layer schemas, <pr:filepath>catalog.xml</pr:filepath>,
+        and <pr:filepath>postprocess.xslt</pr:filepath> are embedded in the
+        binary at build time via <pr:code>include_str!</pr:code>.</pr:info>
+      </pr:step>
+      <pr:step>
+        <pr:cmd>Create the starter spec.</pr:cmd>
+        <pr:info>A skeleton <pr:filepath>clayers/&lt;project&gt;/</pr:filepath>
+        directory is created with <pr:filepath>index.xml</pr:filepath> and
+        <pr:filepath>revision.xml</pr:filepath>. The project name is derived
+        from the target directory name.</pr:info>
+        <pr:stepresult>This step is skipped when a
+        <pr:filepath>clayers/</pr:filepath> directory already exists.</pr:stepresult>
+      </pr:step>
+      <pr:step>
+        <pr:cmd>Amend the agent guidance file.</pr:cmd>
+        <pr:info>The command looks for <pr:filepath>CLAUDE.md</pr:filepath>
+        first, then <pr:filepath>AGENTS.md</pr:filepath>. If neither exists,
+        it creates <pr:filepath>AGENTS.md</pr:filepath>.</pr:info>
+        <pr:stepresult>Content is wrapped in
+        <pr:code>&lt;!-- clayers:adopt --&gt;</pr:code> markers for
+        idempotent updates.</pr:stepresult>
+      </pr:step>
+    </pr:steps>
 
     <pr:p>When the target project has already been adopted (detected by
     the presence of .clayers/schemas/ with XSD files or agent file
@@ -133,6 +144,18 @@
     <pr:note type="info">Schemas are embedded at build time, so
     <pr:code>clayers adopt</pr:code> is a zero-dependency bootstrap:
     no network access or external schema files are needed.</pr:note>
+
+    <diag:issue id="diag-adopt-stale-planted-files" ref="adopt-command">
+      <diag:title>Adoption reports stale planted files</diag:title>
+      <diag:severity>warning</diag:severity>
+      <diag:condition>The command finds existing schemas or agent instructions
+      that differ from the binary's embedded versions.</diag:condition>
+      <diag:cause>The project was adopted with an older clayers binary or local
+      instructions were edited after adoption.</diag:cause>
+      <diag:remedy>Review the reported paths, then rerun with --update when
+      the embedded versions should replace the planted files.</diag:remedy>
+      <diag:responsible-party>Project maintainer</diag:responsible-party>
+    </diag:issue>
   </pr:section>
 
   <pr:section id="adopt-workflow">
@@ -182,35 +205,46 @@
     <pr:code>--skills</pr:code> is explicitly passed.</pr:p>
 
     <pr:p>The following skills are generated:</pr:p>
-    <pr:ol>
-      <pr:li><pr:b>clayers-onboard.</pr:b> Comprehensive codebase
-      onboarding: discovery, terminology extraction, spec creation,
-      artifact mapping, quality iteration, and final validation.
-      Guides agents from an empty spec to 100% coverage.</pr:li>
-      <pr:li><pr:b>clayers-review-artifacts.</pr:b> Artifact mapping
-      review and improvement: bidirectional coverage analysis
-      (spec-to-code and code-to-spec), drift resolution with
-      root-cause analysis, exemption auditing, mapping quality
-      improvement (favoring precise over broad), and revision
-      comparison. Ensures end-to-end traceability is maintained
-      as code evolves.</pr:li>
-      <pr:li><pr:b>clayers-brainstorm.</pr:b> Structured design
-      brainstorming: explores existing spec context, asks clarifying
-      questions, proposes approaches with trade-offs, and produces
-      clayers XML spec files with prose, terminology, relations, and
-      LLM descriptions. Replaces markdown design documents with
-      queryable, validated specifications.</pr:li>
-      <pr:li><pr:b>clayers-write-plan.</pr:b> Implementation plan
-      creation: reads spec nodes from brainstorming, decomposes into
-      bite-sized tasks with TDD steps and acceptance criteria
-      referencing spec nodes, produces pln:plan XML registered in the
-      knowledge base.</pr:li>
-      <pr:li><pr:b>clayers-execute-plan.</pr:b> Plan execution with
-      artifact tracking: reads plan items, implements code with TDD,
-      creates artifact mappings linking spec nodes to new code, fixes
-      hashes, tracks item status, and runs quality checks at
-      completion.</pr:li>
-    </pr:ol>
+    <pr:dl>
+      <pr:dlentry>
+        <pr:dt>clayers-onboard</pr:dt>
+        <pr:dd>Comprehensive codebase onboarding: discovery, terminology
+        extraction, spec creation, artifact mapping, quality iteration, and
+        final validation. Guides agents from an empty spec to 100%
+        coverage.</pr:dd>
+      </pr:dlentry>
+      <pr:dlentry>
+        <pr:dt>clayers-review-artifacts</pr:dt>
+        <pr:dd>Artifact mapping review and improvement: bidirectional coverage
+        analysis, drift resolution with root-cause analysis, exemption
+        auditing, mapping quality improvement, and revision comparison.</pr:dd>
+      </pr:dlentry>
+      <pr:dlentry>
+        <pr:dt>clayers-brainstorm</pr:dt>
+        <pr:dd>Structured design brainstorming: explores existing spec context,
+        asks clarifying questions, proposes approaches with trade-offs, and
+        produces clayers XML spec files.</pr:dd>
+      </pr:dlentry>
+      <pr:dlentry>
+        <pr:dt>clayers-write-plan</pr:dt>
+        <pr:dd>Implementation plan creation: reads spec nodes, decomposes work
+        into tasks with TDD steps and acceptance criteria, and produces
+        <pr:code>pln:plan</pr:code> XML.</pr:dd>
+      </pr:dlentry>
+      <pr:dlentry>
+        <pr:dt>clayers-execute-plan</pr:dt>
+        <pr:dd>Plan execution with artifact tracking: reads plan items,
+        implements code with TDD, creates artifact mappings, fixes
+        hashes, tracks item status, and runs quality checks at
+        completion.</pr:dd>
+      </pr:dlentry>
+    </pr:dl>
+
+    <pr:related-links>
+      <pr:link ref="plan-layer" role="uses">Plan layer</pr:link>
+      <pr:link ref="artifact-hash-tooling" role="uses">Artifact hash maintenance</pr:link>
+      <pr:link ref="drift-detection-tooling" role="uses">Drift detection tooling</pr:link>
+    </pr:related-links>
   </pr:section>
 
   <!-- Topic typing -->
@@ -246,6 +280,14 @@
   <rel:relation type="depends-on" from="adopt-command" to="term-node">
     <rel:note>The starter spec creates nodes that participate in
     the ID space.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="references" from="diag-adopt-stale-planted-files" to="adopt-command">
+    <rel:note>The diagnostic issue describes a stale-adoption failure mode.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="diag-adopt-stale-planted-files" to="diagnostic-layer">
+    <rel:note>The issue is represented in the diagnostic layer.</rel:note>
   </rel:relation>
 
   <rel:relation type="depends-on" from="adopt-workflow" to="term-adoption">
@@ -295,7 +337,7 @@
   <art:mapping id="map-adopt-command">
     <art:spec-ref node="adopt-command"
               revision="draft-1"
-              node-hash="sha256:035fcabf18badefaf407ca438580f75bf0326b4c132ae52ead00f50b6a5f1cc5"/>
+              node-hash="sha256:ccc38fdf7b2d3b90aa0ae19207e34c9fbc133e280aaab9a6a98537543c42ca41"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
@@ -310,11 +352,11 @@
   <art:mapping id="map-adopt-embedded">
     <art:spec-ref node="adopt-command"
               revision="draft-1"
-              node-hash="sha256:035fcabf18badefaf407ca438580f75bf0326b4c132ae52ead00f50b6a5f1cc5"/>
+              node-hash="sha256:ccc38fdf7b2d3b90aa0ae19207e34c9fbc133e280aaab9a6a98537543c42ca41"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/embedded.rs">
-      <art:range hash="sha256:7e789e01fcf91a67845f0673ab2163884d0aefc3fefb80ce13e9c070c7e02be6"/>
+      <art:range hash="sha256:e8364b5112c735ac80bd3c77f8217314059f66cd4e6a58171a3f7a9abf1e45a2"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>The embedded module provides build-time schema embedding
@@ -324,7 +366,7 @@
   <art:mapping id="map-term-adoption">
     <art:spec-ref node="term-adoption"
               revision="draft-1"
-              node-hash="sha256:6ed97053e2d9db860b76b157c47796d19a3419c727e3b6f1c7a59ca49de72bd0"/>
+              node-hash="sha256:860f4bbe1058b19f995c69e6d9542b915a52a777a780cd4a03de67159f3364b0"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
@@ -338,7 +380,7 @@
   <art:mapping id="map-adopt-workflow">
     <art:spec-ref node="adopt-workflow"
               revision="draft-1"
-              node-hash="sha256:056fce0e8d5982e629561c5f68a87e4dc27f7983fc7c0e7b8c366edab5223101"/>
+              node-hash="sha256:e0cee6323fe6baa6f5376d016f057674fa422a63db8b57e4d24d8f6c843ed389"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
@@ -353,7 +395,7 @@
   <art:mapping id="map-adopt-constants">
     <art:spec-ref node="adopt-command"
               revision="draft-1"
-              node-hash="sha256:035fcabf18badefaf407ca438580f75bf0326b4c132ae52ead00f50b6a5f1cc5"/>
+              node-hash="sha256:ccc38fdf7b2d3b90aa0ae19207e34c9fbc133e280aaab9a6a98537543c42ca41"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
@@ -368,7 +410,7 @@
   <art:mapping id="map-adopt-is-adopted">
     <art:spec-ref node="adopt-command"
               revision="draft-1"
-              node-hash="sha256:035fcabf18badefaf407ca438580f75bf0326b4c132ae52ead00f50b6a5f1cc5"/>
+              node-hash="sha256:ccc38fdf7b2d3b90aa0ae19207e34c9fbc133e280aaab9a6a98537543c42ca41"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
@@ -383,7 +425,7 @@
   <art:mapping id="map-adopt-check-freshness">
     <art:spec-ref node="adopt-command"
               revision="draft-1"
-              node-hash="sha256:035fcabf18badefaf407ca438580f75bf0326b4c132ae52ead00f50b6a5f1cc5"/>
+              node-hash="sha256:ccc38fdf7b2d3b90aa0ae19207e34c9fbc133e280aaab9a6a98537543c42ca41"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
@@ -398,7 +440,7 @@
   <art:mapping id="map-adopt-helpers">
     <art:spec-ref node="adopt-command"
               revision="draft-1"
-              node-hash="sha256:035fcabf18badefaf407ca438580f75bf0326b4c132ae52ead00f50b6a5f1cc5"/>
+              node-hash="sha256:ccc38fdf7b2d3b90aa0ae19207e34c9fbc133e280aaab9a6a98537543c42ca41"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
@@ -413,7 +455,7 @@
   <art:mapping id="map-adopt-skill-functions">
     <art:spec-ref node="adopt-skills"
               revision="draft-1"
-              node-hash="sha256:f032b9261cec5bd18011bcad88679c5bfd9db56a5c5ecff7000b8ea1b8ba4ee2"/>
+              node-hash="sha256:11426dbc3dbd04fc029fe4293fecdbb361541b298a9a3848040f50687871a40c"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
@@ -429,7 +471,7 @@
   <art:mapping id="map-adopt-plant-schemas">
     <art:spec-ref node="adopt-command"
               revision="draft-1"
-              node-hash="sha256:035fcabf18badefaf407ca438580f75bf0326b4c132ae52ead00f50b6a5f1cc5"/>
+              node-hash="sha256:ccc38fdf7b2d3b90aa0ae19207e34c9fbc133e280aaab9a6a98537543c42ca41"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
@@ -444,7 +486,7 @@
   <art:mapping id="map-adopt-starter-spec">
     <art:spec-ref node="adopt-command"
               revision="draft-1"
-              node-hash="sha256:035fcabf18badefaf407ca438580f75bf0326b4c132ae52ead00f50b6a5f1cc5"/>
+              node-hash="sha256:ccc38fdf7b2d3b90aa0ae19207e34c9fbc133e280aaab9a6a98537543c42ca41"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
@@ -459,7 +501,7 @@
   <art:mapping id="map-adopt-agent-file">
     <art:spec-ref node="adopt-command"
               revision="draft-1"
-              node-hash="sha256:035fcabf18badefaf407ca438580f75bf0326b4c132ae52ead00f50b6a5f1cc5"/>
+              node-hash="sha256:ccc38fdf7b2d3b90aa0ae19207e34c9fbc133e280aaab9a6a98537543c42ca41"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
@@ -475,7 +517,7 @@
   <art:mapping id="map-adopt-main">
     <art:spec-ref node="adopt-command"
               revision="draft-1"
-              node-hash="sha256:035fcabf18badefaf407ca438580f75bf0326b4c132ae52ead00f50b6a5f1cc5"/>
+              node-hash="sha256:ccc38fdf7b2d3b90aa0ae19207e34c9fbc133e280aaab9a6a98537543c42ca41"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
@@ -490,7 +532,7 @@
   <art:mapping id="map-adopt-tests-basic">
     <art:spec-ref node="adopt-command"
               revision="draft-1"
-              node-hash="sha256:035fcabf18badefaf407ca438580f75bf0326b4c132ae52ead00f50b6a5f1cc5"/>
+              node-hash="sha256:ccc38fdf7b2d3b90aa0ae19207e34c9fbc133e280aaab9a6a98537543c42ca41"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
@@ -505,7 +547,7 @@
   <art:mapping id="map-adopt-tests-update">
     <art:spec-ref node="adopt-command"
               revision="draft-1"
-              node-hash="sha256:035fcabf18badefaf407ca438580f75bf0326b4c132ae52ead00f50b6a5f1cc5"/>
+              node-hash="sha256:ccc38fdf7b2d3b90aa0ae19207e34c9fbc133e280aaab9a6a98537543c42ca41"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/adopt.rs">
@@ -521,7 +563,7 @@
   <art:mapping id="map-adopt-cli">
     <art:spec-ref node="adopt-command"
               revision="draft-1"
-              node-hash="sha256:035fcabf18badefaf407ca438580f75bf0326b4c132ae52ead00f50b6a5f1cc5"/>
+              node-hash="sha256:ccc38fdf7b2d3b90aa0ae19207e34c9fbc133e280aaab9a6a98537543c42ca41"/>
     <art:artifact repo="repo-clayers"
               repo-revision="2916ded"
               path="crates/clayers/src/cli.rs">
@@ -540,11 +582,11 @@
   <art:mapping id="map-adopt-skill-embedded">
     <art:spec-ref node="adopt-skills"
               revision="draft-1"
-              node-hash="sha256:f032b9261cec5bd18011bcad88679c5bfd9db56a5c5ecff7000b8ea1b8ba4ee2"/>
+              node-hash="sha256:11426dbc3dbd04fc029fe4293fecdbb361541b298a9a3848040f50687871a40c"/>
     <art:artifact repo="repo-clayers"
               repo-revision="HEAD"
               path="crates/clayers/src/embedded.rs">
-      <art:range hash="sha256:7e789e01fcf91a67845f0673ab2163884d0aefc3fefb80ce13e9c070c7e02be6"/>
+      <art:range hash="sha256:e8364b5112c735ac80bd3c77f8217314059f66cd4e6a58171a3f7a9abf1e45a2"/>
     </art:artifact>
     <art:coverage>full</art:coverage>
     <art:note>AGENT_GUIDANCE_XML constant: embeds agent-guidance.xml
@@ -555,7 +597,7 @@
 
   <llm:node ref="adopt-command">
     The adopt command bootstraps any project to use clayers. It embeds
-    all 12 XSD layer schemas plus catalog.xml and postprocess.xslt at
+    all embedded XSD layer schemas plus catalog.xml and postprocess.xslt at
     build time (via include_str!), then writes them to .clayers/schemas/.
     It creates a starter clayers/&lt;project&gt;/ directory with skeleton
     index.xml and revision.xml (skipped if clayers/ exists). It amends
@@ -658,7 +700,7 @@
   <art:mapping id="map-term-review-artifacts-skill">
     <art:spec-ref node="term-review-artifacts-skill"
               revision="draft-1"
-              node-hash="sha256:80da5e2d10f39008da86cd8bb331e1cdd084e36c65d02d971a48d4c5f8220235"/>
+              node-hash="sha256:b7f0b054fa4049d1bf8c36ad8b9ba8d424352f17971150e742b5a5df33460d7e"/>
     <art:artifact repo="repo-clayers"
               repo-revision="9191483"
               path="crates/clayers/src/adopt.rs">
@@ -675,7 +717,7 @@
   <art:mapping id="map-term-onboarding-skill">
     <art:spec-ref node="term-onboarding-skill"
               revision="draft-1"
-              node-hash="sha256:20b08a88253ff5a43818d09fd9f0d71095c96015c6b7bf19dde01c1886fe9e74"/>
+              node-hash="sha256:6e1e271264758eaf501561ba679ed6a7b59d8634b261414a1529dd1a9123615e"/>
     <art:artifact repo="repo-clayers"
               repo-revision="9191483"
               path="crates/clayers/src/adopt.rs">

@@ -13,6 +13,10 @@ fixes and additions.
 
 ### Added
 
+- **Richer technical documentation modeling.** Prose now supports a
+  broader DITA/DocBook-inspired authoring vocabulary, with reusable
+  media, troubleshooting, and meaningful choices modeled through
+  dedicated content, diagnostic, and deliberation layers.
 - **`clayers search`: semantic search over a spec.** New subcommand
   that ranks nodes by meaning, complementing the XPath-based
   `clayers query`. Combines HuggingFace text embeddings

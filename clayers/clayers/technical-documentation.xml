@@ -1,0 +1,453 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Technical Documentation: DITA/DocBook-inspired prose enhancements.
+  Specifies richer authoring structures for technical documentation.
+-->
+<spec:clayers xmlns:spec="urn:clayers:spec"
+       xmlns:pr="urn:clayers:prose"
+       xmlns:trm="urn:clayers:terminology"
+       xmlns:src="urn:clayers:source"
+       xmlns:pln="urn:clayers:plan"
+       xmlns:cnt="urn:clayers:content"
+       xmlns:diag="urn:clayers:diagnostic"
+       xmlns:delib="urn:clayers:deliberation"
+       xmlns:org="urn:clayers:organization"
+       xmlns:rel="urn:clayers:relation"
+       xmlns:art="urn:clayers:artifact"
+       xmlns:llm="urn:clayers:llm"
+       spec:index="index.xml">
+
+  <src:source id="src-docbook-tdg-52" type="documentation"
+              url="https://tdg.docbook.org/tdg/5.2/ch02"
+              accessed="2026-04-27">
+    <src:title>DocBook: The Definitive Guide, Version 5.2</src:title>
+    <src:overview>Reference guide for DocBook 5.2 document structures. Its
+    lists of informal elements, list elements, publishing elements,
+    synopsis elements, technical elements, and verbatim elements inform the
+    Clayers prose vocabulary expansion.</src:overview>
+    <src:author>Norman Walsh</src:author>
+  </src:source>
+
+  <pr:section id="technical-documentation-prose">
+    <pr:title>Technical Documentation Prose</pr:title>
+    <pr:shortdesc>Richer DITA/DocBook-inspired structures for writing
+    task-oriented, reference-heavy, and diagnostics-aware technical
+    documentation in the prose layer.</pr:shortdesc>
+
+    <pr:p>The original prose layer intentionally started small: sections,
+    paragraphs, lists, steps, notes, code blocks, tables, and cross-references.
+    That vocabulary is enough for architectural specification, but it is too
+    thin for complete technical documentation. Real documentation needs
+    precise task steps, examples, figures, content-backed media, definition
+    lists, property tables, and synopses.</pr:p>
+
+    <pr:p>DITA's technical-content vocabulary provides the strongest model for
+    task authoring: prerequisites, context, command text, step information,
+    substeps, examples, step results, task results, and post-requisites.
+    Meaningful choices belong in the deliberation layer, and troubleshooting
+    belongs in the diagnostic layer. DocBook complements the prose model with
+    long-form publishing structures such as formal examples, figures,
+    variable lists, block quotes, sidebars, and command/API synopses. Clayers
+    should adopt the useful authoring shapes without copying either standard's
+    full specialization system.</pr:p>
+
+    <pr:p>The prose layer remains the right home for these constructs. They are
+    writing structures, not separate semantic dimensions. Organization still
+    classifies nodes as concept, task, or reference; relation still captures
+    semantic edges; source still records provenance. The prose layer supplies
+    the document grammar authors use inside those nodes.</pr:p>
+
+    <pr:p>General prose documentation therefore includes these authoring
+    capabilities:</pr:p>
+
+    <pr:ul>
+      <pr:li>Richer inline phrases for user-interface labels, keyboard input,
+      file paths, command names, parameter names, API names, variables,
+      message text, quotations, superscript, and subscript.</pr:li>
+      <pr:li>Definition lists for term/description pairs, matching DocBook's
+      variable-list use case and common API/configuration documentation.</pr:li>
+      <pr:li>Examples, figures, and content-backed media references so
+      documentation can show concrete outputs, screenshots, diagrams, and
+      other supporting assets while reusing <pr:code>cnt:content</pr:code>
+      identity, media type, URL, and hash metadata.</pr:li>
+      <pr:li>Property tables for reference topics, with type, value, and
+      description columns inspired by DITA reference properties.</pr:li>
+      <pr:li>Structured task elements for prerequisite, context, command,
+      supplemental information, substeps, step examples, step results, task
+      result, and post-requisite content.</pr:li>
+      <pr:li>Synopses, block quotes, and sidebars for command/API summaries,
+      quoted material, and secondary explanatory material.</pr:li>
+      <pr:li>Related-links blocks that provide explicit link lists in addition
+      to inline cross-references.</pr:li>
+    </pr:ul>
+
+    <pr:p>These constructs are intentionally authoring-level elements. They do
+    not replace terminology, source citations, content references, diagnostic
+    issues, deliberation choice sets, artifact mappings, or relations. Inline
+    term references and citations continue to work inside prose content, and
+    the postprocessor should synthesize relation edges from prose
+    cross-references, related links, and content-backed media.</pr:p>
+  </pr:section>
+
+  <pr:section id="technical-documentation-xslt-processing">
+    <pr:title>Technical Documentation XSLT Processing</pr:title>
+    <pr:shortdesc>Rendering and semantic postprocessing required for the
+    expanded prose vocabulary.</pr:shortdesc>
+
+    <pr:p>The documentation renderer should translate new prose structures into
+    stable HTML: examples and figures become titled blocks, media resolves
+    through content nodes when possible, definition lists become HTML
+    definition lists, properties become tables, task details become labeled
+    sections, diagnostic issues become labeled remediation cards, deliberation
+    choice sets become option cards, and related links become navigable link
+    lists.</pr:p>
+
+    <pr:p>The combined-document postprocessor should synthesize
+    <pr:code>rel:relation type="references"</pr:code> edges from
+    <pr:code>pr:xref</pr:code> and related-link entries. This makes prose
+    cross-references visible to connectivity, query, and graph tooling instead
+    of leaving them as presentation-only links.</pr:p>
+  </pr:section>
+
+  <pr:section id="prose-technical-documentation-example">
+    <pr:title>Technical Documentation Example</pr:title>
+    <pr:shortdesc>A compact example that exercises the expanded prose
+    vocabulary in the self-spec.</pr:shortdesc>
+
+    <pr:p>This example demonstrates how a topic can combine reference data,
+    task instructions, examples, media, diagnostics, and deliberation while still
+    linking to the design in <pr:xref ref="technical-documentation-prose"/>.</pr:p>
+
+    <pr:dl>
+      <pr:dlentry>
+        <pr:dt>Authoring structure</pr:dt>
+        <pr:dd>DITA/DocBook-inspired XML elements for technical writing.</pr:dd>
+      </pr:dlentry>
+      <pr:dlentry>
+        <pr:dt>Rendering structure</pr:dt>
+        <pr:dd>XSLT templates that turn prose elements into stable HTML.</pr:dd>
+      </pr:dlentry>
+    </pr:dl>
+
+    <pr:properties>
+      <pr:title>Common phrase elements</pr:title>
+      <pr:property>
+        <pr:proptype>File path</pr:proptype>
+        <pr:propvalue><pr:filepath>schemas/prose.xsd</pr:filepath></pr:propvalue>
+        <pr:propdesc>Marks file-system paths without relying on generic code
+        spans.</pr:propdesc>
+      </pr:property>
+      <pr:property>
+        <pr:proptype>Command name</pr:proptype>
+        <pr:propvalue><pr:cmdname>clayers validate</pr:cmdname></pr:propvalue>
+        <pr:propdesc>Marks commands and subcommands in procedural
+        documentation.</pr:propdesc>
+      </pr:property>
+    </pr:properties>
+
+    <pr:prereq>
+      <pr:p>The prose schema must include the expanded task, reference, and
+      publishing constructs before this example can validate.</pr:p>
+    </pr:prereq>
+
+    <pr:steps>
+      <pr:step id="prose-technical-documentation-example-step-validate">
+        <pr:cmd>Run <pr:cmdname>cargo run -p clayers -- validate clayers/clayers/</pr:cmdname>.</pr:cmd>
+        <pr:info>
+          <pr:p>The command validates both legacy prose and the new rich
+          documentation structures.</pr:p>
+        </pr:info>
+        <pr:stepxmp>
+          <pr:title>Validation command</pr:title>
+          <pr:codeblock language="bash">cargo run -p clayers -- validate clayers/clayers/</pr:codeblock>
+        </pr:stepxmp>
+        <pr:stepresult>Validation reports no structural errors.</pr:stepresult>
+      </pr:step>
+    </pr:steps>
+
+    <pr:example>
+      <pr:title>Related link synthesis</pr:title>
+      <pr:p>A related link below should become a synthesized
+      <pr:code>references</pr:code> relation in the combined document.</pr:p>
+    </pr:example>
+
+    <pr:figure>
+      <pr:title>Documentation screenshot asset</pr:title>
+      <pr:media content="cnt-docs-screenshot"
+                alt="Generated Clayers documentation screenshot"
+                format="png"/>
+      <pr:caption>Media references can point at repository assets and carry
+      required alternative text.</pr:caption>
+    </pr:figure>
+
+    <diag:issue id="diag-prose-element-not-accepted" ref="technical-documentation-prose">
+      <diag:title>Validation fails after adding a prose element</diag:title>
+      <diag:severity>error</diag:severity>
+      <diag:condition>The validator reports that a prose child is not accepted
+      by the model group.</diag:condition>
+      <diag:cause>The element is either outside its allowed context or missing
+      from schemas/prose.xsd.</diag:cause>
+      <diag:remedy>Move the element to an allowed context, or move domain data
+      to the appropriate layer before using it in spec content.</diag:remedy>
+      <diag:responsible-party>Spec author</diag:responsible-party>
+    </diag:issue>
+
+    <delib:choice-set id="choice-prose-vs-domain-layer" ref="technical-documentation-prose">
+      <delib:title>Where DITA-inspired structures belong</delib:title>
+      <delib:status>resolved</delib:status>
+      <delib:option id="choice-prose-authoring-structure" outcome="selected">
+        <delib:title>Keep authoring structures in prose</delib:title>
+        <delib:rationale>Sections, steps, examples, figures, sidebars, and
+        synopses are documentation grammar.</delib:rationale>
+      </delib:option>
+      <delib:option id="choice-domain-structure" outcome="selected">
+        <delib:title>Move reusable media, troubleshooting, and meaningful
+        choices to domain layers</delib:title>
+        <delib:rationale>Content identity, failure modes, and tradeoffs need
+        queryable semantics beyond presentation.</delib:rationale>
+      </delib:option>
+    </delib:choice-set>
+
+    <pr:related-links>
+      <pr:link ref="technical-documentation-xslt-processing" role="implementation">XSLT processing</pr:link>
+    </pr:related-links>
+  </pr:section>
+
+  <pln:plan id="plan-technical-documentation-prose">
+    <pln:title>Technical documentation prose expansion</pln:title>
+    <pln:overview>Add DITA/DocBook-inspired authoring structures to the prose
+    schema, render them in HTML documentation, and synthesize reference
+    relations from prose links.</pln:overview>
+    <pln:status>active</pln:status>
+    <pln:item id="plan-technical-documentation-prose-schema">
+      <pln:title>Extend prose schema</pln:title>
+      <pln:description>Add rich inline phrases, examples, figures, media,
+      definition lists, properties, structured task details, synopses, block
+      quotes, sidebars, and related links; move reusable media,
+      troubleshooting, and meaningful choices to their semantic layers.</pln:description>
+      <pln:acceptance>
+        <pln:criterion>The shipped prose schema validates the new authoring
+        structures; witness command: cargo run -p clayers -- validate
+        clayers/clayers/.</pln:criterion>
+      </pln:acceptance>
+      <pln:item-status>completed</pln:item-status>
+    </pln:item>
+    <pln:item id="plan-technical-documentation-prose-xslt">
+      <pln:title>Add XSLT support</pln:title>
+      <pln:description>Render the new prose elements in documentation HTML and
+      synthesize reference relations from prose cross-references.</pln:description>
+      <pln:acceptance>
+        <pln:criterion>Documentation generation succeeds with the expanded
+        prose vocabulary; witness command: cargo run -p clayers -- doc
+        clayers/clayers/ --output /tmp/clayers-doc.html.</pln:criterion>
+      </pln:acceptance>
+      <pln:item-status>completed</pln:item-status>
+    </pln:item>
+  </pln:plan>
+
+  <org:concept ref="technical-documentation-prose">
+    <org:purpose>Explains why the prose layer needs richer DITA/DocBook-inspired
+    authoring structures for full technical documentation.</org:purpose>
+  </org:concept>
+
+  <org:concept ref="technical-documentation-xslt-processing">
+    <org:purpose>Defines rendering and postprocessing behavior for the expanded
+    prose vocabulary.</org:purpose>
+  </org:concept>
+
+  <org:concept ref="prose-technical-documentation-example">
+    <org:purpose>Provides a self-spec example that validates and renders the
+    expanded prose authoring vocabulary.</org:purpose>
+  </org:concept>
+
+  <org:task ref="plan-technical-documentation-prose">
+    <org:purpose>Tracks implementation work for the prose schema and XSLT
+    expansion.</org:purpose>
+  </org:task>
+
+  <rel:relation type="refines" from="technical-documentation-prose" to="layered-architecture">
+    <rel:note>Richer prose remains part of the layered architecture as an
+    authoring grammar rather than a separate semantic dimension.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="technical-documentation-xslt-processing" to="technical-documentation-prose">
+    <rel:note>XSLT rendering and reference synthesis complete the authoring
+    vocabulary by making it visible in docs and graph tooling.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="prose-technical-documentation-example" to="technical-documentation-prose">
+    <rel:note>The example exercises the prose constructs specified by the
+    general technical documentation prose node.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="references" from="technical-documentation-prose" to="src-dita-spec">
+    <rel:note>DITA technical content informs task, reference, and
+    diagnostic and deliberation structures.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="references" from="technical-documentation-prose" to="src-docbook-tdg-52">
+    <rel:note>DocBook informs examples, figures, definition lists, publishing
+    blocks, synopses, and verbatim structures.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="plan-technical-documentation-prose-xslt" to="plan-technical-documentation-prose-schema">
+    <rel:note>The XSLT support depends on the prose schema admitting the new
+    elements.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="plan-technical-documentation-prose" to="technical-documentation-prose">
+    <rel:note>The plan operationalizes the technical documentation prose
+    expansion.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="prose-technical-documentation-example-step-validate" to="prose-technical-documentation-example">
+    <rel:note>The validation step is part of the technical documentation
+    example.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="references" from="prose-technical-documentation-example" to="cnt-docs-screenshot">
+    <rel:note>The example figure uses a content-backed screenshot asset.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="references" from="diag-prose-element-not-accepted" to="technical-documentation-prose">
+    <rel:note>The diagnostic issue describes a prose validation failure
+    mode.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="diag-prose-element-not-accepted" to="diagnostic-layer">
+    <rel:note>The embedded issue demonstrates diagnostic-layer use inside
+    technical documentation.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="references" from="choice-prose-vs-domain-layer" to="technical-documentation-prose">
+    <rel:note>The choice set records where DITA-inspired structures belong.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="choice-prose-vs-domain-layer" to="deliberation-layer">
+    <rel:note>The embedded choice set demonstrates deliberation-layer use
+    inside technical documentation.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="choice-prose-authoring-structure" to="choice-prose-vs-domain-layer">
+    <rel:note>The selected option belongs to the prose/domain choice set.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="choice-domain-structure" to="choice-prose-vs-domain-layer">
+    <rel:note>The selected option belongs to the prose/domain choice set.</rel:note>
+  </rel:relation>
+
+  <llm:node ref="technical-documentation-prose">
+    Technical documentation prose expansion: explains why the initial
+    DITA-style prose layer needs richer structures for complete technical
+    documentation. It cites DITA for task/reference authoring
+    and DocBook for examples, figures, variable lists, publishing blocks,
+    synopses, and verbatim structures. It also enumerates the prose vocabulary
+    additions: richer inline phrases, definition lists, examples, figures,
+    content-backed media, property tables, structured task details, synopses,
+    block quotes, sidebars, and related links. Troubleshooting belongs to the
+    diagnostic layer, and meaningful choices belong to the deliberation layer.
+  </llm:node>
+
+  <llm:node ref="technical-documentation-xslt-processing">
+    Specifies XSLT processing for expanded prose: render the new authoring
+    structures into HTML and synthesize rel:relation type="references" from
+    prose xrefs, related links, and content-backed media.
+  </llm:node>
+
+  <llm:node ref="prose-technical-documentation-example">
+    Demonstrates the expanded prose vocabulary in the self-spec using
+    definition lists, properties, task details, structured steps, examples,
+    figures/media, diagnostic issues, deliberation choice sets, and related
+    links.
+  </llm:node>
+
+  <llm:node ref="plan-technical-documentation-prose">
+    Implementation plan for extending prose schema capabilities and adding
+    XSLT rendering/postprocessing support for technical documentation.
+  </llm:node>
+
+  <llm:node ref="src-docbook-tdg-52">
+    External source: DocBook: The Definitive Guide 5.2. Used as a reference
+    for examples, figures, variable lists, publishing elements, synopsis
+    elements, technical elements, and verbatim elements.
+  </llm:node>
+
+  <art:mapping id="map-technical-documentation-prose-schema">
+    <art:spec-ref node="technical-documentation-prose"
+              revision="draft-1"
+              node-hash="sha256:2eea64944c37a492def1cee33e6d0a4edd6314214871740617ef1a210535fed5"/>
+    <art:artifact repo="repo-clayers"
+              repo-revision="abb4044"
+              path="schemas/prose.xsd">
+      <art:range hash="sha256:1557666bca0d98373cb0207e93ecb2395920b5edcc24e5dfc19fe9f2e2193109" start-line="1" end-line="455"/>
+    </art:artifact>
+    <art:coverage>full</art:coverage>
+    <art:note>The prose schema implements the expanded technical-documentation
+    vocabulary, including inline phrases, task structures, reference tables,
+    examples, figures, content-backed media, sidebars, and related links.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-technical-documentation-xslt-processing-postprocess">
+    <art:spec-ref node="technical-documentation-xslt-processing"
+              revision="draft-1"
+              node-hash="sha256:410282825786111e0f2aa3644970f6dc119211b235017582f4d5b15d7a928bfd"/>
+    <art:artifact repo="repo-clayers"
+              repo-revision="abb4044"
+              path="schemas/postprocess.xslt">
+      <art:range hash="sha256:667d9724879e3d697be013ac697c20d02541ee015252372d945302ed4df2634f" start-line="1" end-line="43"/>
+      <art:range hash="sha256:64ebc443bc9484aca7e7a788463bca84c564a9e16b066f58fdface3d342c0a85" start-line="99" end-line="123"/>
+    </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>Postprocessing support synthesizes references relations from
+    prose xrefs, related links, and content-backed media references.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-technical-documentation-xslt-processing-doc-prose">
+    <art:spec-ref node="technical-documentation-xslt-processing"
+              revision="draft-1"
+              node-hash="sha256:410282825786111e0f2aa3644970f6dc119211b235017582f4d5b15d7a928bfd"/>
+    <art:artifact repo="repo-clayers"
+              repo-revision="abb4044"
+              path="schemas/doc/prose.xslt">
+      <art:range hash="sha256:8f9b984e57d1436eb777fccc89555763071f02316a589f7e571cf57c05034acc" start-line="147" end-line="490"/>
+    </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>Documentation rendering templates for definition lists, task
+    details, examples, figures, media, properties, publishing blocks, related
+    links, and technical inline phrases.</art:note>
+  </art:mapping>
+
+  <art:mapping id="map-technical-documentation-xslt-processing-doc-css">
+    <art:spec-ref node="technical-documentation-xslt-processing"
+              revision="draft-1"
+              node-hash="sha256:410282825786111e0f2aa3644970f6dc119211b235017582f4d5b15d7a928bfd"/>
+    <art:artifact repo="repo-clayers"
+              repo-revision="abb4044"
+              path="schemas/doc/main.xslt">
+      <art:range hash="sha256:e98641a312a8655932e3658a6f47c2607adb21c12782bb38fb8c14033c05a06e" start-line="554" end-line="637"/>
+    </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>Documentation CSS for the rendered technical-documentation
+    blocks and inline keyboard styling.</art:note>
+  </art:mapping>
+
+  <art:exempt node="src-docbook-tdg-52">External source declaration, not an
+  implementation artifact.</art:exempt>
+
+  <art:exempt node="prose-technical-documentation-example">Self-spec usage
+  example for prose authoring structures; validation and rendering are mapped
+  through the schema and XSLT nodes.</art:exempt>
+
+  <art:exempt node="prose-technical-documentation-example-step-validate">Example
+  procedure step within documentation; not an implementation artifact.</art:exempt>
+
+  <art:exempt node="plan-technical-documentation-prose">Completed plan record;
+  implementation mappings live on the schema and XSLT spec nodes.</art:exempt>
+
+  <art:exempt node="plan-technical-documentation-prose-schema">Completed plan
+  item represented by the prose schema mapping.</art:exempt>
+
+  <art:exempt node="plan-technical-documentation-prose-xslt">Completed plan item
+  represented by the XSLT mappings.</art:exempt>
+
+</spec:clayers>

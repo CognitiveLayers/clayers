@@ -101,6 +101,22 @@
     following the same extension pattern as
     <pr:xref ref="extensible-relation-types">extensible relation types</pr:xref>
     and source types.</pr:p>
+
+    <pr:properties>
+      <pr:title>Acceptance criterion references</pr:title>
+      <pr:property>
+        <pr:proptype>ref</pr:proptype>
+        <pr:propvalue>spec node id</pr:propvalue>
+        <pr:propdesc>Identifies the behavior or concept the criterion
+        verifies.</pr:propdesc>
+      </pr:property>
+      <pr:property>
+        <pr:proptype>test</pr:proptype>
+        <pr:propvalue>tst:witness id</pr:propvalue>
+        <pr:propdesc>Links the criterion to executable or manual
+        verification evidence in the testing layer.</pr:propdesc>
+      </pr:property>
+    </pr:properties>
   </pr:section>
 
   <org:concept ref="plan-acceptance-criteria">
@@ -147,33 +163,69 @@
     <pr:shortdesc>Practical guide to authoring plans with acceptance criteria
     and witnesses.</pr:shortdesc>
 
-    <pr:p>A plan starts with a title, an optional overview, and a status of
-    <pr:code>proposed</pr:code>. Add items for each discrete step. Each item
-    needs a title, optional description, at least one acceptance criterion,
-    and a status of <pr:code>pending</pr:code>.</pr:p>
+    <pr:context>A plan starts with a title, an optional overview, and a status
+    of <pr:code>proposed</pr:code>. Items should describe discrete work, not
+    broad feature areas.</pr:context>
 
-    <pr:p>For item ordering and dependencies, use existing relation types:
-    <pr:code>rel:relation type="depends-on"</pr:code> when one item cannot
-    start until another completes, and <pr:code>rel:relation
-    type="precedes"</pr:code> for sequencing without hard dependency.</pr:p>
+    <pr:steps>
+      <pr:step>
+        <pr:cmd>Create a <pr:code>pln:plan</pr:code> with title, overview,
+        and status.</pr:cmd>
+        <pr:info>Use <pr:code>proposed</pr:code> before implementation begins
+        and <pr:code>active</pr:code> once the plan is being executed.</pr:info>
+      </pr:step>
+      <pr:step>
+        <pr:cmd>Add one <pr:code>pln:item</pr:code> for each discrete
+        implementation step.</pr:cmd>
+        <pr:info>Each item needs a title, optional description, at least one
+        acceptance criterion, and a status of <pr:code>pending</pr:code>.</pr:info>
+      </pr:step>
+      <pr:step>
+        <pr:cmd>Express item ordering with relation edges.</pr:cmd>
+        <pr:info>Use <pr:code>rel:relation type="depends-on"</pr:code> when
+        one item cannot start until another completes, and
+        <pr:code>rel:relation type="precedes"</pr:code> for sequencing without
+        hard dependency.</pr:info>
+      </pr:step>
+      <pr:step>
+        <pr:cmd>Embed prose when simple string fields are insufficient.</pr:cmd>
+        <pr:info>A <pr:code>pr:section</pr:code> inside a plan can provide a
+        rich overview; a <pr:code>pr:p</pr:code> inside an item can include
+        terminology references and source citations.</pr:info>
+      </pr:step>
+      <pr:step>
+        <pr:cmd>Reference testing-layer witnesses from acceptance criteria.</pr:cmd>
+        <pr:info>Add a <pr:code>test</pr:code> attribute pointing to a
+        <pr:code>tst:witness</pr:code>. A criterion with no test reference is
+        still valid but relies on human judgment alone.</pr:info>
+      </pr:step>
+      <pr:step>
+        <pr:cmd>Create a replacement plan when the work changes materially.</pr:cmd>
+        <pr:info>Link the new plan to the old plan with
+        <pr:code>pln:revises</pr:code>, set the old plan status to
+        <pr:code>abandoned</pr:code>, and set the new plan to
+        <pr:code>proposed</pr:code> or <pr:code>active</pr:code>.</pr:info>
+      </pr:step>
+    </pr:steps>
 
-    <pr:p>When simple string fields are insufficient, embed prose layer
-    elements directly inside the plan or its items. A
-    <pr:code>pr:section</pr:code> inside a plan provides a rich overview;
-    a <pr:code>pr:p</pr:code> inside an item provides a rich description
-    with terminology references and source citations.</pr:p>
+    <pr:example>
+      <pr:title>Plan item with a test witness</pr:title>
+      <pr:codeblock language="xml">&lt;pln:item id="item-validate-schema"&gt;
+  &lt;pln:title&gt;Validate the schema changes&lt;/pln:title&gt;
+  &lt;pln:acceptance&gt;
+    &lt;pln:criterion ref="schema-design" test="test-schema-export"&gt;
+      Schema export succeeds after the change.
+    &lt;/pln:criterion&gt;
+  &lt;/pln:acceptance&gt;
+  &lt;pln:item-status&gt;pending&lt;/pln:item-status&gt;
+&lt;/pln:item&gt;</pr:codeblock>
+    </pr:example>
 
-    <pr:p>Reference tests from the testing layer to provide verification
-    evidence for criteria. Add a <pr:code>test</pr:code> attribute to a
-    criterion pointing to a <pr:code>tst:witness</pr:code> element. The
-    testing layer's witnesses support command, script, and API-based
-    verification. A criterion with no test reference is still valid but
-    relies on human judgment alone.</pr:p>
-
-    <pr:p>When a plan needs revision, create a new plan and link it with
-    <pr:code>pln:revises</pr:code>. Set the old plan's status to
-    <pr:code>abandoned</pr:code> and the new plan's status to
-    <pr:code>proposed</pr:code> or <pr:code>active</pr:code>.</pr:p>
+    <pr:related-links>
+      <pr:link ref="testing-layer">Testing layer</pr:link>
+      <pr:link ref="term-artifact-mapping">Artifact mapping</pr:link>
+      <pr:link ref="extensible-relation-types">Extensible relation types</pr:link>
+    </pr:related-links>
   </pr:section>
 
   <org:task ref="plan-usage">
@@ -345,7 +397,7 @@
   <art:mapping id="map-type-plan-schema">
     <art:spec-ref node="type-plan"
               revision="draft-1"
-              node-hash="sha256:8b82f7919de5285c082211550a718e4ebffc5bf3226fb0f945f5257ba7bbcbf9"/>
+              node-hash="sha256:c083cde947707a4edc2484fb8369573303c2c23c243631c880cc6afaa972b2c6"/>
     <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/plan.xsd">
@@ -359,7 +411,7 @@
   <art:mapping id="map-type-revises-schema">
     <art:spec-ref node="type-revises"
               revision="draft-1"
-              node-hash="sha256:daf28f04a6206666ca9ce3070a518fb9ee5775c67863641e7d30fc17bbff4601"/>
+              node-hash="sha256:f1295eec18c70896bac30a4500f0a780d3f693684ef992e783cd2f448e36e2f0"/>
     <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/plan.xsd">
@@ -373,7 +425,7 @@
   <art:mapping id="map-plan-layer-schema-core">
     <art:spec-ref node="plan-layer"
               revision="draft-1"
-              node-hash="sha256:9e11ad9d7694a025692b12bf2d8088f7bbbbe772d4bd2e99f67fa6e26a2acca0"/>
+              node-hash="sha256:7fe994e5690a5b8ac9e41b6da7ecc77feecab6538d164cb4cd8cbf2ab4001973"/>
     <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/plan.xsd">
@@ -386,7 +438,7 @@
   <art:mapping id="map-plan-layer-schema-plan-type">
     <art:spec-ref node="plan-layer"
               revision="draft-1"
-              node-hash="sha256:9e11ad9d7694a025692b12bf2d8088f7bbbbe772d4bd2e99f67fa6e26a2acca0"/>
+              node-hash="sha256:7fe994e5690a5b8ac9e41b6da7ecc77feecab6538d164cb4cd8cbf2ab4001973"/>
     <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/plan.xsd">
@@ -399,7 +451,7 @@
   <art:mapping id="map-plan-layer-schema-acceptance-types">
     <art:spec-ref node="plan-layer"
               revision="draft-1"
-              node-hash="sha256:9e11ad9d7694a025692b12bf2d8088f7bbbbe772d4bd2e99f67fa6e26a2acca0"/>
+              node-hash="sha256:7fe994e5690a5b8ac9e41b6da7ecc77feecab6538d164cb4cd8cbf2ab4001973"/>
     <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/plan.xsd">
@@ -412,7 +464,7 @@
   <art:mapping id="map-plan-layer-schema-revises">
     <art:spec-ref node="plan-layer"
               revision="draft-1"
-              node-hash="sha256:9e11ad9d7694a025692b12bf2d8088f7bbbbe772d4bd2e99f67fa6e26a2acca0"/>
+              node-hash="sha256:7fe994e5690a5b8ac9e41b6da7ecc77feecab6538d164cb4cd8cbf2ab4001973"/>
     <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/plan.xsd">
@@ -426,7 +478,7 @@
   <art:mapping id="map-plan-acceptance-schema">
     <art:spec-ref node="plan-acceptance-criteria"
               revision="draft-1"
-              node-hash="sha256:101c49087795db3ab0d86f692ae3d74c0624320b8060572bafd9bd6bce278db9"/>
+              node-hash="sha256:910dfe9e3783b126ce49de805d4adfb40d5b3ed978c1d8100689ccbf67349978"/>
     <art:artifact repo="repo-clayers"
               repo-revision="753ad37"
               path="schemas/plan.xsd">

@@ -13,6 +13,8 @@
   <uri name="urn:clayers:organization"  uri="organization.xsd"/>
   <uri name="urn:clayers:relation"      uri="relation.xsd"/>
   <uri name="urn:clayers:decision"      uri="decision.xsd"/>
+  <uri name="urn:clayers:diagnostic"    uri="diagnostic.xsd"/>
+  <uri name="urn:clayers:deliberation"  uri="deliberation.xsd"/>
   <uri name="urn:clayers:source"        uri="source.xsd"/>
   <uri name="urn:clayers:plan"          uri="plan.xsd"/>
   <uri name="urn:clayers:artifact"      uri="artifact.xsd"/>

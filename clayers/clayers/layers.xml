@@ -970,6 +970,66 @@ clayers connectivity clayers/PROJECT/</pr:codeblock>
   </lyr:layer>
 
   <!-- ============================================================
+       Layer: Diagnostic
+       ============================================================ -->
+
+  <lyr:layer id="layer-diagnostic" schema="urn:clayers:diagnostic">
+    <lyr:mode id="mode-diag-onboard" name="onboard">
+      <lyr:requires layer="layer-prose"/>
+      <lyr:condition>Known failure modes or remediation guidance exists</lyr:condition>
+      <lyr:acceptance>Failure modes are represented as diag:issue nodes with
+      condition, cause, remedy, and severity</lyr:acceptance>
+      <pr:section id="diag-onboard-guidance">
+        <pr:title>Diagnostic Onboarding</pr:title>
+        <pr:p>Create <pr:code>diag:issue</pr:code> nodes for troubleshooting
+        knowledge that should be queryable: observed conditions, likely causes,
+        recovery remedies, responsible parties, and tests that verify the
+        issue or fix.</pr:p>
+        <pr:ol>
+          <pr:li>Identify recurring errors, confusing validation failures,
+          operational failures, and recovery procedures</pr:li>
+          <pr:li>Add one <pr:code>diag:issue</pr:code> per failure mode</pr:li>
+          <pr:li>Set <pr:code>@ref</pr:code> to the affected spec node when
+          the issue diagnoses a specific command, layer, or feature</pr:li>
+          <pr:li>Write condition, cause, and remedy fields as structured
+          domain data, not as an unstructured prose paragraph</pr:li>
+        </pr:ol>
+      </pr:section>
+    </lyr:mode>
+  </lyr:layer>
+
+  <!-- ============================================================
+       Layer: Deliberation
+       ============================================================ -->
+
+  <lyr:layer id="layer-deliberation" schema="urn:clayers:deliberation">
+    <lyr:mode id="mode-delib-onboard" name="onboard">
+      <lyr:requires layer="layer-prose"/>
+      <lyr:condition>Meaningful options or tradeoffs need to be captured</lyr:condition>
+      <lyr:acceptance>Option sets are represented as delib:choice-set nodes
+      with option outcomes and rationale</lyr:acceptance>
+      <pr:section id="delib-onboard-guidance">
+        <pr:title>Deliberation Onboarding</pr:title>
+        <pr:p>Create <pr:code>delib:choice-set</pr:code> nodes when options
+        have conditions, outcomes, or rationale that should remain queryable.
+        Use the decision layer when a resolved deliberation becomes an
+        architecture decision with lifecycle status.</pr:p>
+        <pr:ol>
+          <pr:li>Identify option sets that are more meaningful than simple
+          list ordering</pr:li>
+          <pr:li>Add a <pr:code>delib:choice-set</pr:code> with status
+          <pr:code>open</pr:code>, <pr:code>resolved</pr:code>, or
+          <pr:code>deferred</pr:code></pr:li>
+          <pr:li>Add one <pr:code>delib:option</pr:code> per alternative with
+          outcome, optional condition, and rationale</pr:li>
+          <pr:li>If a choice becomes an ADR, add a decision that references
+          the same topic and keep the deliberation as the option record</pr:li>
+        </pr:ol>
+      </pr:section>
+    </lyr:mode>
+  </lyr:layer>
+
+  <!-- ============================================================
        Layer: Content
        ============================================================ -->
 
@@ -1133,6 +1193,26 @@ clayers connectivity clayers/PROJECT/</pr:codeblock>
   <rel:relation type="depends-on" from="layer-artifact" to="layer-revision">
     <rel:note>Artifact mappings pin to revisions, so at least one revision
     must exist.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="layer-diagnostic" to="layer-prose">
+    <rel:note>Diagnostic issues are commonly rendered inside prose sections
+    even though troubleshooting semantics live in their own layer.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="layer-diagnostic" to="diagnostic-layer">
+    <rel:note>The layer registry entry corresponds to the diagnostic-layer
+    concept in the self-spec.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="depends-on" from="layer-deliberation" to="layer-decision">
+    <rel:note>Deliberation records option sets that may later become formal
+    decisions.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="layer-deliberation" to="deliberation-layer">
+    <rel:note>The layer registry entry corresponds to the deliberation-layer
+    concept in the self-spec.</rel:note>
   </rel:relation>
 
   <!-- Machine descriptions -->

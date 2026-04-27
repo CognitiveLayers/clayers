@@ -8,6 +8,7 @@
        xmlns:trm="urn:clayers:terminology"
        xmlns:org="urn:clayers:organization"
        xmlns:rel="urn:clayers:relation"
+       xmlns:diag="urn:clayers:diagnostic"
        xmlns:art="urn:clayers:artifact"
        xmlns:llm="urn:clayers:llm"
        spec:index="index.xml">
@@ -76,21 +77,55 @@
     integrity checking happen together.</pr:p>
 
     <pr:steps>
-      <pr:step id="validation-flow-step-discover">Discover XML files from the given path (file or directory).</pr:step>
-      <pr:step id="validation-flow-step-resolve-index">For each file, check if it is an index (has index file entries
-      as children). Otherwise, resolve the index attribute to find its
-      index.</pr:step>
-      <pr:step id="validation-flow-step-read-manifest">For each discovered index, read the file manifest to find all
-      layer files.</pr:step>
-      <pr:step id="validation-flow-step-assemble">Assemble a combined document: create a cmb:spec wrapper element
-      and unwrap children from each layer file's clayers root.</pr:step>
-      <pr:step id="validation-flow-step-generate-schema">Generate the combined schema: scan all layer .xsd files for
-      <pr:code>spec:content-element</pr:code> appinfo markers (for the choice
-      group) and <pr:code>spec:keyref</pr:code> annotations (for referential
-      integrity constraints).</pr:step>
-      <pr:step id="validation-flow-step-validate">Validate the combined document against the generated schema.</pr:step>
-      <pr:step id="validation-flow-step-report">Report results per spec: pass or fail with error details.</pr:step>
+      <pr:step id="validation-flow-step-discover">
+        <pr:cmd>Discover XML files from the given path.</pr:cmd>
+        <pr:info>The input may be a single file or a directory.</pr:info>
+      </pr:step>
+      <pr:step id="validation-flow-step-resolve-index">
+        <pr:cmd>Resolve each file to its owning index.</pr:cmd>
+        <pr:info>Index files contain manifest entries as children. Non-index
+        files use the root <pr:code>index</pr:code> attribute to locate the
+        manifest.</pr:info>
+      </pr:step>
+      <pr:step id="validation-flow-step-read-manifest">
+        <pr:cmd>Read each discovered index manifest.</pr:cmd>
+        <pr:stepresult>The validator has the complete list of layer files for
+        each spec.</pr:stepresult>
+      </pr:step>
+      <pr:step id="validation-flow-step-assemble">
+        <pr:cmd>Assemble a combined document.</pr:cmd>
+        <pr:info>Create a <pr:code>cmb:spec</pr:code> wrapper element and
+        unwrap children from each layer file's <pr:code>clayers</pr:code>
+        root.</pr:info>
+      </pr:step>
+      <pr:step id="validation-flow-step-generate-schema">
+        <pr:cmd>Generate the combined schema.</pr:cmd>
+        <pr:info>Scan all layer <pr:filepath>.xsd</pr:filepath> files for
+        <pr:code>spec:content-element</pr:code> appinfo markers and
+        <pr:code>spec:keyref</pr:code> annotations.</pr:info>
+        <pr:stepresult>The schema contains both the layer choice group and
+        referential integrity constraints.</pr:stepresult>
+      </pr:step>
+      <pr:step id="validation-flow-step-validate">
+        <pr:cmd>Validate the combined document against the generated schema.</pr:cmd>
+      </pr:step>
+      <pr:step id="validation-flow-step-report">
+        <pr:cmd>Report results per spec.</pr:cmd>
+        <pr:stepresult>Each spec reports pass or fail with error details.</pr:stepresult>
+      </pr:step>
     </pr:steps>
+
+    <diag:issue id="diag-validation-reference-fails" ref="validation-flow">
+      <diag:title>Reference validation fails</diag:title>
+      <diag:severity>error</diag:severity>
+      <diag:condition>The validator reports that a key reference does not
+      resolve.</diag:condition>
+      <diag:cause>A layer contains a reference attribute whose value does not
+      match any node ID in the combined document.</diag:cause>
+      <diag:remedy>Check the spelling of the reference value and confirm the
+      target file is listed in the index manifest.</diag:remedy>
+      <diag:responsible-party>Spec author</diag:responsible-party>
+    </diag:issue>
 
     <pr:p>Namespace discovery is dynamic. The tool scans all .xsd files in the
     schema directory at startup to build prefix-to-URI mappings, rather than
@@ -131,12 +166,21 @@
     assemble the combined document.</rel:note>
   </rel:relation>
 
+  <rel:relation type="references" from="diag-validation-reference-fails" to="validation-flow">
+    <rel:note>The diagnostic issue describes a failed reference-validation
+    condition.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="diag-validation-reference-fails" to="diagnostic-layer">
+    <rel:note>The issue is represented in the diagnostic layer.</rel:note>
+  </rel:relation>
+
   <!-- Artifact mappings -->
 
   <art:mapping id="map-validation-script">
     <art:spec-ref node="validation-flow"
               revision="draft-1"
-              node-hash="sha256:a8659dd840c9fdde4e94ea10f07ab6ea25adb8f52eda6a1002e7f0ad9bc7c3fd"/>
+              node-hash="sha256:c16a95e8f1c091ae63a7f3443b7eb6659875629fd1251ededd1c534bb3f36871"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/validate.rs">
@@ -151,7 +195,7 @@
   <art:mapping id="map-combined-schema-keyref">
     <art:spec-ref node="cross-layer-integrity"
               revision="draft-1"
-              node-hash="sha256:e5a6abdf801ee1970d5b8d807c90f702305c98fc94b7fb1a29a759b1be92303a"/>
+              node-hash="sha256:79d4836c861210d910cccc0c3457f402e2e4080ab41e089e3a904ad0ac00f393"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/schema.rs">
@@ -166,7 +210,7 @@
   <art:mapping id="map-combined-schema-content">
     <art:spec-ref node="cross-layer-integrity"
               revision="draft-1"
-              node-hash="sha256:e5a6abdf801ee1970d5b8d807c90f702305c98fc94b7fb1a29a759b1be92303a"/>
+              node-hash="sha256:79d4836c861210d910cccc0c3457f402e2e4080ab41e089e3a904ad0ac00f393"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/schema.rs">
@@ -181,7 +225,7 @@
   <art:mapping id="map-term-combined-document">
     <art:spec-ref node="term-combined-document"
               revision="draft-1"
-              node-hash="sha256:05b70be206ff121ee30bba6918bb21197d11fa6ed4b00c80a8351d6456487ad4"/>
+              node-hash="sha256:8d4d0dd4690e199bfec5941f1a214aa738baf295bf12a5907dd77a8e734019cb"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/assembly.rs">
@@ -196,7 +240,7 @@
   <art:mapping id="map-term-cross-layer-ref-check">
     <art:spec-ref node="term-cross-layer-ref"
               revision="draft-1"
-              node-hash="sha256:9168e993a2ffdb4ca14419213a8c99893db616af46a43147d258be9ede1d3c5d"/>
+              node-hash="sha256:693f092558199d6e13ab6771378faf72a83037b2af1e8cc55894a568debbf93b"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/validate.rs">
@@ -211,7 +255,7 @@
   <art:mapping id="map-term-cross-layer-ref-relation">
     <art:spec-ref node="term-cross-layer-ref"
               revision="draft-1"
-              node-hash="sha256:9168e993a2ffdb4ca14419213a8c99893db616af46a43147d258be9ede1d3c5d"/>
+              node-hash="sha256:693f092558199d6e13ab6771378faf72a83037b2af1e8cc55894a568debbf93b"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/validate.rs">
@@ -228,7 +272,7 @@
   <art:mapping id="map-validation-flow-step-discover">
     <art:spec-ref node="validation-flow-step-discover"
               revision="draft-1"
-              node-hash="sha256:771d9fa073120192b44cc1a72b6026284e09d24c82280d31d6e8ab4f42bfc30a"/>
+              node-hash="sha256:23522a43da51732652883adfabc52c6256856b832d221f31044a7f798a031733"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/discovery.rs">
@@ -242,7 +286,7 @@
   <art:mapping id="map-validation-flow-step-resolve-index">
     <art:spec-ref node="validation-flow-step-resolve-index"
               revision="draft-1"
-              node-hash="sha256:22931771c5fee1949b1abec3d6850557c2499a8949448ab6881adc2a9d442364"/>
+              node-hash="sha256:fd9f438868c25c015acb84ea2fc38cf0b2b93e7e57d39bd05fe16d23a8f68080"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/discovery.rs">
@@ -259,7 +303,7 @@
   <art:mapping id="map-validation-flow-step-read-manifest">
     <art:spec-ref node="validation-flow-step-read-manifest"
               revision="draft-1"
-              node-hash="sha256:56a651358a6846a5e9622055b0745599c0d169b7d31a4d1b035b0cf02edfe6ed"/>
+              node-hash="sha256:dc604f113909f255960b7e01e6befc07fa022414e8a768e9a681f2365375e7ea"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/discovery.rs">
@@ -273,7 +317,7 @@
   <art:mapping id="map-validation-flow-step-assemble">
     <art:spec-ref node="validation-flow-step-assemble"
               revision="draft-1"
-              node-hash="sha256:a32fac3d2a0c9b2360ecd0c0f931f02df663cb3b7c2d9ec9690a3af237fc39bc"/>
+              node-hash="sha256:f7334a1faa9f0c957059f01645f9385bb88424863d772cab7500da5772c9307e"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/assembly.rs">
@@ -287,7 +331,7 @@
   <art:mapping id="map-validation-flow-step-generate-schema-discover">
     <art:spec-ref node="validation-flow-step-generate-schema"
               revision="draft-1"
-              node-hash="sha256:8ac8dd62e24f0680721fb810bbdd81d441fbc44db185f86b72dc088c81f826d2"/>
+              node-hash="sha256:0eaa8da4d5528f3b491c0eedefe2ee8ddf9d0f4fa7ef807ea7af9cd3db3814e4"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/schema.rs">
@@ -302,7 +346,7 @@
   <art:mapping id="map-validation-flow-step-generate-schema-collect">
     <art:spec-ref node="validation-flow-step-generate-schema"
               revision="draft-1"
-              node-hash="sha256:8ac8dd62e24f0680721fb810bbdd81d441fbc44db185f86b72dc088c81f826d2"/>
+              node-hash="sha256:0eaa8da4d5528f3b491c0eedefe2ee8ddf9d0f4fa7ef807ea7af9cd3db3814e4"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/schema.rs">
@@ -317,7 +361,7 @@
   <art:mapping id="map-validation-flow-step-validate">
     <art:spec-ref node="validation-flow-step-validate"
               revision="draft-1"
-              node-hash="sha256:8c83e368844d16cf28f563c211eaff5764e06e266cbe2331df3a9d7e0483e879"/>
+              node-hash="sha256:c8ecef377245374cf708ad8cf70df8486b14440370d02bb832f5440a61bc2c44"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/validate.rs">
@@ -331,7 +375,7 @@
   <art:mapping id="map-validation-flow-step-report">
     <art:spec-ref node="validation-flow-step-report"
               revision="draft-1"
-              node-hash="sha256:b6281d6d83d5655dfc87616029605156d05d0b3f48fbf5e8889fee3208dbc5b6"/>
+              node-hash="sha256:fd4ce378059a91be10ea1b6b38be7a2827f85a7497a1b66dec76d236a8af656d"/>
     <art:artifact repo="repo-clayers"
               repo-revision="2916ded"
               path="crates/clayers/src/cli.rs">

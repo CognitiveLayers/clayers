@@ -73,6 +73,16 @@ fn child_elements(xot: &Xot, parent: Node) -> Vec<Node> {
         .collect()
 }
 
+fn apply_quantifier(item: &mut RncBodyItem, q: RncQuantifier) {
+    match item {
+        RncBodyItem::Element(el) => el.quantifier = q,
+        RncBodyItem::Choice { quantifier, .. } | RncBodyItem::AnyElement(quantifier) => {
+            *quantifier = q;
+        }
+        _ => {}
+    }
+}
+
 fn find_child(xot: &Xot, parent: Node, name_id: NameId) -> Option<Node> {
     xot.children(parent).find(|n| is_el(xot, *n, name_id))
 }
@@ -82,6 +92,7 @@ struct XsdNames {
     complex_type: NameId,
     simple_type: NameId,
     element: NameId,
+    group: NameId,
     attribute: NameId,
     attribute_group: NameId,
     sequence: NameId,
@@ -113,6 +124,7 @@ impl XsdNames {
             complex_type: xot.add_name_ns("complexType", xs_ns),
             simple_type: xot.add_name_ns("simpleType", xs_ns),
             element: xot.add_name_ns("element", xs_ns),
+            group: xot.add_name_ns("group", xs_ns),
             attribute: xot.add_name_ns("attribute", xs_ns),
             attribute_group: xot.add_name_ns("attributeGroup", xs_ns),
             sequence: xot.add_name_ns("sequence", xs_ns),
@@ -144,6 +156,7 @@ struct Ctx {
     types: HashMap<TypeKey, Node>,
     simple_types: HashMap<TypeKey, Node>,
     attr_groups: HashMap<TypeKey, Node>,
+    groups: HashMap<TypeKey, Node>,
     named_types: HashSet<TypeKey>,
     emitted_names: HashSet<TypeKey>,
     expanding: HashSet<TypeKey>,
@@ -374,6 +387,8 @@ impl Ctx {
         for child in children {
             if is_el(xot, child, self.n.element) {
                 items.push(self.emit_child(xot, child, pfx));
+            } else if is_el(xot, child, self.n.group) {
+                items.extend(self.emit_group_ref(xot, child, pfx));
             } else if is_el(xot, child, self.n.sequence) {
                 items.extend(self.emit_children(xot, child, pfx));
             } else if is_el(xot, child, self.n.choice) {
@@ -405,12 +420,43 @@ impl Ctx {
         for opt in child_elements(xot, child) {
             if is_el(xot, opt, self.n.element) {
                 options.push(self.emit_child(xot, opt, pfx));
+            } else if is_el(xot, opt, self.n.group) {
+                options.extend(self.emit_group_ref(xot, opt, pfx));
             }
         }
         RncBodyItem::Choice {
             options,
             quantifier: q,
         }
+    }
+
+    fn emit_group_ref(&mut self, xot: &Xot, group_ref: Node, pfx: &str) -> Vec<RncBodyItem> {
+        let Some(ref_val) = attr(xot, group_ref, self.n.ref_attr) else {
+            return self.emit_children(xot, group_ref, pfx);
+        };
+        let (gpfx, glocal) = split_prefixed(ref_val, pfx);
+        let key = (gpfx.to_string(), glocal.to_string());
+        let fallback = (pfx.to_string(), glocal.to_string());
+        let Some(group_node) = self
+            .groups
+            .get(&key)
+            .or_else(|| self.groups.get(&fallback))
+            .copied()
+        else {
+            return Vec::new();
+        };
+
+        let mut items = self.emit_children(xot, group_node, gpfx);
+        let q = rnc_quantifier(
+            xot,
+            group_ref,
+            self.n.min_occurs_attr,
+            self.n.max_occurs_attr,
+        );
+        if q != RncQuantifier::One && items.len() == 1 {
+            apply_quantifier(&mut items[0], q);
+        }
+        items
     }
 
     fn emit_body(&mut self, xot: &Xot, ct: Node, pfx: &str) -> Vec<RncBodyItem> {
@@ -555,10 +601,10 @@ pub fn xsd_to_rnc(
     let parsed = parse_all(&mut xot, &xsd_paths, &names, &skip_set)?;
 
     // Build type registries.
-    let (types, simple_types, attr_groups) = build_registries(&xot, &parsed, &names);
+    let (types, simple_types, attr_groups, groups) = build_registries(&xot, &parsed, &names);
 
     // Count usage and detect recursion.
-    let named_types = find_named_types(&xot, &parsed, &types, &names);
+    let named_types = find_named_types(&xot, &parsed, &types, &groups, &names);
 
     // Build schema.
     let discovered: Vec<(String, String)> = parsed
@@ -571,6 +617,7 @@ pub fn xsd_to_rnc(
         types: types.clone(),
         simple_types: simple_types.clone(),
         attr_groups,
+        groups,
         named_types,
         emitted_names: HashSet::new(),
         expanding: HashSet::new(),
@@ -622,10 +669,12 @@ fn build_registries(
     HashMap<TypeKey, Node>,
     HashMap<TypeKey, Node>,
     HashMap<TypeKey, Node>,
+    HashMap<TypeKey, Node>,
 ) {
     let mut types = HashMap::new();
     let mut simple_types = HashMap::new();
     let mut attr_groups = HashMap::new();
+    let mut groups = HashMap::new();
 
     for p in parsed {
         for child in xot.children(p.root) {
@@ -655,17 +704,22 @@ fn build_registries(
                 if has_attr {
                     attr_groups.insert((p.pfx.clone(), n.clone()), child);
                 }
+            } else if child_name == names.group
+                && let Some(n) = name_val
+            {
+                groups.insert((p.pfx.clone(), n), child);
             }
         }
     }
 
-    (types, simple_types, attr_groups)
+    (types, simple_types, attr_groups, groups)
 }
 
 fn find_named_types(
     xot: &Xot,
     parsed: &[ParsedXsd],
     types: &HashMap<TypeKey, Node>,
+    groups: &HashMap<TypeKey, Node>,
     names: &XsdNames,
 ) -> HashSet<TypeKey> {
     let mut type_usage: HashMap<TypeKey, usize> = HashMap::new();
@@ -677,11 +731,11 @@ fn find_named_types(
         count_extension_bases(xot, *ct_node, tp, names, &mut type_usage);
     }
     for ((tp, tl), ct_node) in types {
-        if has_self_reference(xot, *ct_node, tl, names) {
+        if has_self_reference(xot, *ct_node, tp, tl, names, groups) {
             *type_usage.entry((tp.clone(), tl.clone())).or_insert(0) += 2;
         }
     }
-    detect_mutual_recursion(xot, types, names, &mut type_usage);
+    detect_mutual_recursion(xot, types, groups, names, &mut type_usage);
 
     type_usage
         .into_iter()
@@ -905,14 +959,43 @@ fn count_extension_bases(
     }
 }
 
-fn has_self_reference(xot: &Xot, node: Node, type_name: &str, names: &XsdNames) -> bool {
+fn has_self_reference(
+    xot: &Xot,
+    node: Node,
+    default_pfx: &str,
+    type_name: &str,
+    names: &XsdNames,
+    groups: &HashMap<TypeKey, Node>,
+) -> bool {
+    let mut seen_groups = HashSet::new();
+    has_self_reference_inner(
+        xot,
+        node,
+        default_pfx,
+        type_name,
+        names,
+        groups,
+        &mut seen_groups,
+    )
+}
+
+fn has_self_reference_inner(
+    xot: &Xot,
+    node: Node,
+    default_pfx: &str,
+    type_name: &str,
+    names: &XsdNames,
+    groups: &HashMap<TypeKey, Node>,
+    seen_groups: &mut HashSet<TypeKey>,
+) -> bool {
     for child in xot.children(node) {
         if !xot.is_element(child) {
             continue;
         }
-        if xot
-            .element(child)
-            .is_some_and(|e| e.name() == names.element)
+        let Some(el) = xot.element(child) else {
+            continue;
+        };
+        if el.name() == names.element
             && let Some(type_ref) = xot.get_attribute(child, names.type_attr)
         {
             let local = split_prefixed(type_ref, "").1;
@@ -920,7 +1003,30 @@ fn has_self_reference(xot: &Xot, node: Node, type_name: &str, names: &XsdNames) 
                 return true;
             }
         }
-        if has_self_reference(xot, child, type_name, names) {
+        if el.name() == names.group
+            && let Some(group_node) =
+                resolve_group_ref(xot, child, default_pfx, names, groups, seen_groups)
+            && has_self_reference_inner(
+                xot,
+                group_node,
+                default_pfx,
+                type_name,
+                names,
+                groups,
+                seen_groups,
+            )
+        {
+            return true;
+        }
+        if has_self_reference_inner(
+            xot,
+            child,
+            default_pfx,
+            type_name,
+            names,
+            groups,
+            seen_groups,
+        ) {
             return true;
         }
     }
@@ -930,13 +1036,14 @@ fn has_self_reference(xot: &Xot, node: Node, type_name: &str, names: &XsdNames) 
 fn detect_mutual_recursion(
     xot: &Xot,
     types: &HashMap<TypeKey, Node>,
+    groups: &HashMap<TypeKey, Node>,
     names: &XsdNames,
     usage: &mut HashMap<TypeKey, usize>,
 ) {
     let mut refs: HashMap<TypeKey, HashSet<TypeKey>> = HashMap::new();
     for (key, &ct_node) in types {
         let mut referenced = HashSet::new();
-        collect_type_refs(xot, ct_node, &key.0, names, &mut referenced);
+        collect_type_refs(xot, ct_node, &key.0, names, groups, &mut referenced);
         refs.insert(key.clone(), referenced);
     }
     let keys: Vec<TypeKey> = refs.keys().cloned().collect();
@@ -961,30 +1068,82 @@ fn collect_type_refs(
     node: Node,
     default_pfx: &str,
     names: &XsdNames,
+    groups: &HashMap<TypeKey, Node>,
     out: &mut HashSet<TypeKey>,
+) {
+    let mut seen_groups = HashSet::new();
+    collect_type_refs_inner(xot, node, default_pfx, names, groups, out, &mut seen_groups);
+}
+
+fn collect_type_refs_inner(
+    xot: &Xot,
+    node: Node,
+    default_pfx: &str,
+    names: &XsdNames,
+    groups: &HashMap<TypeKey, Node>,
+    out: &mut HashSet<TypeKey>,
+    seen_groups: &mut HashSet<TypeKey>,
 ) {
     for child in xot.children(node) {
         if !xot.is_element(child) {
             continue;
         }
-        if xot
-            .element(child)
-            .is_some_and(|e| e.name() == names.element)
+        let Some(el) = xot.element(child) else {
+            continue;
+        };
+        if el.name() == names.element
             && let Some(type_ref) = xot.get_attribute(child, names.type_attr)
         {
             let (tp, tl) = split_prefixed(type_ref, default_pfx);
             out.insert((tp.to_string(), tl.to_string()));
         }
-        if xot
-            .element(child)
-            .is_some_and(|e| e.name() == names.extension)
+        if el.name() == names.extension
             && let Some(base) = xot.get_attribute(child, names.base_attr)
         {
             let (bp, bl) = split_prefixed(base, default_pfx);
             out.insert((bp.to_string(), bl.to_string()));
         }
-        collect_type_refs(xot, child, default_pfx, names, out);
+        if el.name() == names.group
+            && let Some(group_node) =
+                resolve_group_ref(xot, child, default_pfx, names, groups, seen_groups)
+        {
+            collect_type_refs_inner(
+                xot,
+                group_node,
+                default_pfx,
+                names,
+                groups,
+                out,
+                seen_groups,
+            );
+        }
+        collect_type_refs_inner(xot, child, default_pfx, names, groups, out, seen_groups);
     }
+}
+
+fn resolve_group_ref(
+    xot: &Xot,
+    group_ref: Node,
+    default_pfx: &str,
+    names: &XsdNames,
+    groups: &HashMap<TypeKey, Node>,
+    seen_groups: &mut HashSet<TypeKey>,
+) -> Option<Node> {
+    let ref_val = xot.get_attribute(group_ref, names.ref_attr)?;
+    let (gpfx, glocal) = split_prefixed(ref_val, default_pfx);
+    let key = (gpfx.to_string(), glocal.to_string());
+    let fallback = (default_pfx.to_string(), glocal.to_string());
+    let resolved_key = if groups.contains_key(&key) {
+        key
+    } else if groups.contains_key(&fallback) {
+        fallback
+    } else {
+        return None;
+    };
+    if !seen_groups.insert(resolved_key.clone()) {
+        return None;
+    }
+    groups.get(&resolved_key).copied()
 }
 
 #[cfg(test)]

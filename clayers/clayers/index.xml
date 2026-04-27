@@ -22,6 +22,8 @@
   <file href="sources.xml"/>
   <file href="plans.xml"/>
   <file href="content.xml"/>
+  <file href="technical-documentation.xml"/>
+  <file href="diagnostics-deliberation.xml"/>
   <file href="testing.xml"/>
   <file href="adopt.xml"/>
   <file href="integration.xml"/>

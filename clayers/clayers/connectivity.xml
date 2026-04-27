@@ -9,6 +9,7 @@
        xmlns:trm="urn:clayers:terminology"
        xmlns:org="urn:clayers:organization"
        xmlns:rel="urn:clayers:relation"
+       xmlns:diag="urn:clayers:diagnostic"
        xmlns:art="urn:clayers:artifact"
        xmlns:llm="urn:clayers:llm"
        spec:index="index.xml">
@@ -87,26 +88,68 @@
 
     <pr:p>The command reports seven metrics:</pr:p>
 
-    <pr:ul>
-      <pr:li><pr:b>Summary</pr:b>: node count, edge count, and graph density.</pr:li>
-      <pr:li><pr:b>Relation type distribution</pr:b>: count of each relation
-      kind (depends-on, precedes, refines, etc.).</pr:li>
-      <pr:li><pr:b>Connected components</pr:b>: number of weakly connected
-      components, with per-component detail when fragmented.</pr:li>
-      <pr:li><pr:b>Isolated nodes</pr:b>: nodes with zero in-degree and zero
-      out-degree, indicating completely disconnected content.</pr:li>
-      <pr:li><pr:b>Hub nodes</pr:b>: top 5 nodes by total degree, revealing
-      the most connected concepts.</pr:li>
-      <pr:li><pr:b>Bridge nodes</pr:b>: top 5 by betweenness centrality,
-      identifying nodes whose removal would fragment the graph.</pr:li>
-      <pr:li><pr:b>Cycles</pr:b>: simple cycles in the directed graph,
-      which may indicate circular dependencies.</pr:li>
-    </pr:ul>
+    <pr:properties>
+      <pr:title>Connectivity metrics</pr:title>
+      <pr:property>
+        <pr:proptype>Summary</pr:proptype>
+        <pr:propvalue>Node count, edge count, density</pr:propvalue>
+        <pr:propdesc>Shows graph size and overall relation density.</pr:propdesc>
+      </pr:property>
+      <pr:property>
+        <pr:proptype>Relation type distribution</pr:proptype>
+        <pr:propvalue>Counts by relation kind</pr:propvalue>
+        <pr:propdesc>Shows whether the graph is mostly dependency,
+        refinement, reference, or other relation types.</pr:propdesc>
+      </pr:property>
+      <pr:property>
+        <pr:proptype>Connected components</pr:proptype>
+        <pr:propvalue>Weak component count</pr:propvalue>
+        <pr:propdesc>Identifies fragmented subgraphs that should be linked
+        back into the main specification.</pr:propdesc>
+      </pr:property>
+      <pr:property>
+        <pr:proptype>Isolated nodes</pr:proptype>
+        <pr:propvalue>Zero in-degree and zero out-degree</pr:propvalue>
+        <pr:propdesc>Highlights content that is completely disconnected from
+        the knowledge graph.</pr:propdesc>
+      </pr:property>
+      <pr:property>
+        <pr:proptype>Hub nodes</pr:proptype>
+        <pr:propvalue>Top nodes by total degree</pr:propvalue>
+        <pr:propdesc>Reveals highly connected concepts that anchor the
+        specification.</pr:propdesc>
+      </pr:property>
+      <pr:property>
+        <pr:proptype>Bridge nodes</pr:proptype>
+        <pr:propvalue>Top nodes by betweenness centrality</pr:propvalue>
+        <pr:propdesc>Identifies nodes whose removal would fragment the
+        graph.</pr:propdesc>
+      </pr:property>
+      <pr:property>
+        <pr:proptype>Cycles</pr:proptype>
+        <pr:propvalue>Directed simple cycles</pr:propvalue>
+        <pr:propdesc>Surfaces circular dependencies and temporal ordering
+        contradictions.</pr:propdesc>
+      </pr:property>
+    </pr:properties>
 
     <pr:p>The command exits with code 0 when the specification is fully
     connected (one component, zero isolated nodes) and code 1 when
     fragmentation is detected. This enables CI/CD integration for
     connectivity enforcement.</pr:p>
+
+    <diag:issue id="diag-connectivity-isolated-nodes" ref="connectivity-analysis">
+      <diag:title>Connectivity reports many isolated nodes</diag:title>
+      <diag:severity>warning</diag:severity>
+      <diag:condition>The graph contains many nodes with no incoming or outgoing
+      edges.</diag:condition>
+      <diag:cause>New sections, terms, plans, tests, or API nodes were added
+      without relations, related links, inline references, or artifact mappings
+      that connect them to the rest of the spec.</diag:cause>
+      <diag:remedy>Add meaningful rel:relation edges or prose references. Do
+      not add artificial edges solely to silence the metric.</diag:remedy>
+      <diag:responsible-party>Spec author</diag:responsible-party>
+    </diag:issue>
   </pr:section>
 
   <pr:section id="acyclic-cycle-detection">
@@ -156,6 +199,12 @@
     are also flagged as errors if any edge is acyclic. The acyclic constraint
     applies per-edge, not per-cycle: a single depends-on or precedes edge in
     a cycle is sufficient to flag it.</pr:note>
+
+    <pr:example>
+      <pr:title>Acyclic cycle to break</pr:title>
+      <pr:codeblock language="xml">&lt;rel:relation type="depends-on" from="build-step" to="schema-step"/&gt;
+&lt;rel:relation type="depends-on" from="schema-step" to="build-step"/&gt;</pr:codeblock>
+    </pr:example>
   </pr:section>
 
   <pr:section id="reference-synthesis">
@@ -193,6 +242,12 @@
     the <trm:ref term="term-spec-connectivity">connectivity</trm:ref> command)
     go through the same XSLT pipeline, ensuring that validation and connectivity
     analysis see identical relation graphs.</pr:p>
+
+    <pr:related-links>
+      <pr:link ref="connectivity-analysis">Connectivity analysis</pr:link>
+      <pr:link ref="xpath-query-tooling">XPath query tooling</pr:link>
+      <pr:link ref="technical-documentation-prose">Technical documentation prose</pr:link>
+    </pr:related-links>
   </pr:section>
 
   <!-- Topic typing -->
@@ -221,6 +276,15 @@
   <rel:relation type="depends-on" from="connectivity-analysis" to="term-spec-connectivity">
     <rel:note>Connectivity analysis depends on the specification connectivity
     concept for its semantic foundation.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="references" from="diag-connectivity-isolated-nodes" to="connectivity-analysis">
+    <rel:note>The diagnostic issue describes an isolated-node connectivity
+    finding.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="diag-connectivity-isolated-nodes" to="diagnostic-layer">
+    <rel:note>The issue is represented in the diagnostic layer.</rel:note>
   </rel:relation>
 
   <rel:relation type="depends-on" from="connectivity-analysis" to="layered-architecture">
@@ -264,7 +328,7 @@
   <art:mapping id="map-connectivity-analysis-main">
     <art:spec-ref node="connectivity-analysis"
               revision="draft-1"
-              node-hash="sha256:71fde2165918019ba29bad37a4aeb27a185f6d07c54e975ed8bd7a87e8673e49"/>
+              node-hash="sha256:c75c8712b453f977dd19efa2e6d64a500b3ceb01f393a7fcf78c44da09b1fea9"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/connectivity.rs">
@@ -279,7 +343,7 @@
   <art:mapping id="map-connectivity-collect-relations">
     <art:spec-ref node="connectivity-analysis"
               revision="draft-1"
-              node-hash="sha256:71fde2165918019ba29bad37a4aeb27a185f6d07c54e975ed8bd7a87e8673e49"/>
+              node-hash="sha256:c75c8712b453f977dd19efa2e6d64a500b3ceb01f393a7fcf78c44da09b1fea9"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/connectivity.rs">
@@ -293,7 +357,7 @@
   <art:mapping id="map-connectivity-collect-from-tree">
     <art:spec-ref node="connectivity-analysis"
               revision="draft-1"
-              node-hash="sha256:71fde2165918019ba29bad37a4aeb27a185f6d07c54e975ed8bd7a87e8673e49"/>
+              node-hash="sha256:c75c8712b453f977dd19efa2e6d64a500b3ceb01f393a7fcf78c44da09b1fea9"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/connectivity.rs">
@@ -307,7 +371,7 @@
   <art:mapping id="map-connectivity-relation-schema">
     <art:spec-ref node="connectivity-analysis"
               revision="draft-1"
-              node-hash="sha256:71fde2165918019ba29bad37a4aeb27a185f6d07c54e975ed8bd7a87e8673e49"/>
+              node-hash="sha256:c75c8712b453f977dd19efa2e6d64a500b3ceb01f393a7fcf78c44da09b1fea9"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="schemas/relation.xsd">
@@ -323,7 +387,7 @@
   <art:mapping id="map-term-spec-connectivity">
     <art:spec-ref node="term-spec-connectivity"
               revision="draft-1"
-              node-hash="sha256:bd5b3cbd59019108fa2b41e0511613a767d3516ffd706e49577e838849789460"/>
+              node-hash="sha256:01eaf725ec5e2bc3944e83ee2e8bbb2443af5cb1c66971540dec5097d94ddbf1"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/connectivity.rs">
@@ -338,7 +402,7 @@
   <art:mapping id="map-acyclic-cycle-detection">
     <art:spec-ref node="acyclic-cycle-detection"
               revision="draft-1"
-              node-hash="sha256:81580df20b45393d31a6bb910ec5f879ac4b79900fcc98a9b363ac8a19f8f6ba"/>
+              node-hash="sha256:ef4d546040fa99d61f166a923dd1bbfe9836ed9fb9ffc648790d5b84db1362f3"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/connectivity.rs">
@@ -356,7 +420,7 @@
   <art:mapping id="map-term-acyclic-relation">
     <art:spec-ref node="term-acyclic-relation"
               revision="draft-1"
-              node-hash="sha256:782eb9d953f73adae55c85adb4485f735cd208149c6eb6cc7469954decc4fdf3"/>
+              node-hash="sha256:9466b681fc41e19b950811104dd3bfdf95f9f019af7834fc7ce8da0170b465ab"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="schemas/relation.xsd">
@@ -371,11 +435,11 @@
   <art:mapping id="map-reference-synthesis-xslt">
     <art:spec-ref node="reference-synthesis"
               revision="draft-1"
-              node-hash="sha256:bbbc45ab5e5eadf1e3ae0acac6ba30878ed5560e62e96eb939c511b4e509bf52"/>
+              node-hash="sha256:fa7f278c9fe44facce941880a17fd3858f96c77aafa5dedb2139da6f7a346b5d"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="schemas/postprocess.xslt">
-        <art:range hash="sha256:bdb51516b4118d4cc295eedfcf12c7c95cc2aed5ce90b4e6353b56ca7de56192"
+        <art:range hash="sha256:9765608de06ff8c6a490b8951545b2f5e8c2de03654785746c17dbd0bc569528"
                    start-line="1" end-line="70"/>
       </art:artifact>
     <art:coverage>full</art:coverage>
@@ -386,7 +450,7 @@
   <art:mapping id="map-reference-synthesis-py">
     <art:spec-ref node="reference-synthesis"
               revision="draft-1"
-              node-hash="sha256:bbbc45ab5e5eadf1e3ae0acac6ba30878ed5560e62e96eb939c511b4e509bf52"/>
+              node-hash="sha256:fa7f278c9fe44facce941880a17fd3858f96c77aafa5dedb2139da6f7a346b5d"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/assembly.rs">
@@ -401,11 +465,11 @@
   <art:mapping id="map-term-reference-synthesis">
     <art:spec-ref node="term-reference-synthesis"
               revision="draft-1"
-              node-hash="sha256:c94c2a1d74392a649c1a7b2d38c50027029d012f7811a10319d00c2bf2eeebc2"/>
+              node-hash="sha256:70da2952b9ad79ddcdb2b94224e3056fa10d084265852880ebab4ee3c5722c3a"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="schemas/postprocess.xslt">
-        <art:range hash="sha256:bdb51516b4118d4cc295eedfcf12c7c95cc2aed5ce90b4e6353b56ca7de56192"
+        <art:range hash="sha256:9765608de06ff8c6a490b8951545b2f5e8c2de03654785746c17dbd0bc569528"
                    start-line="1" end-line="70"/>
       </art:artifact>
     <art:coverage>full</art:coverage>
@@ -416,7 +480,7 @@
   <art:mapping id="map-term-extension-relation-type">
     <art:spec-ref node="term-extension-relation-type"
               revision="draft-1"
-              node-hash="sha256:5f51e4f7c65d46cbb184229c4857054b997a216be3b5cf7c7be5cddc7426779a"/>
+              node-hash="sha256:feb5a2a30dda888f5b2689684f26918f22cedd6f6bc1558ef2e130af5d6e7a1f"/>
     <art:artifact repo="repo-clayers"
               repo-revision="ae7434a"
               path="crates/clayers-spec/src/schema.rs">
