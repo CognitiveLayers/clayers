@@ -33,6 +33,11 @@ fixes and additions.
 
 ### Fixed
 
+- **Generated HTML docs open cleanly into reading maps.** Loading docs
+  without a URL fragment now selects the first reading map and emits
+  lower sidebar groups as already-collapsed markup, avoiding the
+  expanded-sidebar flash during page load. Fragment links still open
+  only their containing sidebar group.
 - **Repository leaf hashing no longer aliases text with comments/PIs.**
   `clayers-repo` now hashes comment and processing-instruction leaves
   in explicit non-text domains, so XML like `<root>x<!--x--></root>`

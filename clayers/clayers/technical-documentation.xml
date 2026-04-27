@@ -115,6 +115,16 @@
     XML for copying. This makes the generated HTML useful as both
     documentation and an inspection surface for the source specification.</pr:p>
 
+    <pr:p>The generated HTML should prefer guided entry points when no fragment
+    identifier is present in the URL. On initial load without a hash, the first
+    reading map should be selected and the sidebar should keep the Reading Maps
+    group open while collapsing all groups below it. Those lower sidebar
+    groups should be emitted with their collapsed state already present in the
+    initial HTML so page load does not briefly flash the expanded navigation.
+    On initial load with a hash, the renderer should activate the page or
+    in-page node named by the hash, open only the sidebar group that contains
+    that target, and preserve the hash target for history and highlighting.</pr:p>
+
     <pr:p>The combined-document postprocessor should synthesize
     <pr:code>rel:relation type="references"</pr:code> edges from
     <pr:code>pr:xref</pr:code> and related-link entries. This makes prose
@@ -257,6 +267,21 @@
       </pln:acceptance>
       <pln:item-status>completed</pln:item-status>
     </pln:item>
+    <pln:item id="plan-technical-documentation-html-navigation-qol">
+      <pln:title>Improve generated HTML navigation ergonomics</pln:title>
+      <pln:description>Default no-hash loads to the first reading map with
+      lower sidebar groups emitted as collapsed, keep hash-target navigation
+      focused on the containing sidebar group, and preserve hash targets in
+      history and highlighting.</pln:description>
+      <pln:acceptance>
+        <pln:criterion>Documentation generation succeeds and the generated
+        markup and JavaScript contain hash-aware sidebar initialization,
+        initially collapsed lower sidebar groups, and target-preserving
+        history; witness command: cargo run -p clayers -- doc
+        clayers/clayers/ --output /tmp/clayers-doc.html.</pln:criterion>
+      </pln:acceptance>
+      <pln:item-status>completed</pln:item-status>
+    </pln:item>
   </pln:plan>
 
   <org:concept ref="technical-documentation-prose">
@@ -277,6 +302,10 @@
   <org:task ref="plan-technical-documentation-prose">
     <org:purpose>Tracks implementation work for the prose schema and XSLT
     expansion.</org:purpose>
+  </org:task>
+
+  <org:task ref="plan-technical-documentation-html-navigation-qol">
+    <org:purpose>Tracks generated HTML navigation improvements.</org:purpose>
   </org:task>
 
   <rel:relation type="refines" from="technical-documentation-prose" to="layered-architecture">
@@ -312,6 +341,12 @@
   <rel:relation type="refines" from="plan-technical-documentation-prose" to="technical-documentation-prose">
     <rel:note>The plan operationalizes the technical documentation prose
     expansion.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="plan-technical-documentation-html-navigation-qol" to="technical-documentation-xslt-processing">
+    <rel:note>The navigation quality-of-life item operationalizes the generated
+    HTML behavior specified for reading-map landing pages, hash-focused sidebar
+    state, and target-preserving history.</rel:note>
   </rel:relation>
 
   <rel:relation type="refines" from="prose-technical-documentation-example-step-validate" to="prose-technical-documentation-example">
@@ -368,7 +403,11 @@
     prose xrefs, related links, and content-backed media. Rendered sections
     expose a source button that opens a scrollable XML browser for inspecting
     the underlying spec node as a collapsible tree with highlighted element
-    names, attributes, and text plus raw-source copy support.
+    names, attributes, and text plus raw-source copy support. The generated
+    HTML should load the first reading map when there is no URL hash, collapse
+    lower sidebar groups in the initial markup, open only the containing
+    sidebar group for hash-targeted loads, and preserve hash targets in
+    history.
   </llm:node>
 
   <llm:node ref="prose-technical-documentation-example">
@@ -381,6 +420,12 @@
   <llm:node ref="plan-technical-documentation-prose">
     Implementation plan for extending prose schema capabilities and adding
     XSLT rendering/postprocessing support for technical documentation.
+  </llm:node>
+
+  <llm:node ref="plan-technical-documentation-html-navigation-qol">
+    Implementation plan item for generated HTML navigation ergonomics:
+    reading-map default landing, hash-focused sidebar expansion, and
+    target-preserving history.
   </llm:node>
 
   <llm:node ref="src-docbook-tdg-52">
@@ -407,7 +452,7 @@
   <art:mapping id="map-technical-documentation-xslt-processing-postprocess">
     <art:spec-ref node="technical-documentation-xslt-processing"
               revision="draft-1"
-              node-hash="sha256:0c5b3adcc11a7fbf96aad90d30c6b2951498404b0a3fb9e14cd363611ca00b4a"/>
+              node-hash="sha256:3545086d698945ca0cd178310c6d5f467e67b1316898b930f0b5a9307150d545"/>
     <art:artifact repo="repo-clayers"
               repo-revision="abb4044"
               path="schemas/postprocess.xslt">
@@ -422,7 +467,7 @@
   <art:mapping id="map-technical-documentation-xslt-processing-doc-prose">
     <art:spec-ref node="technical-documentation-xslt-processing"
               revision="draft-1"
-              node-hash="sha256:0c5b3adcc11a7fbf96aad90d30c6b2951498404b0a3fb9e14cd363611ca00b4a"/>
+              node-hash="sha256:3545086d698945ca0cd178310c6d5f467e67b1316898b930f0b5a9307150d545"/>
     <art:artifact repo="repo-clayers"
               repo-revision="abb4044"
               path="schemas/doc/prose.xslt">
@@ -437,7 +482,7 @@
   <art:mapping id="map-technical-documentation-xslt-processing-doc-css">
     <art:spec-ref node="technical-documentation-xslt-processing"
               revision="draft-1"
-              node-hash="sha256:0c5b3adcc11a7fbf96aad90d30c6b2951498404b0a3fb9e14cd363611ca00b4a"/>
+              node-hash="sha256:3545086d698945ca0cd178310c6d5f467e67b1316898b930f0b5a9307150d545"/>
     <art:artifact repo="repo-clayers"
               repo-revision="abb4044"
               path="schemas/doc/main.xslt">
@@ -451,16 +496,16 @@
   <art:mapping id="map-technical-documentation-xml-source-popup-main">
     <art:spec-ref node="technical-documentation-xslt-processing"
               revision="draft-1"
-              node-hash="sha256:0c5b3adcc11a7fbf96aad90d30c6b2951498404b0a3fb9e14cd363611ca00b4a"/>
+              node-hash="sha256:3545086d698945ca0cd178310c6d5f467e67b1316898b930f0b5a9307150d545"/>
     <art:artifact repo="repo-clayers"
               repo-revision="8704d65"
               path="schemas/doc/main.xslt">
       <art:range hash="sha256:d170035e41424e0451add7e70e40af70283b0f5fee562630263c6f3ac894266a" start-line="467" end-line="635"/>
       <art:range hash="sha256:9f10f27b43c4fe4a23698bbacdada0590cf8159fbdcf9b3afa8344641e768885" start-line="1504" end-line="1518"/>
       <art:range hash="sha256:7c35cfecf7c81067ea29b553cd0cd9c6264584fa147dcfb9edff282f3b23d124" start-line="1652" end-line="1911"/>
-      <art:range hash="sha256:cebfde1a99fec8973e9a04486dcdb5b4911991d83da485247a26d634bf6e0c3e" start-line="2007" end-line="2023"/>
-      <art:range hash="sha256:f7d99f1f6e50f318c848ebeee7184c03f4a861a1b7e75bb7ba49f9541ff26168" start-line="2059" end-line="2062"/>
-      <art:range hash="sha256:733f85a1653cbd19987c4e2ddec70fdbced2cee28ee4382d59b94db1e1b767a3" start-line="2214" end-line="2237"/>
+      <art:range hash="sha256:cebfde1a99fec8973e9a04486dcdb5b4911991d83da485247a26d634bf6e0c3e" start-line="2061" end-line="2077"/>
+      <art:range hash="sha256:f7d99f1f6e50f318c848ebeee7184c03f4a861a1b7e75bb7ba49f9541ff26168" start-line="2120" end-line="2123"/>
+      <art:range hash="sha256:79417a3b4c39639aff558e2a17e52746b56add56076108df505f087b79076a5d" start-line="2277" end-line="2300"/>
     </art:artifact>
     <art:coverage>partial</art:coverage>
     <art:note>HTML documentation source-browser support in the page shell:
@@ -468,10 +513,38 @@
     scrollable inspection, and raw-source copy action.</art:note>
   </art:mapping>
 
+  <art:mapping id="map-technical-documentation-html-navigation-qol-main">
+    <art:spec-ref node="technical-documentation-xslt-processing"
+              revision="draft-1"
+              node-hash="sha256:3545086d698945ca0cd178310c6d5f467e67b1316898b930f0b5a9307150d545"/>
+    <art:artifact repo="repo-clayers"
+              repo-revision="6ab54e9"
+              path="schemas/doc/main.xslt">
+      <art:range hash="sha256:cbbca57c0fee0eb52d5f92010ea0e2d19ce7e1dae8e8d58f6dd0740fcc4b1df2" start-line="1274" end-line="1274"/>
+      <art:range hash="sha256:9ff66a30cb810013d99175bab24524973eadc663c66ed9b7b7fcd92d27919ce8" start-line="1296" end-line="1296"/>
+      <art:range hash="sha256:9ff66a30cb810013d99175bab24524973eadc663c66ed9b7b7fcd92d27919ce8" start-line="1318" end-line="1318"/>
+      <art:range hash="sha256:9ff66a30cb810013d99175bab24524973eadc663c66ed9b7b7fcd92d27919ce8" start-line="1340" end-line="1340"/>
+      <art:range hash="sha256:9ff66a30cb810013d99175bab24524973eadc663c66ed9b7b7fcd92d27919ce8" start-line="1363" end-line="1363"/>
+      <art:range hash="sha256:2517e31351fdf1a232420d077e9d02a55149e1f7528ae55b4ef9b0edb4b2a3de" start-line="1384" end-line="1384"/>
+      <art:range hash="sha256:2517e31351fdf1a232420d077e9d02a55149e1f7528ae55b4ef9b0edb4b2a3de" start-line="1404" end-line="1404"/>
+      <art:range hash="sha256:2517e31351fdf1a232420d077e9d02a55149e1f7528ae55b4ef9b0edb4b2a3de" start-line="1431" end-line="1431"/>
+      <art:range hash="sha256:2517e31351fdf1a232420d077e9d02a55149e1f7528ae55b4ef9b0edb4b2a3de" start-line="1453" end-line="1453"/>
+      <art:range hash="sha256:2517e31351fdf1a232420d077e9d02a55149e1f7528ae55b4ef9b0edb4b2a3de" start-line="1474" end-line="1474"/>
+      <art:range hash="sha256:ed2f96cad4b31d1d81b339453bf7079131bc9f2ad950d37812dafd62f249f8e9" start-line="1939" end-line="2116"/>
+      <art:range hash="sha256:417db5ed56cb93d77b152d35775439a852bd51421b2486c1674fae1421e90c71" start-line="2370" end-line="2370"/>
+      <art:range hash="sha256:221eed0a5f9f46f3c89aa2c673c1f52a573d5d82a2c30459a884730270521ec9" start-line="2952" end-line="2955"/>
+      <art:range hash="sha256:43a0ddd410aaa3e2c2ba8e4b5bb099520fc0f5234bde9859e66db4186d5b137c" start-line="3183" end-line="3199"/>
+    </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>Generated HTML navigation quality-of-life support: reading-map
+    default landing, hash-targeted sidebar focus, target-preserving history,
+    and rehighlight and graph scope wrappers that forward target IDs.</art:note>
+  </art:mapping>
+
   <art:mapping id="map-technical-documentation-xml-source-popup-prose">
     <art:spec-ref node="technical-documentation-xslt-processing"
               revision="draft-1"
-              node-hash="sha256:0c5b3adcc11a7fbf96aad90d30c6b2951498404b0a3fb9e14cd363611ca00b4a"/>
+              node-hash="sha256:3545086d698945ca0cd178310c6d5f467e67b1316898b930f0b5a9307150d545"/>
     <art:artifact repo="repo-clayers"
               repo-revision="8704d65"
               path="schemas/doc/prose.xslt">
@@ -500,5 +573,8 @@
 
   <art:exempt node="plan-technical-documentation-prose-xslt">Completed plan item
   represented by the XSLT mappings.</art:exempt>
+
+  <art:exempt node="plan-technical-documentation-html-navigation-qol">Completed
+  plan item represented by the generated-document XSLT mappings.</art:exempt>
 
 </spec:clayers>

@@ -1271,7 +1271,7 @@ h6:hover .heading-anchor { opacity: 1; }
 
           <!-- Reading Maps (top of sidebar, collapsible) -->
           <xsl:if test=".//org:map">
-            <div class="nav-group">
+            <div class="nav-group nav-group-reading-maps">
               <div class="toc-heading">
                 <span class="heading-left" onclick="this.closest('.nav-group').classList.toggle('collapsed')"><svg class="chevron" viewBox="0 0 10 10"><path d="M3 1l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>Reading Maps</span>
               </div>
@@ -1293,7 +1293,7 @@ h6:hover .heading-anchor { opacity: 1; }
           <!-- Concepts -->
           <xsl:variable name="concept-sections" select="pr:section[@id = $all-concepts]"/>
           <xsl:if test="$concept-sections">
-            <div class="nav-group" data-sortable="true">
+            <div class="nav-group collapsed" data-sortable="true">
               <div class="toc-heading">
                 <span class="heading-left" onclick="this.closest('.nav-group').classList.toggle('collapsed')"><svg class="chevron" viewBox="0 0 10 10"><path d="M3 1l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>Concepts</span>
                 <span class="sort-controls">
@@ -1315,7 +1315,7 @@ h6:hover .heading-anchor { opacity: 1; }
           <!-- Tasks -->
           <xsl:variable name="task-sections" select="pr:section[@id = $all-tasks]"/>
           <xsl:if test="$task-sections">
-            <div class="nav-group" data-sortable="true">
+            <div class="nav-group collapsed" data-sortable="true">
               <div class="toc-heading">
                 <span class="heading-left" onclick="this.closest('.nav-group').classList.toggle('collapsed')"><svg class="chevron" viewBox="0 0 10 10"><path d="M3 1l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>Tasks</span>
                 <span class="sort-controls">
@@ -1337,7 +1337,7 @@ h6:hover .heading-anchor { opacity: 1; }
           <!-- References -->
           <xsl:variable name="ref-sections" select="pr:section[@id = $all-references]"/>
           <xsl:if test="$ref-sections">
-            <div class="nav-group" data-sortable="true">
+            <div class="nav-group collapsed" data-sortable="true">
               <div class="toc-heading">
                 <span class="heading-left" onclick="this.closest('.nav-group').classList.toggle('collapsed')"><svg class="chevron" viewBox="0 0 10 10"><path d="M3 1l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>Reference</span>
                 <span class="sort-controls">
@@ -1360,7 +1360,7 @@ h6:hover .heading-anchor { opacity: 1; }
           <xsl:variable name="typed-ids" select="($all-concepts, $all-tasks, $all-references)"/>
           <xsl:variable name="untyped-sections" select="pr:section[not(@id = $typed-ids)]"/>
           <xsl:if test="$untyped-sections">
-            <div class="nav-group" data-sortable="true">
+            <div class="nav-group collapsed" data-sortable="true">
               <div class="toc-heading">
                 <span class="heading-left" onclick="this.closest('.nav-group').classList.toggle('collapsed')"><svg class="chevron" viewBox="0 0 10 10"><path d="M3 1l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>Sections</span>
                 <span class="sort-controls">
@@ -1381,7 +1381,7 @@ h6:hover .heading-anchor { opacity: 1; }
 
           <!-- Terminology -->
           <xsl:if test=".//trm:term">
-            <div class="nav-group">
+            <div class="nav-group collapsed">
               <div class="toc-heading">
                 <span class="heading-left" onclick="this.closest('.nav-group').classList.toggle('collapsed')"><svg class="chevron" viewBox="0 0 10 10"><path d="M3 1l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>Terminology</span>
               </div>
@@ -1401,7 +1401,7 @@ h6:hover .heading-anchor { opacity: 1; }
 
           <!-- Decisions -->
           <xsl:if test=".//dec:decision">
-            <div class="nav-group">
+            <div class="nav-group collapsed">
               <div class="toc-heading">
                 <span class="heading-left" onclick="this.closest('.nav-group').classList.toggle('collapsed')"><svg class="chevron" viewBox="0 0 10 10"><path d="M3 1l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>Decisions</span>
               </div>
@@ -1428,7 +1428,7 @@ h6:hover .heading-anchor { opacity: 1; }
 
           <!-- Plans -->
           <xsl:if test=".//pln:plan">
-            <div class="nav-group">
+            <div class="nav-group collapsed">
               <div class="toc-heading">
                 <span class="heading-left" onclick="this.closest('.nav-group').classList.toggle('collapsed')"><svg class="chevron" viewBox="0 0 10 10"><path d="M3 1l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>Plans</span>
               </div>
@@ -1450,7 +1450,7 @@ h6:hover .heading-anchor { opacity: 1; }
 
           <!-- Sources -->
           <xsl:if test=".//src:source">
-            <div class="nav-group">
+            <div class="nav-group collapsed">
               <div class="toc-heading">
                 <span class="heading-left" onclick="this.closest('.nav-group').classList.toggle('collapsed')"><svg class="chevron" viewBox="0 0 10 10"><path d="M3 1l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>Sources</span>
               </div>
@@ -1471,7 +1471,7 @@ h6:hover .heading-anchor { opacity: 1; }
 
           <!-- Artifacts -->
           <xsl:if test=".//art:mapping">
-            <div class="nav-group">
+            <div class="nav-group collapsed">
               <div class="toc-heading">
                 <span class="heading-left" onclick="this.closest('.nav-group').classList.toggle('collapsed')"><svg class="chevron" viewBox="0 0 10 10"><path d="M3 1l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>Artifacts</span>
               </div>
@@ -1936,7 +1936,66 @@ function updateBreadcrumbs(pageId) {
   bc.appendChild(current);
 }
 
-function showPage(pageId, pushHistory) {
+var activeNavTargetId = null;
+
+function sidebarLinkForId(id) {
+  if (!id) return null;
+  var links = document.querySelectorAll('#sidebar a[href^="#"]');
+  for (var i = 0; i &lt; links.length; i++) {
+    if (links[i].getAttribute('href') === '#' + id) return links[i];
+  }
+  return null;
+}
+
+function pageForTargetId(id) {
+  if (!id) return '';
+  var page = document.querySelector('.page[data-page="' + id + '"]');
+  if (page) return id;
+  var el = document.getElementById(id);
+  var parentPage = el ? el.closest('.page') : null;
+  return parentPage ? parentPage.getAttribute('data-page') : '';
+}
+
+function focusSidebarGroupForLink(link) {
+  var groups = document.querySelectorAll('#sidebar .nav-group');
+  groups.forEach(function(group) { group.classList.add('collapsed'); });
+  if (link) {
+    var group = link.closest('.nav-group');
+    if (group) group.classList.remove('collapsed');
+  }
+}
+
+function focusDefaultReadingMapsSidebar() {
+  var readingMaps = document.querySelector('#sidebar .nav-group-reading-maps');
+  var groups = document.querySelectorAll('#sidebar .nav-group');
+  groups.forEach(function(group) {
+    group.classList.toggle('collapsed', group !== readingMaps);
+  });
+}
+
+function setSidebarActive(targetId, pageId) {
+  document.querySelectorAll('#sidebar a').forEach(function(a) {
+    a.classList.remove('active');
+  });
+  var link = sidebarLinkForId(targetId) || sidebarLinkForId(pageId);
+  if (link) link.classList.add('active');
+  focusSidebarGroupForLink(link);
+}
+
+function scrollToTarget(targetId, smooth) {
+  if (!targetId) return;
+  var el = document.getElementById(targetId);
+  if (!el || el.classList.contains('page')) return;
+  setTimeout(function() {
+    el.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' });
+    el.classList.add('highlight-flash');
+    setTimeout(function() { el.classList.remove('highlight-flash'); }, 1600);
+  }, 50);
+}
+
+function showPage(pageId, pushHistory, targetId) {
+  targetId = targetId || pageId;
+  activeNavTargetId = targetId;
   document.querySelectorAll('.page').forEach(function(p) {
     p.classList.remove('active');
   });
@@ -1945,13 +2004,9 @@ function showPage(pageId, pushHistory) {
     target.classList.add('active');
     window.scrollTo(0, 0);
   }
-  document.querySelectorAll('#sidebar a').forEach(function(a) {
-    a.classList.remove('active');
-  });
-  var link = document.querySelector('#sidebar a[href="#' + pageId + '"]');
-  if (link) link.classList.add('active');
+  setSidebarActive(targetId, pageId);
   if (pushHistory !== false) {
-    history.pushState({ page: pageId }, '', '#' + pageId);
+    history.pushState({ page: pageId, target: targetId }, '', '#' + targetId);
   }
   updateBreadcrumbs(pageId);
   // Close mobile sidebar on navigation
@@ -1960,14 +2015,17 @@ function showPage(pageId, pushHistory) {
 }
 
 window.addEventListener('popstate', function(e) {
-  var pageId;
+  var pageId, targetId;
   if (e.state &amp;&amp; e.state.page) {
     pageId = e.state.page;
+    targetId = e.state.target || pageId;
   } else {
-    pageId = window.location.hash.substring(1);
+    targetId = window.location.hash.substring(1);
+    pageId = pageForTargetId(targetId);
   }
   if (pageId) {
-    showPage(pageId, false);
+    showPage(pageId, false, targetId);
+    scrollToTarget(targetId, false);
   }
 });
 
@@ -1986,7 +2044,7 @@ window.addEventListener('popstate', function(e) {
     // 1. Direct page match
     var page = document.querySelector('.page[data-page="' + id + '"]');
     if (page) {
-      showPage(id);
+      showPage(id, true, id);
       return;
     }
     // 2. Element inside a page (term in glossary, source in sources, etc.)
@@ -1994,12 +2052,8 @@ window.addEventListener('popstate', function(e) {
     if (el) {
       var parentPage = el.closest('.page');
       if (parentPage) {
-        showPage(parentPage.getAttribute('data-page'));
-        setTimeout(function() {
-          el.scrollIntoView({ behavior: 'smooth' });
-          el.classList.add('highlight-flash');
-          setTimeout(function() { el.classList.remove('highlight-flash'); }, 1600);
-        }, 50);
+        showPage(parentPage.getAttribute('data-page'), true, id);
+        scrollToTarget(id, true);
       }
     }
   }
@@ -2033,26 +2087,33 @@ window.addEventListener('popstate', function(e) {
   var hash = window.location.hash.substring(1);
   var pages = document.querySelectorAll('.page');
   if (hash) {
-    var target = document.querySelector('.page[data-page="' + hash + '"]');
-    if (target) {
-      showPage(hash, false);
-    } else {
-      var el = document.getElementById(hash);
-      if (el) {
-        var page = el.closest('.page');
-        if (page) {
-          showPage(page.getAttribute('data-page'), false);
-          setTimeout(function() { el.scrollIntoView(); }, 50);
-        }
-      } else if (pages.length > 0) {
-        showPage(pages[0].getAttribute('data-page'), false);
-      }
+    var initialPage = pageForTargetId(hash);
+    if (initialPage) {
+      showPage(initialPage, false, hash);
+      scrollToTarget(hash, false);
+    } else if (pages.length > 0) {
+      showPage(pages[0].getAttribute('data-page'), false);
     }
-  } else if (pages.length > 0) {
-    showPage(pages[0].getAttribute('data-page'), false);
+  } else {
+    var firstMapLink = document.querySelector('#sidebar .nav-group-reading-maps a[href^="#"]');
+    if (firstMapLink) {
+      var firstMapId = firstMapLink.getAttribute('href').substring(1);
+      showPage(firstMapId, false, firstMapId);
+      focusDefaultReadingMapsSidebar();
+    } else if (pages.length > 0) {
+      showPage(pages[0].getAttribute('data-page'), false);
+    }
   }
   // Replace initial state so popstate has something to land on
-  history.replaceState({ page: document.querySelector('.page.active')?.getAttribute('data-page') || '' }, '');
+  var initialState = {
+    page: document.querySelector('.page.active')?.getAttribute('data-page') || '',
+    target: activeNavTargetId || document.querySelector('.page.active')?.getAttribute('data-page') || ''
+  };
+  if (hash &amp;&amp; activeNavTargetId) {
+    history.replaceState(initialState, '', '#' + activeNavTargetId);
+  } else {
+    history.replaceState(initialState, '');
+  }
 
   // Build search index from all navigable nodes
   var searchData = [];
@@ -2306,7 +2367,7 @@ function rehighlight() {
 rehighlight();
 // Re-highlight when switching pages
 var origShowPage = showPage;
-showPage = function(id, push) { origShowPage(id, push); rehighlight(); };
+showPage = function(id, push, target) { origShowPage(id, push, target); rehighlight(); };
           </xsl:text>
         </script>
 
@@ -2884,6 +2945,7 @@ function _initGraphInner(data, container, w, h) {
   // Set initial node from URL hash
   var initHash = window.location.hash.substring(1);
   if (initHash) currentNodeId = initHash;
+  else if (activeNavTargetId) currentNodeId = activeNavTargetId;
 
   // Build initial graph and fit to view (hidden until layout completes)
   container.style.visibility = 'hidden';
@@ -3113,19 +3175,19 @@ function toggleGraphPanel() {
 
 // --- Hook showPage for scope updates (Step 9) ---
 var origShowPage2 = showPage;
-showPage = function(id, push) {
-  origShowPage2(id, push);
-  currentNodeId = id;
+showPage = function(id, push, target) {
+  origShowPage2(id, push, target);
+  currentNodeId = target || id;
   if (clayersGraph &amp;&amp; getActiveScope() === 'neighborhood') {
-    showNeighborhood(id);
+    showNeighborhood(currentNodeId);
   }
   // Highlight current node in graph
-  if (clayersGraph &amp;&amp; nodeMap[id]) {
+  if (clayersGraph &amp;&amp; nodeMap[currentNodeId]) {
     // Reset all highlights
     Object.keys(nodeMap).forEach(function(nid) {
       nodeMap[nid].attr('body/filter', 'url(#node-shadow)');
     });
-    nodeMap[id].attr('body/filter', 'url(#node-glow)');
+    nodeMap[currentNodeId].attr('body/filter', 'url(#node-glow)');
   }
 };
 
