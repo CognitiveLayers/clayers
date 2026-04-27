@@ -38,6 +38,9 @@ fixes and additions.
   lower sidebar groups as already-collapsed markup, avoiding the
   expanded-sidebar flash during page load. Fragment links still open
   only their containing sidebar group.
+- **Documentation graph zoom follows the cursor.** Wheel zoom in the
+  generated HTML graph now keeps the point under the mouse stable
+  instead of zooming toward the top-left.
 - **Repository leaf hashing no longer aliases text with comments/PIs.**
   `clayers-repo` now hashes comment and processing-instruction leaves
   in explicit non-text domains, so XML like `<root>x<!--x--></root>`

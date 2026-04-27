@@ -2935,7 +2935,14 @@ function _initGraphInner(data, container, w, h) {
     var delta = evt.deltaY &lt; 0 ? 1.1 : 0.9;
     var s = paper.scale();
     var newS = Math.max(0.1, Math.min(3, s.sx * delta));
+    var t = paper.translate();
+    var rect = paper.el.getBoundingClientRect();
+    var cursorX = evt.clientX - rect.left;
+    var cursorY = evt.clientY - rect.top;
+    var localX = (cursorX - t.tx) / s.sx;
+    var localY = (cursorY - t.ty) / s.sy;
     paper.scale(newS, newS);
+    paper.translate(cursorX - localX * newS, cursorY - localY * newS);
   });
 
   clayersGraph = { graph: graph, paper: paper, data: data };

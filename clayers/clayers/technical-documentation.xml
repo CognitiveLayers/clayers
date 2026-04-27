@@ -125,6 +125,10 @@
     in-page node named by the hash, open only the sidebar group that contains
     that target, and preserve the hash target for history and highlighting.</pr:p>
 
+    <pr:p>The interactive graph should zoom around the mouse cursor position so
+    wheel gestures keep the point under the cursor stable instead of zooming
+    toward the graph origin.</pr:p>
+
     <pr:p>The combined-document postprocessor should synthesize
     <pr:code>rel:relation type="references"</pr:code> edges from
     <pr:code>pr:xref</pr:code> and related-link entries. This makes prose
@@ -282,6 +286,18 @@
       </pln:acceptance>
       <pln:item-status>completed</pln:item-status>
     </pln:item>
+    <pln:item id="plan-technical-documentation-html-graph-zoom">
+      <pln:title>Improve generated HTML graph zoom ergonomics</pln:title>
+      <pln:description>Make graph wheel zoom preserve the graph point under the
+      mouse cursor.</pln:description>
+      <pln:acceptance>
+        <pln:criterion>Documentation generation succeeds and the generated
+        JavaScript contains cursor-centered graph wheel zoom; witness command:
+        cargo run -p clayers -- doc clayers/clayers/ --output
+        /tmp/clayers-doc.html.</pln:criterion>
+      </pln:acceptance>
+      <pln:item-status>completed</pln:item-status>
+    </pln:item>
   </pln:plan>
 
   <org:concept ref="technical-documentation-prose">
@@ -306,6 +322,10 @@
 
   <org:task ref="plan-technical-documentation-html-navigation-qol">
     <org:purpose>Tracks generated HTML navigation improvements.</org:purpose>
+  </org:task>
+
+  <org:task ref="plan-technical-documentation-html-graph-zoom">
+    <org:purpose>Tracks generated HTML graph zoom improvements.</org:purpose>
   </org:task>
 
   <rel:relation type="refines" from="technical-documentation-prose" to="layered-architecture">
@@ -347,6 +367,11 @@
     <rel:note>The navigation quality-of-life item operationalizes the generated
     HTML behavior specified for reading-map landing pages, hash-focused sidebar
     state, and target-preserving history.</rel:note>
+  </rel:relation>
+
+  <rel:relation type="refines" from="plan-technical-documentation-html-graph-zoom" to="technical-documentation-xslt-processing">
+    <rel:note>The graph zoom quality-of-life item operationalizes the generated
+    HTML behavior specified for cursor-centered graph wheel gestures.</rel:note>
   </rel:relation>
 
   <rel:relation type="refines" from="prose-technical-documentation-example-step-validate" to="prose-technical-documentation-example">
@@ -406,8 +431,8 @@
     names, attributes, and text plus raw-source copy support. The generated
     HTML should load the first reading map when there is no URL hash, collapse
     lower sidebar groups in the initial markup, open only the containing
-    sidebar group for hash-targeted loads, and preserve hash targets in
-    history.
+    sidebar group for hash-targeted loads, preserve hash targets in history,
+    and zoom the graph around the mouse cursor.
   </llm:node>
 
   <llm:node ref="prose-technical-documentation-example">
@@ -426,6 +451,11 @@
     Implementation plan item for generated HTML navigation ergonomics:
     reading-map default landing, hash-focused sidebar expansion, and
     target-preserving history.
+  </llm:node>
+
+  <llm:node ref="plan-technical-documentation-html-graph-zoom">
+    Implementation plan item for generated HTML graph ergonomics:
+    cursor-centered graph wheel zoom.
   </llm:node>
 
   <llm:node ref="src-docbook-tdg-52">
@@ -452,7 +482,7 @@
   <art:mapping id="map-technical-documentation-xslt-processing-postprocess">
     <art:spec-ref node="technical-documentation-xslt-processing"
               revision="draft-1"
-              node-hash="sha256:3545086d698945ca0cd178310c6d5f467e67b1316898b930f0b5a9307150d545"/>
+              node-hash="sha256:6a84f2cc892787d91dba762cf621118cf01be378d3af74d58c03daafe594413d"/>
     <art:artifact repo="repo-clayers"
               repo-revision="abb4044"
               path="schemas/postprocess.xslt">
@@ -467,7 +497,7 @@
   <art:mapping id="map-technical-documentation-xslt-processing-doc-prose">
     <art:spec-ref node="technical-documentation-xslt-processing"
               revision="draft-1"
-              node-hash="sha256:3545086d698945ca0cd178310c6d5f467e67b1316898b930f0b5a9307150d545"/>
+              node-hash="sha256:6a84f2cc892787d91dba762cf621118cf01be378d3af74d58c03daafe594413d"/>
     <art:artifact repo="repo-clayers"
               repo-revision="abb4044"
               path="schemas/doc/prose.xslt">
@@ -482,7 +512,7 @@
   <art:mapping id="map-technical-documentation-xslt-processing-doc-css">
     <art:spec-ref node="technical-documentation-xslt-processing"
               revision="draft-1"
-              node-hash="sha256:3545086d698945ca0cd178310c6d5f467e67b1316898b930f0b5a9307150d545"/>
+              node-hash="sha256:6a84f2cc892787d91dba762cf621118cf01be378d3af74d58c03daafe594413d"/>
     <art:artifact repo="repo-clayers"
               repo-revision="abb4044"
               path="schemas/doc/main.xslt">
@@ -496,7 +526,7 @@
   <art:mapping id="map-technical-documentation-xml-source-popup-main">
     <art:spec-ref node="technical-documentation-xslt-processing"
               revision="draft-1"
-              node-hash="sha256:3545086d698945ca0cd178310c6d5f467e67b1316898b930f0b5a9307150d545"/>
+              node-hash="sha256:6a84f2cc892787d91dba762cf621118cf01be378d3af74d58c03daafe594413d"/>
     <art:artifact repo="repo-clayers"
               repo-revision="8704d65"
               path="schemas/doc/main.xslt">
@@ -516,7 +546,7 @@
   <art:mapping id="map-technical-documentation-html-navigation-qol-main">
     <art:spec-ref node="technical-documentation-xslt-processing"
               revision="draft-1"
-              node-hash="sha256:3545086d698945ca0cd178310c6d5f467e67b1316898b930f0b5a9307150d545"/>
+              node-hash="sha256:6a84f2cc892787d91dba762cf621118cf01be378d3af74d58c03daafe594413d"/>
     <art:artifact repo="repo-clayers"
               repo-revision="6ab54e9"
               path="schemas/doc/main.xslt">
@@ -532,8 +562,8 @@
       <art:range hash="sha256:2517e31351fdf1a232420d077e9d02a55149e1f7528ae55b4ef9b0edb4b2a3de" start-line="1474" end-line="1474"/>
       <art:range hash="sha256:ed2f96cad4b31d1d81b339453bf7079131bc9f2ad950d37812dafd62f249f8e9" start-line="1939" end-line="2116"/>
       <art:range hash="sha256:417db5ed56cb93d77b152d35775439a852bd51421b2486c1674fae1421e90c71" start-line="2370" end-line="2370"/>
-      <art:range hash="sha256:221eed0a5f9f46f3c89aa2c673c1f52a573d5d82a2c30459a884730270521ec9" start-line="2952" end-line="2955"/>
-      <art:range hash="sha256:43a0ddd410aaa3e2c2ba8e4b5bb099520fc0f5234bde9859e66db4186d5b137c" start-line="3183" end-line="3199"/>
+      <art:range hash="sha256:8c6cbd8927173281327283e9063be72520ceedee0f4e2873e7e6c25a32ef2a60" start-line="2952" end-line="2955"/>
+      <art:range hash="sha256:1ffff82002dec2b77e59d6cccb86eef2d7159ea0dff3f4bda4331b9808590d1e" start-line="3183" end-line="3199"/>
     </art:artifact>
     <art:coverage>partial</art:coverage>
     <art:note>Generated HTML navigation quality-of-life support: reading-map
@@ -541,10 +571,24 @@
     and rehighlight and graph scope wrappers that forward target IDs.</art:note>
   </art:mapping>
 
+  <art:mapping id="map-technical-documentation-html-graph-zoom-main">
+    <art:spec-ref node="technical-documentation-xslt-processing"
+              revision="draft-1"
+              node-hash="sha256:6a84f2cc892787d91dba762cf621118cf01be378d3af74d58c03daafe594413d"/>
+    <art:artifact repo="repo-clayers"
+              repo-revision="6ab54e9"
+              path="schemas/doc/main.xslt">
+      <art:range hash="sha256:67403d2ab7a828bd3ffcee4c5ac29c5a5e996efd175c34b7792747d516f07d52" start-line="2933" end-line="2945"/>
+    </art:artifact>
+    <art:coverage>partial</art:coverage>
+    <art:note>Generated HTML graph wheel zoom support that keeps the graph
+    point under the mouse cursor stable while scaling.</art:note>
+  </art:mapping>
+
   <art:mapping id="map-technical-documentation-xml-source-popup-prose">
     <art:spec-ref node="technical-documentation-xslt-processing"
               revision="draft-1"
-              node-hash="sha256:3545086d698945ca0cd178310c6d5f467e67b1316898b930f0b5a9307150d545"/>
+              node-hash="sha256:6a84f2cc892787d91dba762cf621118cf01be378d3af74d58c03daafe594413d"/>
     <art:artifact repo="repo-clayers"
               repo-revision="8704d65"
               path="schemas/doc/prose.xslt">
@@ -575,6 +619,9 @@
   represented by the XSLT mappings.</art:exempt>
 
   <art:exempt node="plan-technical-documentation-html-navigation-qol">Completed
+  plan item represented by the generated-document XSLT mappings.</art:exempt>
+
+  <art:exempt node="plan-technical-documentation-html-graph-zoom">Completed
   plan item represented by the generated-document XSLT mappings.</art:exempt>
 
 </spec:clayers>

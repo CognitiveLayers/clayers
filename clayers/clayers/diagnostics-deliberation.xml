@@ -330,7 +330,7 @@
     <art:artifact repo="repo-clayers"
               repo-revision="abb4044"
               path="schemas/doc/main.xslt">
-      <art:range hash="sha256:9c5b5cf620bb5b782e58e3950d9ddf6d4cfa0ff1ffc1a9274199c1730c9ebdae"/>
+      <art:range hash="sha256:7e08baa5038ee691d1a24c373677f8850af4dbd16a7c28da219094c2ff46a2ba"/>
     </art:artifact>
     <art:coverage>partial</art:coverage>
     <art:note>Main documentation stylesheet imports diagnostic and deliberation
